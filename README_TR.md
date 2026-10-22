@@ -27,6 +27,7 @@ Kurulum OS, Doom, WAD, OTA seçim verisi ve başlangıç LittleFS içeriğini ya
 - Yükleme hızını seçme; yazma sürerken pencerenin yanlışlıkla kapatılmasını engelleme.
 - Viewer otomatik bağlantı, en son kareyi gösterme, klavye/fare ve yeniden bağlanma davranışları korunmuştur.
 - Viewer başlangıç penceresi 960 × 680 yapılmıştır.
+- Viewer FPS hesaplaması aynı Windows zaman dilimine denk gelen iki karede sıfıra bölme hatasına karşı korunmuştur.
 
 ## Doğrulama sınırı
 

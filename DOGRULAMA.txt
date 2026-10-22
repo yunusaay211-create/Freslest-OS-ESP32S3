@@ -1,19 +1,30 @@
-FRESLEST OS 1.0 — WINDOWS DOĞRULAMA SONUCU
+FRESLEST OS 1.0 — DOĞRULAMA SONUCU
 
+Installer açılışında Dil / Language: Türkçe veya English seçilebilir.
+Kurulum adımları, uyarılar, hata/sonuç ekranları ve installer günlükleri çevrilmiştir.
 İki uygulama gerçek Windows ortamında 64 bit Python 3.11.9 / PyInstaller 6.22.3 ile derlendi.
-Freslest Installer.exe: 17.927.617 bayt
-Freslest USB Viewer.exe: 11.561.004 bayt
+Freslest Installer.exe: 17934434 bayt
+Freslest USB Viewer.exe: 11561815 bayt
 
-12 kaynak testi geçti: 5 kurulum/tanılama, 3 Viewer arayüzü, 2 renk/bellek ve 2 seri aktarım testi.
-Paketli Installer'ın gerçek esptool 4.11.0 ve ESP32-S3 stub kaynakları çalıştırılarak doğrulandı.
-Paketli Installer içindeki yedi firmware dosyasının hash ve boyut doğrulaması geçti.
-İki paketli EXE de Windows'ta görünür pencere açtı ve normal kapandı.
-Dosyalar indirildikten sonra Windows derleme raporundaki SHA256 değerleriyle tekrar karşılaştırıldı.
+35 kaynak testi geçti: 15 firmware, 11 installer/dil/tanılama ve 9 Viewer testi.
+Türkçe ve English paketli Installer ile Viewer görünür pencere açtı ve normal kapandı.
+Paketli Installer'ın gerçek esptool 4.11.0 ve ESP32-S3 stub kaynakları doğrulandı.
+Paketli Installer içindeki yedi firmware dosyasının hash ve boyut kontrolleri geçti.
+Gömülü OS uygulama descriptor sürümü 1.0 olarak ayrıca doğrulandı.
+İndirilen iki EXE'nin SHA256 değerleri Windows derleme raporuyla eşleşti.
+Viewer FPS hesaplamasında eşit zaman değerlerinin yol açtığı sıfıra bölme düzeltildi.
 
-GitHub Actions:
-https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/39835602353
-Kaynak commit: 574d27fe5f746d4a5ec95f0506765595754d485d
+System Info, esp_app_get_description()->version alanını okur.
+Bu OS alanı 6.16 → 1.0 yapıldı; XOR sağlama toplamı ve SHA256 footer yeniden hesaplandı.
+OS kaynakları yeniden derlenmedi. Tam 36 bayt değişti; diğer kod/veri baytları aynıdır.
+Doom ve diğer altı firmware dosyası özgün paketle birebir aynıdır.
+Tam kaynak paketi OS/CMakeLists.txt içindeki PROJECT_VER de 1.0 olarak ayarlandı.
+Yeni OS SHA256: c3815e88e6edce96536e5dedb380e056b80ce9c937f2b4b5468e26f1774455ea
 
-SINIR: Bu ortama fiziksel ESP32-S3 bağlı değildir. Gerçek cihazda firmware yazma, ekran aktarımı ve
-PC klavye/fare kontrolü burada test edilmedi. Mevcut firmware dosyaları değiştirilmedi.
-Tam ESP32-S3 proje ZIP'i ve önceki Viewer ZIP'i orijinal halleriyle korunuyor; bu pakette Windows uygulamalarının kaynakları bulunur.
+GitHub Actions: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/39839956134
+Kaynak commit: f455a996c7494a74d0d28d9e8d578b675d862cae
+
+SINIR: Fiziksel ESP32-S3 bağlı değildir. Cihaza yazma, ekrandan aktarım ve
+PC klavye/fare kontrolü fiziksel cihazda bu ortamda test edilmedi.
+Eski firmware yüklü cihazda sürümün değişmesi için yeni OS yüklenmelidir.
+USB güncelleme ZIP'i yalnızca OS'yi günceller; installer başlangıç LittleFS içeriğini de yazar.
