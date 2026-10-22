@@ -1,0 +1,46 @@
+name: Freslest 1.0 Windows EXEs
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'installer/**'
+      - 'viewer/**'
+      - 'tests/**'
+      - 'firmware-payload.zip'
+      - 'firmware-payload/**'
+      - 'build_windows.py'
+      - 'prepare_firmware.py'
+      - 'requirements-build.txt'
+      - '.github/workflows/windows-exes.yml'
+permissions:
+  contents: read
+jobs:
+  build-and-launch:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+          cache: pip
+          cache-dependency-path: requirements-build.txt
+      - name: Install pinned build tools
+        run: python -m pip install -r requirements-build.txt
+      - name: Verify original firmware
+        run: python prepare_firmware.py
+      - name: Confirm original installer regression failures
+        run: python tests/prove_regressions.py
+      - name: Test corrected installer and preserved Viewer
+        run: python tests/run_all.py
+      - name: Build actual x64 Windows GUI executables
+        run: python build_windows.py
+      - name: Launch and close both packaged applications on Windows
+        run: python tests/smoke_exes_windows.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Freslest-1.0-Windows-EXEs
+          path: dist/*
+          if-no-files-found: error
+          compression-level: 0
