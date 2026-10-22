@@ -18,8 +18,11 @@ class ViewerPresentation(unittest.TestCase):
   def draw(*a,**kw):painted.append(1);return real(*a,**kw)
   self.viewer.show_image=draw
   for i in range(100):self.viewer.post('frame',self.frame(i,i,0,0))
-  self.viewer.pump();self.root.update_idletasks()
+  self.viewer.pump()
+  # Windows may deliver a separate Canvas Configure redraw on idle.
+  # Measure the explicit frame pump before dispatching layout events.
   self.assertEqual(len(painted),1,'queued old frames consume the Tk event loop')
+  self.root.update_idletasks()
   self.assertEqual(self.viewer.image.get(0,0),(99,0,0))
  def test_frame_updates_reuse_image_and_canvas_resources(self):
   self.viewer.post('frame',self.frame(1));self.viewer.pump();self.root.update_idletasks()
