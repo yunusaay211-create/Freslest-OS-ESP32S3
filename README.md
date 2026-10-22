@@ -1,1 +1,155 @@
-# Freslest-OS-ESP32S3
+[README_Freslest_GitHub.md](https://github.com/user-attachments/files/33834154/README_Freslest_GitHub.md)
+# Freslest OS 1.0-ESP32S3
+
+**A graphical, desktop-style embedded environment for the ESP32-S3**, featuring applications, NES emulation, DOOM, USB input, file management, and experimental composite video.
+
+> **Release naming:** Freslest OS **1.0** is the proposed first public GitHub release name. The supplied firmware and source are based on the internal **6.16** development build. Renaming a release does **not** change the firmware's version strings. Do not present the firmware as rebuilt 1.0 until that work is completed and tested.
+
+## Hardware requirements
+
+- ESP32-S3 N16R8 development board, **16 MB flash / 8 MB OPI PSRAM**
+- **ILI9488 480 × 320 SPI TFT** (non-touch configuration)
+- Seven momentary buttons, wired **active-low** (between GPIO and GND)
+- Optional: DFPlayer Mini and microSD, DHT11, composite-video resistor DAC, amplifier, single-cell battery with sensing divider, USB host peripherals
+
+## Pin connections
+
+These assignments come from the **Freslest ESP32-S3 6.16** source archive's `README.md` hardware table. GPIO means a signal on the ESP32-S3, **not a numbered physical header pin**.
+
+### ILI9488 TFT display
+
+| TFT signal | ESP32-S3 | Notes |
+|---|---:|---|
+| MOSI / SDI | GPIO11 | SPI data to screen |
+| SCK / CLK | GPIO12 | SPI clock |
+| CS | GPIO10 | Chip select |
+| DC / RS | GPIO9 | Data/command |
+| RST / RESET | GPIO8 | **See GPIO8 conflict warning below** |
+| LED / backlight control | GPIO41 | PWM to the existing **MOSFET driver**; NOT direct LED supply |
+| MISO / SDO | Not used | Leave disconnected |
+| TFT touch CS / DO / IRQ | Not used | Touch is disabled |
+
+Supply display power at the voltage specified by **your particular module** and connect grounds. TFT breakout boards differ in whether they tolerate 5 V power and logic; do not assume.
+
+### Physical buttons
+
+| Button | ESP32-S3 | Other terminal |
+|---|---:|---|
+| UP | GPIO4 | GND |
+| DOWN | GPIO5 | GND |
+| LEFT | GPIO6 | GND |
+| RIGHT | GPIO7 | GND |
+| OK / USE | GPIO15 | GND |
+| BACK / EXIT | GPIO16 | GND |
+| FIRE / SHOOT | GPIO3 | GND |
+
+Buttons are active-low. These are the Freslest-specific seven-button assignments, not a generic ESP32-S3 wiring pattern.
+
+### Audio / DFPlayer Mini
+
+| Connection | ESP32-S3 or destination | Notes |
+|---|---|---|
+| DFPlayer TX | GPIO17 (ESP RX) | Cross TX to RX |
+| DFPlayer RX | GPIO18 (ESP TX) | Source project uses **1 kΩ series resistor** |
+| DFPlayer power | Suitable stable supply | Manufacturer typically recommends 5 V; check your board |
+| DFPlayer GND | ESP32-S3 GND | Common ground required |
+| NES / DOOM live effects output | GPIO21 | To the **existing filter/amplifier circuit**, not a speaker directly |
+
+The DFPlayer handles recorded music/cues while GPIO21 provides live effects. An amplifier and proper interface are required for audio output.
+
+### DHT11, battery monitor, USB
+
+| Signal | ESP32-S3 | Notes |
+|---|---:|---|
+| DHT11 DATA | GPIO38 | Bare DHT11 requires 4.7 kΩ to 10 kΩ pull-up to 3V3; some modules include it |
+| DHT11 VCC | 3V3 | Common GND |
+| DHT11 GND | GND | Common GND |
+| Battery ADC | GPIO1 | Existing **100 kΩ / 47 kΩ** voltage divider; verify orientation and ADC voltage before wiring |
+| Native USB D− | GPIO19 | Prefer built-in USB/OTG connector |
+| Native USB D+ | GPIO20 | Prefer built-in USB/OTG connector |
+
+**Never connect a Li-ion battery cell directly to GPIO1**. Use the correctly oriented voltage divider and an appropriate protected battery supply/charging circuit. USB connector roles vary by operating mode.
+
+### Experimental composite AV DAC (8-bit)
+
+| DAC bit | ESP32-S3 GPIO |
+|---|---:|
+| D0 | GPIO8 |
+| D1 | GPIO13 |
+| D2 | GPIO14 |
+| D3 | GPIO2 |
+| D4 | GPIO42 |
+| D5 | GPIO40 |
+| D6 | GPIO39 |
+| D7 | GPIO48 |
+
+Physical wiring order listed in the project, from **VIDEO OUT**, is `GPIO48 → 39 → 40 → 42 → 2 → 14 → 13 → 8`. **This is a parallel digital DAC**, not a direct composite signal. You must use the correct resistor ladder, sync/analog circuitry and grounded TV connection detailed in the original AV Engine documentation. Do not connect GPIO pins directly to a television's video input.
+
+**GPIO8 is shared in the documented pin list between TFT RESET and AV DAC D0.** This is a hardware conflict or requires project-specific mode-dependent handling. Do **not** directly attach both endpoints without checking the actual schematic and software behavior. Treat composite wiring as experimental until validated on your board. Some pins may also be unavailable on certain ESP32-S3 module variants.
+
+## Installing on Windows
+
+### Planned public installer
+
+The proposed **Freslest Installer.exe** workflow:
+
+1. Start the installer.
+2. Continue to page 2 and **select your COM port**.
+3. Review the flash/data warning and start installation.
+4. Keep the ESP32-S3 connected until flashing completes, then reset it.
+
+The separate **Freslest USB Viewer.exe** should launch directly into the viewer interface. **These EXEs are not claimed to be compiled or signed merely because the repository contains build scripts.** When published, provide built binaries in GitHub Releases and verified hashes.
+
+### Developer/manual flashing (6.16 source package)
+
+The existing 6.16 project includes `flash_all.bat COM5` and expects the programming/UART COM port. Follow its instructions for required esptool/Python version. For an initial install, the original manual script supports:
+
+```bat
+flash_all.bat COM5 --with-files
+```
+
+**Warning:** `--with-files` replaces the packaged LittleFS image, including user files/ROMs/notes. Back up important data. The custom partition layout includes separate OS and DOOM images; do not use generic `idf.py flash` to overwrite the wrong slot.
+
+If the port is stuck connecting, use BOOT/RESET download mode as described in the source package. Close other serial monitors or viewers first.
+
+## USB Screen Viewer
+
+The 6.16 source documentation describes two PC connection modes:
+
+- **USB/UART COM:** viewer connects through the programming/serial port, leaving native USB/OTG for external keyboard, mouse or storage.
+- **Native USB CDC:** enable **Settings > Display > USB PC Viewer**, confirm and restart. Native USB may enumerate as a COM port, but in viewer device mode it is **not** simultaneously a USB-host connector.
+
+Use **Fit** to include top and bottom bars. Large frames over serial can be slow; throughput depends on port and connection mode. The project documentation says the 2.1 viewer works with existing OS 6.16 firmware without a reflash.
+
+## Included applications and features
+
+- GUI with system status and on-device controls
+- NES library/player and other applications
+- DOOM and sound support
+- Basic file management and USB input support
+- Wi-Fi/BLE features and lightweight standalone browser (not a modern full-browser engine)
+- Experimental AV output and recovery/update functions
+
+## Repository layout (suggested)
+
+```text
+Freslest-OS/
+├── README.md
+├── source/               # Original ESP-IDF source (OS, Doom, shared components)
+├── firmware/             # Flash images with documented offsets
+├── installer/            # Windows installer source and build scripts
+├── viewer/               # Windows USB screen viewer source
+├── screenshots/
+└── .github/workflows/    # Windows EXE build workflow
+```
+
+## Important publishing notes
+
+- Include license and attribution for **DOOM port code, libraries and external assets**, respecting each dependency's license. Do not publish copyrighted commercial game ROMs, MP3 files or WAD assets without redistribution rights.
+- Publish SHA-256 sums for installer and firmware; test releases on the target board before saying “one-click ready”.
+- Replace the 6.16 firmware version label in source and rebuild if the device must actually display `Freslest 1.0`.
+- Hardware diagrams, battery safety and AV DAC resistor values must be checked against the finished board-specific wiring before advertising them as fully verified.
+
+## License
+
+License information is **to be confirmed**. Do not claim an open-source license until the code and dependencies have been reviewed and an appropriate license file has been added.
