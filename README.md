@@ -14,7 +14,7 @@
 
 ## Pin connections
 
-These assignments come from the **Freslest ESP32-S3 6.16** source archive's `README.md` hardware table. GPIO means a signal on the ESP32-S3, **not a numbered physical header pin**.
+These assignments come from the **Freslest ESP32-S3 1.00** source archive's `README.md` hardware table. GPIO means a signal on the ESP32-S3, **not a numbered physical header pin**.
 
 ### ILI9488 TFT display
 
@@ -100,9 +100,9 @@ The proposed **Freslest Installer.exe** workflow:
 
 The separate **Freslest USB Viewer.exe** should launch directly into the viewer interface. **These EXEs are not claimed to be compiled or signed merely because the repository contains build scripts.** When published, provide built binaries in GitHub Releases and verified hashes.
 
-### Developer/manual flashing (6.16 source package)
+### Developer/manual flashing (1.00 source package)
 
-The existing 6.16 project includes `flash_all.bat COM5` and expects the programming/UART COM port. Follow its instructions for required esptool/Python version. For an initial install, the original manual script supports:
+The existing 1.00 project includes `flash_all.bat COM5` and expects the programming/UART COM port. Follow its instructions for required esptool/Python version. For an initial install, the original manual script supports:
 
 ```bat
 flash_all.bat COM5 --with-files
@@ -114,12 +114,12 @@ If the port is stuck connecting, use BOOT/RESET download mode as described in th
 
 ## USB Screen Viewer
 
-The 6.16 source documentation describes two PC connection modes:
+The 1.00 source documentation describes two PC connection modes:
 
 - **USB/UART COM:** viewer connects through the programming/serial port, leaving native USB/OTG for external keyboard, mouse or storage.
 - **Native USB CDC:** enable **Settings > Display > USB PC Viewer**, confirm and restart. Native USB may enumerate as a COM port, but in viewer device mode it is **not** simultaneously a USB-host connector.
 
-Use **Fit** to include top and bottom bars. Large frames over serial can be slow; throughput depends on port and connection mode. The project documentation says the 2.1 viewer works with existing OS 6.16 firmware without a reflash.
+Use **Fit** to include top and bottom bars. Large frames over serial can be slow; throughput depends on port and connection mode. The project documentation says the 2.1 viewer works with existing OS 1.00 firmware without a reflash.
 
 ## Included applications and features
 
@@ -147,7 +147,7 @@ Freslest-OS/
 
 - Include license and attribution for **DOOM port code, libraries and external assets**, respecting each dependency's license. Do not publish copyrighted commercial game ROMs, MP3 files or WAD assets without redistribution rights.
 - Publish SHA-256 sums for installer and firmware; test releases on the target board before saying “one-click ready”.
-- Replace the 6.16 firmware version label in source and rebuild if the device must actually display `Freslest 1.0`.
+- Replace the 1.00 firmware version label in source and rebuild if the device must actually display `Freslest 1.0`.
 - Hardware diagrams, battery safety and AV DAC resistor values must be checked against the finished board-specific wiring before advertising them as fully verified.
 
 ## License
