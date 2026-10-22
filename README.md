@@ -1,9 +1,9 @@
-[README_Freslest_GitHub.md](https://github.com/user-attachments/files/33834154/README_Freslest_GitHub.md)
-# Freslest OS 1.0-ESP32S3
+[README (1).md](https://github.com/user-attachments/files/33834389/README.1.md)
+# Freslest OS 1.0
 
 **A graphical, desktop-style embedded environment for the ESP32-S3**, featuring applications, NES emulation, DOOM, USB input, file management, and experimental composite video.
 
-> **Release naming:** Freslest OS **1.0** is the proposed first public GitHub release name. The supplied firmware and source are based on the internal **6.16** development build. Renaming a release does **not** change the firmware's version strings. Do not present the firmware as rebuilt 1.0 until that work is completed and tested.
+> **Public version:** Repository **Freslest OS 1.0** · GitHub Release **v1.0.0**. Before publishing, rebuild the firmware with the on-device version string set to **Freslest OS 1.0**. Changing the repository or release title alone does not change the version shown on the device.
 
 ## Hardware requirements
 
@@ -14,7 +14,7 @@
 
 ## Pin connections
 
-These assignments come from the **Freslest ESP32-S3 1.00** source archive's `README.md` hardware table. GPIO means a signal on the ESP32-S3, **not a numbered physical header pin**.
+These assignments are based on the provided Freslest ESP32-S3 source archive's hardware table. GPIO means a signal on the ESP32-S3, **not a numbered physical header pin**.
 
 ### ILI9488 TFT display
 
@@ -89,9 +89,9 @@ Physical wiring order listed in the project, from **VIDEO OUT**, is `GPIO48 → 
 
 ## Installing on Windows
 
-### Planned public installer
+### Windows installer (planned)
 
-The proposed **Freslest Installer.exe** workflow:
+The intended **Freslest Installer.exe** workflow:
 
 1. Start the installer.
 2. Continue to page 2 and **select your COM port**.
@@ -100,9 +100,9 @@ The proposed **Freslest Installer.exe** workflow:
 
 The separate **Freslest USB Viewer.exe** should launch directly into the viewer interface. **These EXEs are not claimed to be compiled or signed merely because the repository contains build scripts.** When published, provide built binaries in GitHub Releases and verified hashes.
 
-### Developer/manual flashing (1.00 source package)
+### Developer/manual flashing
 
-The existing 1.00 project includes `flash_all.bat COM5` and expects the programming/UART COM port. Follow its instructions for required esptool/Python version. For an initial install, the original manual script supports:
+The provided project includes `flash_all.bat COM5` and expects the programming/UART COM port. Follow its instructions for required esptool/Python version. For an initial install, the original manual script supports:
 
 ```bat
 flash_all.bat COM5 --with-files
@@ -114,12 +114,12 @@ If the port is stuck connecting, use BOOT/RESET download mode as described in th
 
 ## USB Screen Viewer
 
-The 1.00 source documentation describes two PC connection modes:
+The source documentation describes two PC connection modes:
 
 - **USB/UART COM:** viewer connects through the programming/serial port, leaving native USB/OTG for external keyboard, mouse or storage.
 - **Native USB CDC:** enable **Settings > Display > USB PC Viewer**, confirm and restart. Native USB may enumerate as a COM port, but in viewer device mode it is **not** simultaneously a USB-host connector.
 
-Use **Fit** to include top and bottom bars. Large frames over serial can be slow; throughput depends on port and connection mode. The project documentation says the 2.1 viewer works with existing OS 1.00 firmware without a reflash.
+Use **Fit** to include top and bottom bars. Large frames over serial can be slow; throughput depends on port and connection mode. Viewer compatibility should be checked against the final Freslest OS 1.0 firmware before publishing.
 
 ## Included applications and features
 
@@ -147,7 +147,7 @@ Freslest-OS/
 
 - Include license and attribution for **DOOM port code, libraries and external assets**, respecting each dependency's license. Do not publish copyrighted commercial game ROMs, MP3 files or WAD assets without redistribution rights.
 - Publish SHA-256 sums for installer and firmware; test releases on the target board before saying “one-click ready”.
-- Replace the 1.00 firmware version label in source and rebuild if the device must actually display `Freslest 1.0`.
+- Set the firmware version text to `Freslest OS 1.0`, rebuild and test before publishing the v1.0.0 Release.
 - Hardware diagrams, battery safety and AV DAC resistor values must be checked against the finished board-specific wiring before advertising them as fully verified.
 
 ## License
