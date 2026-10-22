@@ -1,0 +1,19 @@
+FRESLEST OS 1.0 — WINDOWS DOĞRULAMA SONUCU
+
+İki uygulama gerçek Windows ortamında 64 bit Python 3.11.9 / PyInstaller 6.22.3 ile derlendi.
+Freslest Installer.exe: 17.927.617 bayt
+Freslest USB Viewer.exe: 11.561.004 bayt
+
+12 kaynak testi geçti: 5 kurulum/tanılama, 3 Viewer arayüzü, 2 renk/bellek ve 2 seri aktarım testi.
+Paketli Installer'ın gerçek esptool 4.11.0 ve ESP32-S3 stub kaynakları çalıştırılarak doğrulandı.
+Paketli Installer içindeki yedi firmware dosyasının hash ve boyut doğrulaması geçti.
+İki paketli EXE de Windows'ta görünür pencere açtı ve normal kapandı.
+Dosyalar indirildikten sonra Windows derleme raporundaki SHA256 değerleriyle tekrar karşılaştırıldı.
+
+GitHub Actions:
+https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/39835602353
+Kaynak commit: 574d27fe5f746d4a5ec95f0506765595754d485d
+
+SINIR: Bu ortama fiziksel ESP32-S3 bağlı değildir. Gerçek cihazda firmware yazma, ekran aktarımı ve
+PC klavye/fare kontrolü burada test edilmedi. Mevcut firmware dosyaları değiştirilmedi.
+Tam ESP32-S3 proje ZIP'i ve önceki Viewer ZIP'i orijinal halleriyle korunuyor; bu pakette Windows uygulamalarının kaynakları bulunur.

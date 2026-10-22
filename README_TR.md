@@ -1,6 +1,6 @@
 # Freslest OS 1.0 — Windows kaynak ve derleme paketi
 
-**Bu paket hazır EXE içermez. Windows derlemesi için gerekli kaynaklar ve firmware dosyalarıdır. Durum ve çalıştırılan testler DOGRULAMA.txt içindedir.**
+**Bu klasör, Windows'ta derlenip açılış testleri geçen Freslest 1.0 uygulamalarının kaynaklarını ve firmware dosyalarını içerir. Doğrulama sonucu DOGRULAMA.txt içindedir.**
 
 ## Kullanım
 
@@ -28,4 +28,8 @@ Kurulum OS, Doom, WAD, OTA seçim verisi ve başlangıç LittleFS içeriğini ya
 
 ## Doğrulama sınırı
 
-EXE dosyaları üretildiğinde Windows derleme ve açılış testinin sonuçları dist içindeki JSON dosyalarına yazılır. Bu test ortamına gerçek ESP32-S3 bağlı değildir; fiziksel flaşlama, ekrandan aktarım ve cihaz kontrolü bu ortamda test edilemez. Viewer ayrı Doom veya updater firmware'i açıkken OS ekranını alamaz.
+Windows derleme ve açılış testi tamamlandı. Sonuç raporları hazır EXE paketindeki Test_Raporlari klasöründe bulunur. Bu test ortamına gerçek ESP32-S3 bağlı değildir; fiziksel flaşlama, ekrandan aktarım ve cihaz kontrolü bu ortamda test edilemez. Viewer ayrı Doom veya updater firmware'i açıkken OS ekranını alamaz.
+
+## Tanılama
+
+Bir sorun araştırılırken `"Freslest Installer.exe" --diagnostics rapor.json` komutu cihazla iletişim kurmadan flaşlama bileşenlerini ve gömülü firmware dosyalarını kontrol eder.
