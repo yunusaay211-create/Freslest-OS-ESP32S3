@@ -1,0 +1,4 @@
+# Identify bundled upstream components separately from Freslest firmware code.
+OS/components/** linguist-vendored
+Doom/components/prboom/** linguist-vendored
+Doom/components/prboom-wad-tables/** linguist-vendored

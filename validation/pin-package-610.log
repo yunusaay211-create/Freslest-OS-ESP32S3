@@ -1,0 +1,3 @@
+PASS: app descriptors, segment XOR/SHA, image limits, GPIO array in both final ELFs, IRAM callbacks, manifests, production v2 parser, four flasher paths, unchanged baseline and full archive bytes
+VERIFIED 6.10 1616256
+

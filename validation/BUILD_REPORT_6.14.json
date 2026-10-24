@@ -1,0 +1,49 @@
+{
+  "version": "6.14",
+  "date": "2026-10-21",
+  "idf": "v5.4.4",
+  "compiler": "GCC 14.2.0 esp-20260121",
+  "OS_cross_build": "PASS",
+  "Doom": "6.10 retained byte-identical; not rebuilt",
+  "apps": {
+    "OS": {
+      "version": "6.14",
+      "size": 1764752,
+      "slot": 1769472,
+      "spare": 4720,
+      "sha256": "1f52c4ef7986a1f86b70e550a10322c0b486e54204847d2c859cf51948575684"
+    },
+    "Doom": {
+      "version": "6.10",
+      "size": 884240,
+      "slot": 917504,
+      "spare": 33264,
+      "sha256": "d79061bdc2b6527caddf3d366de2bb2742387ebb3cf0657d150db047e3bbc6f9"
+    }
+  },
+  "baseline_retained_files_verified": 514,
+  "ui_task_stack": 24576,
+  "internal_malloc_threshold": 1024,
+  "internal_reserve": 65536,
+  "screen_viewer": "1.0 / real UART framebuffer snapshots / Full or Half RGB332/RLE",
+  "validation_logs": [
+    "usb-screen-614.log",
+    "usb-screen-lifecycle-614.log",
+    "usb-screen-serial-614.log",
+    "panic-ble-614.log",
+    "panic-wifi-614.log",
+    "panic-recovery-614.log",
+    "panic-host-614.log",
+    "panic-browser-614.log",
+    "panic-update-614.log",
+    "panic-rollback-614.log",
+    "panic-release-614.log",
+    "panic-real-package-614.log"
+  ],
+  "limits": [
+    "Physical board/radio/Windows USB bridge/TV not tested.",
+    "Doom separate unchanged firmware is not mirrored.",
+    "Full complex frames can be below 1 fps.",
+    "Bluetooth memory guards mitigate pressure; they do not prove all possible SDK failures safe."
+  ]
+}

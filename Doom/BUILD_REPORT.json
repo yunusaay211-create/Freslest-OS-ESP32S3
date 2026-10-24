@@ -1,0 +1,34 @@
+{
+  "version": "6.04",
+  "cross_build": "PASS",
+  "image_bytes": 886592,
+  "slot_bytes": 917504,
+  "slot_spare_bytes": 30912,
+  "changes": "Bounded first composite frame health wait; shared video continuous DMA and saved TV alignment. Gameplay/mouse/buttons/menu/SPI renderer unchanged.",
+  "changed_component_sources": [
+    "Doom/components/prboom-esp32-compat/i_video.c"
+  ],
+  "unchanged_component_sources": 181,
+  "host_test_results": [
+    "PASS: E1M1 -> intermission -> E1M2, repeat, pause, volume, stop; nonblocking Doom APIs",
+    "PASS: superseded transition, SD removal/reinsertion uses current map",
+    "PASS: missing status reply, corrupt UART packet recovery",
+    "PASS: stopped/busy response retries playback",
+    "PASS: GPIO21 direct duty, silent boot/30kHz carrier, real WAD pistol PCM, mute, handle bounds, long sample phase",
+    "PASS: all four OK+direction chords, only owned weapons, no movement/door events",
+    "PASS: direction held before OK; OK alone uses door on release",
+    "PASS: menu confirmation and parent BACK release pairing",
+    "PASS: 5-second repair recovers lost KEYUP; held fire is continuous",
+    "PASS: BACK+OK manual reset and both-key release latch",
+    "PASS: actual HID decoder to Doom WASD/Shift, mouse turn/fire, physical+USB holds, tap latch, menu click and unplug release",
+    "PASS: quarter-rate mouse turning, fractional slow movement, reversal, menu sprite motion, game/unplug hiding",
+    "PASS: exact 4:3 centered scaling, unchanged-frame skip, one-row dirty transfer, palette invalidation, centered mode",
+    "PASS: actual Doom DMA sprite motion/unplug restore base pixels; composite routing bypasses all SPI setup",
+    "PASS: menu-first startup syntax and configuration",
+    "PASS: actual Doom menu hover matches stretched rows, skips disabled entries and respects bounds/message/setup/inactive states",
+    "PASS: exact composite buffer bounds, 912x262 timing budget, sync/burst, black/white levels, full waveform, RGB565 byte order, indexed conversion, aspect/cursor clipping TV calibration and invariant sync/burst, and triple-buffer ownership",
+    "PASS: real backend LCD default/invalid preference, BACK recovery, TV calibration persistence/clamping/NVS errors, all allocation/driver/task failure cleanup, original GPIO mapping, source ownership, bounded first-frame wait and immediate later stalled-DMA health",
+    "PASS: actual Doom I_FinishUpdate and real composite backend defer first asynchronous frame, require presentation and three syncs, bound warmup, detect later failure immediately and preserve LCD health"
+  ],
+  "physical_hardware_tested": false
+}

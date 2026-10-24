@@ -1,0 +1,2 @@
+PASS: Browser keyboard Tab/Ctrl+A forwarding and right-click preserve page input without opening Task Switcher or BACK
+PASS: actual OS USB navigation, tap latches/repeat, NES controls, typing, pointer clamp/hit/unplug and persisted USB roles with save-error protection

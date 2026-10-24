@@ -1,0 +1,1 @@
+PASS: actual Doom menu hover matches stretched rows, skips disabled entries and respects bounds/message/setup/inactive states

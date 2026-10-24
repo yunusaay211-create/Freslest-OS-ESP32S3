@@ -1,0 +1,1 @@
+PASS: DAC D0..D7 = [8, 13, 14, 2, 42, 40, 39, 48]; {'field_eof': '.iram0.text', 'descriptor_error': '.iram0.text'}; log ring = .rtc_noinit.

@@ -1,0 +1,28 @@
+VERIFIED 6.09 1616256
+Flasher ordinary
+0x000000     19872 bytes  firmware/bootloader.bin
+0x008000      3072 bytes  firmware/partition-table.bin
+0x010000      8192 bytes  firmware/ota_data_initial.bin
+0x100000   1616256 bytes  firmware/freslest_os_s3.bin
+0x020000    884240 bytes  firmware/freslest_doom_s3.bin
+0x460000   9717304 bytes  firmware/doom_flash.wad
+Flasher --doom-only
+0x020000    884240 bytes  firmware/freslest_doom_s3.bin
+Flasher --with-files
+0x000000     19872 bytes  firmware/bootloader.bin
+0x008000      3072 bytes  firmware/partition-table.bin
+0x010000      8192 bytes  firmware/ota_data_initial.bin
+0x100000   1616256 bytes  firmware/freslest_os_s3.bin
+0x020000    884240 bytes  firmware/freslest_doom_s3.bin
+0x460000   9717304 bytes  firmware/doom_flash.wad
+0xdb0000    327680 bytes  firmware/littlefs.bin
+LittleFS ROMs/Note will be replaced by the packaged initial image.
+Flasher --files-only
+0xdb0000    327680 bytes  firmware/littlefs.bin
+LittleFS ROMs/Note will be replaced by the packaged initial image.
+PASS: actual 6.09 v2 update ZIP accepted by production parser and exactly matches OS binary
+PASS: both ESP32-S3/16MB app descriptors, 6.09 version, XOR and embedded SHA256; strict slot limits
+PASS: 186 assets/layout files, 182 Doom component sources, 69 OS application sources and 8 common component files byte-identical to 6.08
+PASS: flasher ordinary/Doom-only/with-files/files-only checksums and bounds; no physical flash performed
+PASS: original GPIO bit order and voltage codes; new 238420-byte explicit waveform, internal descriptor rings and immutable whole-field handover
+PASS: watchdog panic, bootloader rollback and continuous DMA configuration retained

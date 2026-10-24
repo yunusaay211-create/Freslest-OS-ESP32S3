@@ -1,0 +1,3 @@
+NTSC model: 3.579545 MHz carrier, 15.734266 kHz horizontal, 60.054449 Hz progressive refresh
+PASS: 227.5-cycle NTSC line/field phase continuity, alternating burst, all-line flat-colour comb recovery (max error 0.000000 DAC codes), zero model cross-colour on repeated monochrome detail, retained luma contrast and DMA guards
+PASS: receiver model rejects both non-alternating burst and non-alternating active chroma negative controls

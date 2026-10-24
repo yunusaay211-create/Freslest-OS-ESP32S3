@@ -1,0 +1,63 @@
+{
+  "version": "6.00",
+  "source": "Original procedural Freslest cues; no Doom samples",
+  "sample_rate": 44100,
+  "files": {
+    "0105.mp3": {
+      "event": "Startup",
+      "duration_seconds": 1.18,
+      "peak_dbfs": -8.22,
+      "rms_dbfs": -20.44,
+      "sha256": "cb02c0e193db913761cc941af98e13210cdf8a8a35e1c53bb9bd9ac6d5f5b303"
+    },
+    "0106.mp3": {
+      "event": "Soft click",
+      "duration_seconds": 0.13,
+      "peak_dbfs": -14.16,
+      "rms_dbfs": -26.33,
+      "sha256": "5ba941707e9eb35cfdf45668af8588d237d6a3601b45ded529932f0c5f56cbe7"
+    },
+    "0107.mp3": {
+      "event": "Jump",
+      "duration_seconds": 0.23,
+      "peak_dbfs": -10.21,
+      "rms_dbfs": -20.53,
+      "sha256": "4c5c84e487efd76797ad992bb68e1d3504a826de8231f0f17b7acf21dea46970"
+    },
+    "0108.mp3": {
+      "event": "Pickup",
+      "duration_seconds": 0.3,
+      "peak_dbfs": -9.9,
+      "rms_dbfs": -20.25,
+      "sha256": "f20ab7564d7d9b0bc979917d1439d98c95d0d3afa5c303fea9cb270edd2affeb"
+    },
+    "0109.mp3": {
+      "event": "Tile lock",
+      "duration_seconds": 0.31,
+      "peak_dbfs": -10.48,
+      "rms_dbfs": -23.08,
+      "sha256": "c19f1324f964b7c11fb9e98d2cd2005ad8819177f78d0a595cfaf798406c92c4"
+    },
+    "0110.mp3": {
+      "event": "Game start",
+      "duration_seconds": 0.64,
+      "peak_dbfs": -8.67,
+      "rms_dbfs": -19.94,
+      "sha256": "261e0c19b364cb10007f9ee2d4e7842d2be2dca4d62bb63db11d152124e11954"
+    },
+    "0111.mp3": {
+      "event": "Game over",
+      "duration_seconds": 0.86,
+      "peak_dbfs": -9.14,
+      "rms_dbfs": -19.98,
+      "sha256": "c8a71c2a0dac5c32228b0135f12f1054fdcbfa1ba0a2189d46f7d8c2cf7a089e"
+    },
+    "0112.mp3": {
+      "event": "Win",
+      "duration_seconds": 0.94,
+      "peak_dbfs": -8.45,
+      "rms_dbfs": -19.42,
+      "sha256": "a28b2ddee1709bc43800273eb4a805cc4feb400cdf661452ea1c8c9a878100d2"
+    }
+  }
+}

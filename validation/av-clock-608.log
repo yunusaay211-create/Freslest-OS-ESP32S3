@@ -1,0 +1,1 @@
+PASS: real IDF fractional clock helper: PLL240M / (8 + 24/63) / 2; predicted sample 14318181.818182 Hz, carrier 3579545.454545 Hz, line 15734.265734 Hz; software prediction only

@@ -1,0 +1,15 @@
+PASS: OS 6.16 and retained Doom 6.10 descriptors/chip/flash/limits/XOR/SHA; all manifest entries; update v2 bytes; five flasher maps; retained baseline files: 514
+{
+  "OS": {
+    "size": 1769440,
+    "spare": 32,
+    "sha256": "04a725fba76a2bbbfc302aa3c8283a6b2ee3b1d1c7e15ab89f5519185d092f70",
+    "version": "6.16"
+  },
+  "Doom": {
+    "size": 884240,
+    "spare": 33264,
+    "sha256": "d79061bdc2b6527caddf3d366de2bb2742387ebb3cf0657d150db047e3bbc6f9",
+    "version": "6.10"
+  }
+}

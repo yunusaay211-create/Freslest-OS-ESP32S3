@@ -1,0 +1,22 @@
+{
+  ".flash.text": {
+    "address": "0x42000020",
+    "bytes": 1327152,
+    "identical": true
+  },
+  ".iram0.text": {
+    "address": "0x40374404",
+    "bytes": 117679,
+    "identical": true
+  },
+  ".iram0.vectors": {
+    "address": "0x40374000",
+    "bytes": 1027,
+    "identical": true
+  },
+  ".dram0.data": {
+    "address": "0x3fca1000",
+    "bytes": 30920,
+    "identical": true
+  }
+}

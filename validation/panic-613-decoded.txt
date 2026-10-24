@@ -1,0 +1,17 @@
+0x40375949: panic_abort at /workspace/scratch/6772d60abc0d/panic-idf/components/esp_system/panic.c:477
+0x40383c31: esp_system_abort at /workspace/scratch/6772d60abc0d/panic-idf/components/esp_system/port/esp_system_chip.c:87
+0x4038b982: __assert_func at /workspace/scratch/6772d60abc0d/panic-idf/components/newlib/assert.c:39
+0x4205a70e: list_is_empty at /workspace/scratch/6772d60abc0d/panic-idf/components/bt/common/osi/list.c:53 (discriminator 1)
+0x4205a91e: list_begin at /workspace/scratch/6772d60abc0d/panic-idf/components/bt/common/osi/list.c:262 (discriminator 1)
+0x42055221: l2c_free_p_lcb_pool at /workspace/scratch/6772d60abc0d/panic-idf/components/bt/host/bluedroid/stack/l2cap/l2c_main.c:925
+0x4205527f: l2c_free at /workspace/scratch/6772d60abc0d/panic-idf/components/bt/host/bluedroid/stack/l2cap/l2c_main.c:953
+0x4204fcc3: btu_free_core at /workspace/scratch/6772d60abc0d/panic-idf/components/bt/host/bluedroid/stack/btu/btu_init.c:124
+0x4205007d: btu_task_shut_down at /workspace/scratch/6772d60abc0d/panic-idf/components/bt/host/bluedroid/stack/btu/btu_task.c:297
+0x4204fcd7: BTU_ShutDown at /workspace/scratch/6772d60abc0d/panic-idf/components/bt/host/bluedroid/stack/btu/btu_init.c:218
+0x4204fd53: BTU_StartUp at /workspace/scratch/6772d60abc0d/panic-idf/components/bt/host/bluedroid/stack/btu/btu_init.c:201
+0x4204877b: bte_main_enable at /workspace/scratch/6772d60abc0d/panic-idf/components/bt/host/bluedroid/main/bte_main.c:137
+ (inlined by) bte_main_boot_entry at /workspace/scratch/6772d60abc0d/panic-idf/components/bt/host/bluedroid/main/bte_main.c:92
+0x420466af: btc_init_bluetooth at /workspace/scratch/6772d60abc0d/panic-idf/components/bt/host/bluedroid/btc/core/btc_main.c:56
+ (inlined by) btc_main_call_handler at /workspace/scratch/6772d60abc0d/panic-idf/components/bt/host/bluedroid/btc/core/btc_main.c:104
+0x420592fd: btc_thread_handler at /workspace/scratch/6772d60abc0d/panic-idf/components/bt/common/btc/core/btc_task.c:294
+0x4205ac29: osi_thread_run at /workspace/scratch/6772d60abc0d/panic-idf/components/bt/common/osi/thread.c:172

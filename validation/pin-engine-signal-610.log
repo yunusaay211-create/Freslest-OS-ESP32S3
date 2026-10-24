@@ -1,0 +1,2 @@
+PASS: all 238420 physical samples, 910x262 field continuity, pre/post equalization and serrations, reversible burst, scalar interpolation/trap oracle on every sample, flat-colour phase, mono lab patterns and unaligned destination guards
+PASS: 20000 immutable-field handovers with delayed old-ring EOF, a third prepared field, busy retry, protected active/pending slots and no premature buffer reuse

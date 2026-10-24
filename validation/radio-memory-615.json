@@ -1,0 +1,35 @@
+{
+  "external_BSS_start": "0x3c1a0000",
+  "external_BSS_end": "0x3c1a5960",
+  "external_BSS_bytes": 22880,
+  "external_BSS_by_archive_without_alignment_padding": {
+    "libbt.a": 8893,
+    "liblwip.a": 3774,
+    "libnet80211.a": 7583,
+    "libpp.a": 1194,
+    "libwpa_supplicant.a": 1326
+  },
+  "examples": {
+    "btm_cb": {
+      "address": "0x3c1a004c",
+      "size": 1876,
+      "section": ".ext_ram.bss"
+    },
+    "l2cb": {
+      "address": "0x3c1a09fc",
+      "size": 952,
+      "section": ".ext_ram.bss"
+    },
+    "gatt_cb": {
+      "address": "0x3c1a0804",
+      "size": 444,
+      "section": ".ext_ram.bss"
+    },
+    "tcp_active_pcbs": {
+      "address": "0x3c1a2c04",
+      "size": 4,
+      "section": ".ext_ram.bss"
+    }
+  },
+  "note": "Linked static placement, not measured live dynamic allocations. SDK Wi-Fi/lwIP and BT heap routes prefer PSRAM with internal fallback. Controller/DMA/FreeRTOS internal allocations remain."
+}

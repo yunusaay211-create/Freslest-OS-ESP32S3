@@ -1,0 +1,3 @@
+PASS: production standalone HTML parser: chunk-independent title/text/entities/UTF-8, scripts/styles/comments excluded, safe relative URLs, links/JPEG, GET form encoding and hidden fields, POST/video rejection, large-page limits and 2 MB malformed-input sanitizer coverage.
+PASS: actual standalone Browser UI: home bookmarks, link selection/wrap, form editing and encoded GET submission, loading state, Info return, BACK cleanup, and LCD/4:3 display bounds.
+PASS: actual standalone HTTP worker: verified-TLS configuration, HTML/JPEG/chunked responses, relative redirects/loop cap, media/compression rejection, HTML/JPEG byte limits, partial reads, HTTP status, cancellation cleanup and page-buffer leases.

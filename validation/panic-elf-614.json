@@ -1,0 +1,32 @@
+{
+  "descriptor_error": {
+    "section": ".iram0.text",
+    "address": "0x4037aed0",
+    "size": 46
+  },
+  "field_eof": {
+    "section": ".iram0.text",
+    "address": "0x4037af00",
+    "size": 127
+  },
+  "_ZN12_GLOBAL__N_17logRingE": {
+    "section": ".rtc_noinit",
+    "address": "0x50000000",
+    "size": 972
+  },
+  "freslest_av_gpio": {
+    "section": ".flash.rodata",
+    "address": "0x3c17655c",
+    "size": 32,
+    "pins": [
+      8,
+      13,
+      14,
+      2,
+      42,
+      40,
+      39,
+      48
+    ]
+  }
+}

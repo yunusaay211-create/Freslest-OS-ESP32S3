@@ -1,0 +1,1 @@
+PASS: real Chromium: authenticated bounded HTTP/JPEG, invalid request rejection, page navigation/history, executed JavaScript, mouse clicks, text/special keys, actual MP4 playback and changing video frames, idle mouse release.

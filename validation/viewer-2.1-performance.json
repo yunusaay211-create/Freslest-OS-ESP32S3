@@ -1,0 +1,75 @@
+{
+  "viewer": "2.1",
+  "firmware": "6.16 unchanged",
+  "scope": "PC-only responsiveness and conversion update",
+  "date": "2026-10-22",
+  "baseline": [
+    {
+      "size": [
+        480,
+        320
+      ],
+      "ppm_ms": 7.145,
+      "ppm_peak_bytes": 14032185,
+      "worst_UART_921600_frame_s": 1.68,
+      "worst_UART_460800_frame_s": 3.36
+    },
+    {
+      "size": [
+        480,
+        360
+      ],
+      "ppm_ms": 5.901,
+      "ppm_peak_bytes": 15786201,
+      "worst_UART_921600_frame_s": 1.89,
+      "worst_UART_460800_frame_s": 3.78
+    },
+    {
+      "size": [
+        240,
+        180
+      ],
+      "ppm_ms": 1.337,
+      "ppm_peak_bytes": 3936889,
+      "worst_UART_921600_frame_s": 0.473,
+      "worst_UART_460800_frame_s": 0.945
+    }
+  ],
+  "optimized": [
+    {
+      "size": [
+        480,
+        320
+      ],
+      "ppm_ms": 0.501,
+      "ppm_peak_bytes": 921753
+    },
+    {
+      "size": [
+        480,
+        360
+      ],
+      "ppm_ms": 0.45,
+      "ppm_peak_bytes": 1036953
+    },
+    {
+      "size": [
+        240,
+        180
+      ],
+      "ppm_ms": 0.107,
+      "ppm_peak_bytes": 259353
+    }
+  ],
+  "baseline_gui": {
+    "presented": 90,
+    "heartbeat_samples": 14,
+    "worst_event_loop_gap_ms": 1161.82
+  },
+  "optimized_gui": {
+    "presented": 25,
+    "heartbeat_samples": 63,
+    "worst_event_loop_gap_ms": 27.29
+  },
+  "limits": "Synthetic build-host stage timings and actual Tk loop; no physical Windows USB/ESP timing claim"
+}

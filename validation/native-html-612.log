@@ -1,0 +1,1 @@
+PASS: production standalone HTML parser: chunk-independent title/text/entities/UTF-8, scripts/styles/comments excluded, safe relative URLs, links/JPEG, GET form encoding and hidden fields, POST/video rejection, large-page limits and 2 MB malformed-input sanitizer coverage.

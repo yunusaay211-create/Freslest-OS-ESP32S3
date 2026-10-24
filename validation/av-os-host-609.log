@@ -1,0 +1,73 @@
+Real ROM PCM duty range: 327..701
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 220/255
+PASS: actual GPIO -> debounce sampler -> NES pad -> CPU/controller port path for all eight buttons and releases
+PASS: actual NES blitter skips unchanged frames, redraws one dirty source row, maps all fullscreen pixels into LCD 426x320 and full 4:3 composite 480x360, invalidates palette and frees cache
+PASS: actual ROM -> APU -> PCM queue -> GPIO21 PWM; 80000 samples/10s, range 327..701, 23077 transitions, skipped-frame audio retained
+PASS: actual NES CPU/PPU/APU ROM frames, input, palette, pixel bounds, 40 open/exit cycles, missing ROM and mapper rejection
+PASS: actual emulated $4016 receives and releases all eight Player 1 buttons across 40 ROM restarts
+PASS: DHT11 checksum/decimal decode, iNES size/trainer/magic/format validation
+PASS: OS MP3 packets/checksums, reset/SD/DAC sequence, boot priority, mute, volume, no-feedback playback, UART reply/SD/error parsing and corrupt packet recovery
+PASS: all eight OS events address only /MP3/0105..0112 with MP3-folder playback; no Doom file or ADVERT selection
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 255/255
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 128/255
+NES_AUDIO: PWM init failed (-1), silent video mode
+NES_AUDIO: timer create failed (-1)
+NES_AUDIO: timer start failed (-1)
+NES_AUDIO: GPIO21 8000 Hz PCM, channel4/timer2; volume 128/255
+PASS: PCM queue prefill/wrap/overflow, exact GPIO21 timer/PWM setup, mute/gain, underrun fade, stale callbacks, in-flight shutdown and failed-device cleanup
+PASS: USB FAT16 format, FAT12/FAT16 fragmented reads, Windows short/long names, corrupt/cyclic/truncated chains, geometry and bounds
+PASS: physical button debounce, bounce rejection, one-shot edges, FIRE and simultaneous OK/direction
+PASS: absent/invalid/USB-level battery readings select X, valid cell voltage selects bounded percentage
+PASS: install banner waits for healthy startup/visible header, persists before display, appears once per version across reset, expires after six seconds, throttles failed commits and handles clock wrap
+PASS: real sampling code retains a 50ms tap across a 200ms UI stall, continuous movement, START/SELECT overlap, neutral launch frame without release blocking and bounce rejection
+PASS: actual USB callbacks, delayed eject acknowledgement, OK import fallback, preserved result/error across Library/details, explicit reconnect, partial redraws without flash queries, new/unchanged/replaced ROMs, invalid/full-storage/write-failure preservation and buffer cleanup
+PASS: actual TinyUSB worker/event-loop bodies bound an endless queue to 16 events per sleep; empty and uninitialized queues return safely
+PASS: actual USB initialization checks worker allocation, unwinds failure, restores failed descriptor state and reuses descriptors on driver/task retry without duplicate length or leaks
+PASS: actual Task Switcher hold/release/selection/mouse/BACK and seven Game rows; Fullscreen removed from Game
+PASS: real nested file operations, nonempty folder protection, binary rejection, bounded text pages and explicit deletion
+PASS: boot HID decoder, composite slots, tap latch, modifiers, rollover/malformed reports, bounded mouse motion and unplug releases
+PASS: actual OS USB navigation, tap latches/repeat, NES controls, typing, pointer clamp/hit/unplug and persisted USB roles with save-error protection
+PASS: actual Files UI C:/D: Disks, USB folders/text, hot removal during preview, replaced-drive root reset, USB-only confirmed delete, retry/eject/PC-role switch, internal ROM preservation and lock release; original actions/cancel/parent behavior
+PASS: actual LCD pointer is composed before SPI DMA, has no background-only erase, stationary pointer sends no pixels, base restored after DMA, horizontal/vertical movement, unplug, redraw and edge clipping
+PASS: actual NES menu has visible final Fullscreen row with zero/many ROMs, click/OK persistence, paged rows and separate USB action
+PASS: real USB storage service shares HID host; no format; allocation/driver/task failures clean up; mount/retry/eject/replug; callback defers unmount until readers unlock; stale removal ignored; removal during mount/info cannot resurrect D:; failed-device disappearance polled

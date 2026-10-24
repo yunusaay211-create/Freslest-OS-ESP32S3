@@ -1,0 +1,61 @@
+{
+  "version": "6.16",
+  "date": "2026-10-22",
+  "idf": "v5.4.4",
+  "arduino": "3.2.1",
+  "compiler": "GCC14.2.0 esp-20260121",
+  "OS_cross_build": "PASS",
+  "Doom": "6.10 retained byte-identical; not rebuilt",
+  "apps": {
+    "OS": {
+      "version": "6.16",
+      "size": 1769440,
+      "slot": 1769472,
+      "spare": 32,
+      "sha256": "04a725fba76a2bbbfc302aa3c8283a6b2ee3b1d1c7e15ab89f5519185d092f70"
+    },
+    "Doom": {
+      "version": "6.10",
+      "size": 884240,
+      "slot": 917504,
+      "spare": 33264,
+      "sha256": "d79061bdc2b6527caddf3d366de2bb2742387ebb3cf0657d150db047e3bbc6f9"
+    }
+  },
+  "baseline_retained_files_verified": 514,
+  "screen_viewer": "2.0",
+  "transports": [
+    "UART0 via USB bridge",
+    "native USB CDC"
+  ],
+  "PC_Auto": "supported VID candidates + FSHELLO2 signature, native preferred, reconnect",
+  "input": "private OS PC HID merger, independent of all USB/BLE slots; 900ms release timeout; GUI focus loss/disconnect release",
+  "PSRAM": "UI frame 307200/345600 bytes; encoded packet maximum174174 bytes; static radio BSS22880 bytes; drivers/tasks/controller may use internal RAM",
+  "changes": [
+    "Fit default fixes header/footer cropping; manual zoom scrollbars",
+    "PC keyboard/mouse over both transports",
+    "confirmed native USB role; default host preserved; lazy NES MSC descriptor",
+    "return to host from native Viewer does not resume NES",
+    "Doom/AV engine/pins/partitions/storage retained"
+  ],
+  "review": "External review identified BLE peer2/PC slot collision; reproduced RED and fixed GREEN using both production modules plus real HID state merger. Remaining transport/GUI/boot flow inspected by author.",
+  "checks": [
+    "ESP32-S3 image XOR/SHA/descriptor/slot and manifest",
+    "514 retained baseline files identical",
+    "production updater accepts real6.16 ZIP",
+    "37 hostile ZIP/image cases and205 modeled power-cut positions",
+    "full OS/NES/files/audio/HID host suite",
+    "screen+input integration, transport lifecycle, codec",
+    "pyserial PTY and Auto/native/UART/control tests",
+    "actual Tk viewport/key/mouse/focus test under Xvfb",
+    "Display/recovery/BLE/Wi-Fi/browser/AV/boot regressions",
+    "ELF radio PSRAM and AV IRQ IRAM audit"
+  ],
+  "limits": [
+    "Physical ESP32-S3/Windows USB/TV not available for testing",
+    "Doom, updater and AV Lab use separate rendering loops; not mirrored",
+    "Native USB starts after normal startup/Continue; boot Recovery viewer uses UART",
+    "Detailed Full UART screens may be below1fps",
+    "SDK generic app-size check also compares the separate smaller Doom slot; both intended OS slots fit"
+  ]
+}

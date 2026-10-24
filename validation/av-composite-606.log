@@ -1,0 +1,2 @@
+PASS: exact composite buffer bounds, 912x262 timing budget, sync/burst, black/white levels, full waveform, RGB565 byte order, indexed conversion, 4:3 uniform 480x360-to-320x240 scale and square/cursor bounds, TV calibration and invariant sync/burst, and triple-buffer ownership
+PASS: real backend LCD default/invalid preference, BACK recovery, TV alignment and colour persistence/clamping/NVS errors, unchanged-frame recolour, all allocation/driver/task failure cleanup, original GPIO mapping, source ownership, bounded first-frame wait and immediate later stalled-DMA health

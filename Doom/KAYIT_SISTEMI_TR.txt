@@ -1,0 +1,4 @@
+Historical filename retained for compatibility. Current English instructions
+are in the package root README.md. Install 6.00 using root flash_all.bat.
+All eight Doom saves keep the same 0xe00000 / 0x200000 partition and format.
+MP3 music, GPIO21 PCM effects, physical controls and 4:3 scaling are retained.

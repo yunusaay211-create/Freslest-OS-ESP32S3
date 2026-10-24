@@ -1,0 +1,10 @@
+Freslest OS NES Library
+
+Put your legally obtained .nes ROM files in this folder before uploading the LittleFS data image.
+Example:
+  data/games/nes/Super Mario Bros.nes
+
+On Freslest OS the file will appear as:
+  Super Mario Bros
+
+The OS scans /games/nes automatically and reads the iNES header.

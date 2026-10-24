@@ -1,0 +1,30 @@
+DFPLAYER: MUSIC e1m1 -> /MP3/0070.mp3 loop=1
+DFPLAYER: MUSIC inter -> /MP3/0097.mp3 loop=1
+DFPLAYER: MUSIC e1m2 -> /MP3/0071.mp3 loop=1
+PASS: E1M1 -> intermission -> E1M2, repeat, pause, volume, stop; nonblocking Doom APIs
+DFPLAYER: MUSIC e1m1 -> /MP3/0070.mp3 loop=1
+DFPLAYER: MUSIC e1m3 -> /MP3/0072.mp3 loop=1
+DFPLAYER: MUSIC e1m2 -> /MP3/0071.mp3 loop=1
+PASS: superseded transition, SD removal/reinsertion uses current map
+DFPLAYER: MUSIC e1m2 -> /MP3/0071.mp3 loop=1
+PASS: missing status reply, corrupt UART packet recovery
+DFPLAYER: MUSIC e1m2 -> /MP3/0071.mp3 loop=1
+PASS: stopped/busy response retries playback
+PWM_SFX: DIRECT_DUTY_READY rc=0 duty=512
+PWM_SFX: PCM_READY GPIO21 carrier=30000Hz sample=8000Hz; no boot beep
+PWM_SFX: START id=1 channel=0 vol=127 hz=11025 samples=5661
+PWM_SFX: START id=1 channel=0 vol=0 hz=11025 samples=5661
+PWM_SFX: start rejected (ready=1 id=1 channel=8)
+PWM_SFX: DIRECT_DUTY_READY rc=-1 duty=512
+PASS: GPIO21 direct duty, silent boot/30kHz carrier, real WAD pistol PCM, mute, handle bounds, long sample phase
+PASS: all four OK+direction chords, only owned weapons, no movement/door events
+PASS: direction held before OK; OK alone uses door on release
+PASS: menu confirmation and parent BACK release pairing
+PASS: 5-second repair recovers lost KEYUP; held fire is continuous
+PASS: BACK+OK manual reset and both-key release latch
+PASS: actual HID decoder to Doom WASD/Shift, mouse turn/fire, physical+USB holds, tap latch, menu click and unplug release
+PASS: quarter-rate mouse turning, fractional slow movement, reversal, menu sprite motion, game/unplug hiding
+PASS: exact 4:3 centered scaling, unchanged-frame skip, one-row dirty transfer, palette invalidation, centered mode
+PASS: actual Doom DMA sprite motion/unplug restore base pixels; composite routing bypasses all SPI setup
+All host source tests and G_BuildTiccmd syntax check passed. ESP-IDF/hardware not tested.
+PASS: menu-first startup syntax and configuration

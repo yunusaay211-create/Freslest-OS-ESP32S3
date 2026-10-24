@@ -1,0 +1,11 @@
+Freslest OS 6.00 sound cues
+
+MP3/0105.mp3 through MP3/0112.mp3 are original procedural sounds generated
+by tools/make_os_sounds.py for this project. No Doom music/effect recordings
+are used to synthesize these eight cues. The synthesis source is included.
+You may use, modify and redistribute these eight generated cues with Freslest
+or your own projects. Existing Doom/third-party audio retains its own status;
+this permission does not apply to MP3/0001..0104 or ADVERT.
+
+Format: 44.1 kHz stereo, 192 kbps MP3. Decoder peak and RMS measurements are
+recorded in OS_SOUNDS.json. Speaker/amplifier output was not measured.

@@ -1,0 +1,1 @@
+PASS: actual BLE HID open/input/close callbacks: two peripherals, parser-to-OS state, malformed input, disabled input, USB key retention, unplug release and unsupported-device closure

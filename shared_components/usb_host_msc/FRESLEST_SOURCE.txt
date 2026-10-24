@@ -1,0 +1,7 @@
+Espressif esp-usb
+commit f3408e8cfc0ca99bf8686a4acfd9d3de7522df81
+path host/class/msc/usb_host_msc/
+No driver source modifications. Bundled for offline IDF 5.4.4 builds.
+
+5.0.0 local fixes: propagate failed mounts and NULL handles, clear drive geometry,
+retry readiness and mount CRC-checked GPT FAT volumes using read-only mapping.

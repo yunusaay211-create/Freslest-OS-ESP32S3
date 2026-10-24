@@ -1,0 +1,1 @@
+PASS: actual text editor and Browser protocol: layout bounds, cursor/deletion/insertion, maximum length, bounded JSON escaping, numeric overflow, percent decoding and HTTP URL validation.

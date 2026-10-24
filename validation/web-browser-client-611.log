@@ -1,0 +1,2 @@
+PASS: actual text editor and Browser protocol: layout bounds, cursor/deletion/insertion, maximum length, bounded JSON escaping, numeric overflow, percent decoding and HTTP URL validation.
+PASS: actual Browser TCP source: fragmented JPEG and header reads, length/type/overflow/truncation rejection, 204 support, authentication header, three frame leases, queue saturation/release priority, bounded pointer, pause refresh and stale-request cancellation.

@@ -1,0 +1,2 @@
+PASS: full-frame Fit at all supported sizes, tiny windows, scroll zoom, letterbox rejection, pointer scaling, key edges and focus release
+PASS: Auto excludes Bluetooth COM, selects native signature first; native retains USB baud, UART switches baud; actual receiver sends PC keys/pointer and releases on disconnect

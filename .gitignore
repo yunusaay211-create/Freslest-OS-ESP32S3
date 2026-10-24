@@ -4,5 +4,12 @@ build/
 dist/
 *.spec
 .baseline/
+host_build/
+*.o
+*.elf
+*.map
+*.nes
+*.wad
+*.mp3
 firmware/
 firmware-payload.zip

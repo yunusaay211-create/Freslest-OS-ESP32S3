@@ -1,0 +1,3 @@
+PASS: confirmed native PC Viewer role and failed role save preserve settings
+PASS: actual AV colour page, colour bars/grey ramp, hue/saturation bounds, Clean/Sharp and reset rows, mouse, preview, save failure/retry, reset and BACK cancellation
+PASS: actual Display selection/confirmation/cancel/save failure/restart; TV alignment buttons and mouse, live preview, save failure/retry, committed state and cancel restoration without restart

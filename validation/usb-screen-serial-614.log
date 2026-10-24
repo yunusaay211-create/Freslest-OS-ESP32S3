@@ -1,0 +1,1 @@
+PASS: real pyserial connection/fragmented byte reads, baud negotiation, full image reception and FS0 shutdown over a pseudo terminal. Physical Windows USB bridge is not simulated.

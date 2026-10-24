@@ -1,0 +1,2 @@
+PASS: actual raw driver configuration, original 8 GPIOs, exact 60-node/238420-byte rings, 64-byte PSRAM alignment, data-popped EOF, prefetched old-field delay without mixed data, confirmed-new-field ownership, clock wrap/stall/error health and stopped-stream detection
+PASS: actual driver cleanup at all 42 fallible initialization boundaries, including all three field buffers/rings, source/bus references, GDMA and PM locks

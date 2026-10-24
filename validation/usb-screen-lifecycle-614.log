@@ -1,0 +1,1 @@
+PASS: production UART screen lifecycle: invalid commands, PSRAM/task failure, negotiated baud, one immutable in-flight packet, stop waits for writer, diagnostic passthrough, idle restore, overflow and timer wraparound.

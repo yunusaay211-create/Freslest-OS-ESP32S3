@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.16)
+set(PROJECT_VER "6.10")
+set(IDF_TARGET "esp32s3" CACHE STRING "Target chip")
+set(COMPONENTS main)
+set(EXTRA_COMPONENT_DIRS "../shared_components")
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+project(freslest_doom_s3)
+
+foreach(component usb usb_host_hid)
+ idf_component_get_property(usb_library ${component} COMPONENT_LIB)
+ target_compile_options(${usb_library} PRIVATE -Os)
+endforeach()

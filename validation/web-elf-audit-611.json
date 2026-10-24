@@ -1,0 +1,27 @@
+{
+  "freslest_av_gpio": {
+    "address": "0x3c153204",
+    "section": ".flash.rodata",
+    "size": 32,
+    "pins": [
+      8,
+      13,
+      14,
+      2,
+      42,
+      40,
+      39,
+      48
+    ]
+  },
+  "field_eof": {
+    "address": "0x4037a1f4",
+    "section": ".iram0.text",
+    "size": 127
+  },
+  "descriptor_error": {
+    "address": "0x4037a1c4",
+    "section": ".iram0.text",
+    "size": 46
+  }
+}

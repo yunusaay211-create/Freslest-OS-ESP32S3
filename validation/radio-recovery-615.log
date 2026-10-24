@@ -1,0 +1,4 @@
+PASS boot: three interrupted startups, healthy reset clearing, clean software handoff, deep-sleep exclusion/RTC release, physical recovery chord, NVS failure.
+PASS recovery: actual UI toggles saved settings without any radio startup, settings survive reboot, unavailable Downdate is inert, error third action opens actual log, confirmed Downdate selects only OS, failed settings write retains old state.
+PASS Downdate: image validity, project identity, SHA, full image verification, partition size and running OS checks reject invalid images/Doom.
+PASS sleep: exact 300000 ms inactivity, button/HID activity, USB/update/editor/portal/browser/disk blockers, RTC ANY_LOW wake, clean exit marker, failed wake setup stays awake, both radio stacks stop, millis wraparound.

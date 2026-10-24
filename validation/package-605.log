@@ -1,0 +1,26 @@
+PASS: both ESP32-S3/16MB image descriptors, version, XOR and SHA256; strict existing slot sizes
+PASS: 186 assets/layout files and all 182 Doom component sources byte-identical to 6.04
+PASS: original GPIOs, partition maps, watchdog and rollback; GATTC BLE central config
+PASS: actual update ZIP accepted by production v2 parser; exact OS binary
+PASS: full/files-only/with-files/Doom-only checksum dry-runs and exclusive flags; repair writes only 0x20000
+VERIFIED 6.05 1613104
+0x000000     19872 bytes  firmware/bootloader.bin
+0x008000      3072 bytes  firmware/partition-table.bin
+0x010000      8192 bytes  firmware/ota_data_initial.bin
+0x100000   1613104 bytes  firmware/freslest_os_s3.bin
+0x020000    886672 bytes  firmware/freslest_doom_s3.bin
+0x460000   9717304 bytes  firmware/doom_flash.wad
+
+0x020000    886672 bytes  firmware/freslest_doom_s3.bin
+
+0xdb0000    327680 bytes  firmware/littlefs.bin
+LittleFS ROMs/Note will be replaced by the packaged initial image.
+
+0x000000     19872 bytes  firmware/bootloader.bin
+0x008000      3072 bytes  firmware/partition-table.bin
+0x010000      8192 bytes  firmware/ota_data_initial.bin
+0x100000   1613104 bytes  firmware/freslest_os_s3.bin
+0x020000    886672 bytes  firmware/freslest_doom_s3.bin
+0x460000   9717304 bytes  firmware/doom_flash.wad
+0xdb0000    327680 bytes  firmware/littlefs.bin
+LittleFS ROMs/Note will be replaced by the packaged initial image.

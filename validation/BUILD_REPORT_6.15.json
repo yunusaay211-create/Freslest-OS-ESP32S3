@@ -1,0 +1,53 @@
+{
+  "version": "6.15",
+  "date": "2026-10-21",
+  "idf": "v5.4.4",
+  "compiler": "GCC 14.2.0 esp-20260121",
+  "OS_cross_build": "PASS",
+  "Doom": "6.10 retained byte-identical; not rebuilt",
+  "apps": {
+    "OS": {
+      "version": "6.15",
+      "size": 1765120,
+      "slot": 1769472,
+      "spare": 4352,
+      "sha256": "4d20bc9ec10cf9892f0ad2323a35aff4f1e3883e6835e121ac90c0df542965c4"
+    },
+    "Doom": {
+      "version": "6.10",
+      "size": 884240,
+      "slot": 917504,
+      "spare": 33264,
+      "sha256": "d79061bdc2b6527caddf3d366de2bb2742387ebb3cf0657d150db047e3bbc6f9"
+    }
+  },
+  "baseline_retained_files_verified": 514,
+  "ui_task_stack": 24576,
+  "internal_malloc_threshold": 1024,
+  "internal_reserve": 65536,
+  "screen_viewer": "1.0 retained / OS 6.14 or later",
+  "radio_memory_policy": "unchanged from 6.14; enabled PSRAM-first dynamic allocations and external static network/BT BSS",
+  "external_radio_BSS_bytes": 22880,
+  "change": "diagnostics now print both memory pools and runtime BSS location",
+  "static_ram_layout_same_as_6_14": true,
+  "validation_logs": [
+    "usb-screen-614.log",
+    "usb-screen-lifecycle-614.log",
+    "usb-screen-serial-614.log",
+    "panic-ble-614.log",
+    "panic-wifi-614.log",
+    "panic-recovery-614.log",
+    "panic-host-614.log",
+    "panic-browser-614.log",
+    "panic-update-614.log",
+    "panic-rollback-614.log",
+    "radio-release-615.log",
+    "radio-real-package-615.log"
+  ],
+  "limits": [
+    "Physical board/radio/Windows USB bridge/TV not tested.",
+    "Doom separate unchanged firmware is not mirrored.",
+    "Full complex frames can be below 1 fps.",
+    "Bluetooth memory guards mitigate pressure; they do not prove all possible SDK failures safe."
+  ]
+}

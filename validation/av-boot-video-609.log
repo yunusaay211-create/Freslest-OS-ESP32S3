@@ -1,0 +1,1 @@
+PASS: actual Doom I_FinishUpdate and real composite backend defer first asynchronous frame, require presentation and three syncs, bound warmup, detect later failure immediately and preserve LCD health

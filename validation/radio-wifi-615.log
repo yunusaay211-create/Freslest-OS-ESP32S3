@@ -1,0 +1,1 @@
+PASS: actual Wi-Fi manager: leaving Settings and stopping portal preserve station, changed credentials replace active connection, delayed boot startup, failed STA/begin and invalid-credential handling, bounded retry, explicit off retains credentials, Camera ownership, scan coordination; actual header time/temperature beside FRESLEST and Wi-Fi/BT beside battery without overlap.

@@ -1,0 +1,2 @@
+Freslest 6.00: see the package root README.md and use root flash_all.bat.
+A/B OS slots are OTA_0/OTA_1. Doom is OTA_2 at 0x20000.

@@ -1,0 +1,1 @@
+PASS: UART/native signature, ownership, PSRAM-only transfer, immutable packet, HID edges/absolute pointer, BLE isolation, input/stream timeout and disconnect cleanup

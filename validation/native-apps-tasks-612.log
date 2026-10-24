@@ -1,0 +1,3 @@
+PASS: Browser pauses for Task Switcher; text editing blocks long-OK task switching
+PASS: Apps Browser entry, LCD scrolling/mouse row mapping and eight-row 4:3 TV bounds
+PASS: actual Task Switcher hold/release/selection/mouse/BACK and seven Game rows; Fullscreen removed from Game

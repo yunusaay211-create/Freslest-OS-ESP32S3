@@ -1,0 +1,1 @@
+PASS: actual OS Doom launcher queues early input, cancels on re-entry, checks image identity, reports missing/corrupt/boot errors, presents loading status and preserves audio/filesystem shutdown

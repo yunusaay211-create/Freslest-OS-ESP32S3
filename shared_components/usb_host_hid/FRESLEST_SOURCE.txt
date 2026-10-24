@@ -1,0 +1,4 @@
+Espressif USB Host HID 1.2.1, Apache-2.0
+https://github.com/espressif/esp-usb
+Commit fc9bead300f82484eace377d5dea2f3e11163206
+Vendored source unchanged.

@@ -1,0 +1,145 @@
+{
+  "version": "6.12",
+  "date": "2026-10-19",
+  "target": "ESP32-S3 N16R8",
+  "OS": {
+    "cross_build": "PASS",
+    "idf": "5.4.4",
+    "version": "6.12",
+    "bytes": 1753600,
+    "slot_spare": 15872,
+    "sha256": "4c0e45ed4aeae742b7ffa2d0839762a5d8233c8bdf9f23a753a12eba5a884f0d"
+  },
+  "Doom": {
+    "source_and_binary": "Retained byte-for-byte from 6.10; not modified or rebuilt for this release",
+    "sha256": "d79061bdc2b6527caddf3d366de2bb2742387ebb3cf0657d150db047e3bbc6f9"
+  },
+  "browser": {
+    "architecture": "Standalone ESP32 HTTP/HTTPS with native text/JPEG UI",
+    "external_pc_required": false,
+    "remote_server_or_cloud_renderer": false,
+    "supported": [
+      "HTML/text",
+      "relative and absolute links",
+      "basic GET form fields and submission",
+      "JPEG images up to 96 KiB"
+    ],
+    "unsupported": [
+      "JavaScript",
+      "CSS layout",
+      "POST forms",
+      "MP4/H.264/YouTube video",
+      "full YouTube/ChatGPT web applications"
+    ],
+    "bounds": {
+      "HTML_bytes": 262144,
+      "rows": 256,
+      "columns": 72,
+      "links": 64,
+      "forms": 6,
+      "fields": 12,
+      "JPEG_bytes": 98304,
+      "page_buffers": 2,
+      "worker_stack": 12288
+    },
+    "TLS": "Certificate verification with ESP-IDF common Mozilla roots; valid clock required"
+  },
+  "retained": [
+    "BLE saved peer reconnect",
+    "persistent Wi-Fi and device/phone setup",
+    "Turkey-time NTP",
+    "DHT11 GPIO38",
+    "Wi-Fi/BT beside battery; time/temp beside FRESLEST",
+    "AV Engine 0.1.1 and original requested GPIO order",
+    "A/B v2 layout/rollback, user files, NES, MP3/WAD"
+  ],
+  "elf_audit": {
+    "freslest_av_gpio": {
+      "address": "0x3c175e48",
+      "section": ".flash.rodata",
+      "pins": [
+        8,
+        13,
+        14,
+        2,
+        42,
+        40,
+        39,
+        48
+      ]
+    },
+    "field_eof": {
+      "address": "0x4037a1f4",
+      "section": ".iram0.text"
+    },
+    "descriptor_error": {
+      "address": "0x4037a1c4",
+      "section": ".iram0.text"
+    }
+  },
+  "tests": {
+    "native-ble-612": [
+      "PASS: complete BLE production source: persistent peers, reboot/wake reconnect without UUID, two HID devices, real report parser/state, USB key retention, unplug release, manual pause, stale SDK OPEN cancellation, retry backoff, wrap-safe timers and NVS retry."
+    ],
+    "native-html-612": [
+      "PASS: production standalone HTML parser: chunk-independent title/text/entities/UTF-8, scripts/styles/comments excluded, safe relative URLs, links/JPEG, GET form encoding and hidden fields, POST/video rejection, large-page limits and 2 MB malformed-input sanitizer coverage."
+    ],
+    "native-wifi-status-612": [
+      "PASS: actual Wi-Fi manager: leaving Settings and stopping portal preserve station, changed credentials replace active connection, bounded retry, explicit off retains credentials, Camera ownership, scan coordination; actual header time/temperature beside FRESLEST and Wi-Fi/BT beside battery without overlap."
+    ],
+    "native-browser-612": [
+      "PASS: production standalone HTML parser: chunk-independent title/text/entities/UTF-8, scripts/styles/comments excluded, safe relative URLs, links/JPEG, GET form encoding and hidden fields, POST/video rejection, large-page limits and 2 MB malformed-input sanitizer coverage.",
+      "PASS: actual standalone Browser UI: home bookmarks, link selection/wrap, form editing and encoded GET submission, loading state, Info return, BACK cleanup, and LCD/4:3 display bounds.",
+      "PASS: actual standalone HTTP worker: verified-TLS configuration, HTML/JPEG/chunked responses, relative redirects/loop cap, media/compression rejection, HTML/JPEG byte limits, partial reads, HTTP status, cancellation cleanup and page-buffer leases."
+    ],
+    "native-apps-tasks-612": [
+      "PASS: Browser pauses for Task Switcher; text editing blocks long-OK task switching",
+      "PASS: Apps Browser entry, LCD scrolling/mouse row mapping and eight-row 4:3 TV bounds",
+      "PASS: actual Task Switcher hold/release/selection/mouse/BACK and seven Game rows; Fullscreen removed from Game"
+    ],
+    "native-live-html-612": [
+      "HTML bytes=85498 rows=16 links=14 forms=1 fields=8 truncated=0 search_field=1 GET_url_fits=1"
+    ],
+    "native-os-host-612": [
+      "PASS: actual GPIO -> debounce sampler -> NES pad -> CPU/controller port path for all eight buttons and releases",
+      "PASS: actual NES blitter skips unchanged frames, redraws one dirty source row, maps all fullscreen pixels into LCD 426x320 and full 4:3 composite 480x360, invalidates palette and frees cache",
+      "PASS: actual ROM -> APU -> PCM queue -> GPIO21 PWM; 80000 samples/10s, range 327..701, 23077 transitions, skipped-frame audio retained",
+      "PASS: actual NES CPU/PPU/APU ROM frames, input, palette, pixel bounds, 40 open/exit cycles, missing ROM and mapper rejection",
+      "PASS: actual emulated $4016 receives and releases all eight Player 1 buttons across 40 ROM restarts",
+      "PASS: DHT11 checksum/decimal decode, iNES size/trainer/magic/format validation",
+      "PASS: OS MP3 packets/checksums, reset/SD/DAC sequence, boot priority, mute, volume, no-feedback playback, UART reply/SD/error parsing and corrupt packet recovery",
+      "PASS: all eight OS events address only /MP3/0105..0112 with MP3-folder playback; no Doom file or ADVERT selection",
+      "PASS: PCM queue prefill/wrap/overflow, exact GPIO21 timer/PWM setup, mute/gain, underrun fade, stale callbacks, in-flight shutdown and failed-device cleanup",
+      "PASS: USB FAT16 format, FAT12/FAT16 fragmented reads, Windows short/long names, corrupt/cyclic/truncated chains, geometry and bounds",
+      "PASS: physical button debounce, bounce rejection, one-shot edges, FIRE and simultaneous OK/direction",
+      "PASS: absent/invalid/USB-level battery readings select X, valid cell voltage selects bounded percentage",
+      "PASS: install banner waits for healthy startup/visible header, persists before display, appears once per version across reset, expires after six seconds, throttles failed commits and handles clock wrap",
+      "PASS: real sampling code retains a 50ms tap across a 200ms UI stall, continuous movement, START/SELECT overlap, neutral launch frame without release blocking and bounce rejection",
+      "PASS: actual USB callbacks, delayed eject acknowledgement, OK import fallback, preserved result/error across Library/details, explicit reconnect, partial redraws without flash queries, new/unchanged/replaced ROMs, invalid/full-storage/write-failure preservation and buffer cleanup",
+      "PASS: actual TinyUSB worker/event-loop bodies bound an endless queue to 16 events per sleep; empty and uninitialized queues return safely",
+      "PASS: actual USB initialization checks worker allocation, unwinds failure, restores failed descriptor state and reuses descriptors on driver/task retry without duplicate length or leaks",
+      "PASS: Browser pauses for Task Switcher; text editing blocks long-OK task switching",
+      "PASS: Apps Browser entry, LCD scrolling/mouse row mapping and eight-row 4:3 TV bounds",
+      "PASS: actual Task Switcher hold/release/selection/mouse/BACK and seven Game rows; Fullscreen removed from Game",
+      "PASS: real nested file operations, nonempty folder protection, binary rejection, bounded text pages and explicit deletion",
+      "PASS: boot HID decoder, composite slots, tap latch, modifiers, rollover/malformed reports, bounded mouse motion and unplug releases",
+      "PASS: Browser keyboard Tab/Ctrl+A forwarding and right-click preserve page input without opening Task Switcher or BACK",
+      "PASS: actual OS USB navigation, tap latches/repeat, NES controls, typing, pointer clamp/hit/unplug and persisted USB roles with save-error protection",
+      "PASS: actual Files UI C:/D: Disks, USB folders/text, hot removal during preview, replaced-drive root reset, USB-only confirmed delete, retry/eject/PC-role switch, internal ROM preservation and lock release; original actions/cancel/parent behavior",
+      "PASS: actual LCD pointer is composed before SPI DMA, has no background-only erase, stationary pointer sends no pixels, base restored after DMA, horizontal/vertical movement, unplug, redraw and edge clipping",
+      "PASS: actual NES menu has visible final Fullscreen row with zero/many ROMs, click/OK persistence, paged rows and separate USB action",
+      "PASS: real USB storage service shares HID host; no format; allocation/driver/task failures clean up; mount/retry/eject/replug; callback defers unmount until readers unlock; stale removal ignored; removal during mount/info cannot resurrect D:; failed-device disappearance polled"
+    ],
+    "native-package-612": [
+      "PASS: OS 6.12 and retained Doom 6.10 descriptors/chip/flash/limits/XOR/SHA; all manifest entries; update v2 bytes; four flasher maps; retained baseline files: 514",
+      "VERIFIED 6.12 1753600"
+    ]
+  },
+  "hardware_tested": false,
+  "limits": [
+    "Host HTTP tests use ESP-IDF API doubles; physical TLS/radio and TV operation unverified",
+    "Live Google HTML was downloaded on host and parsed; q field and encoded GET URL were found; this does not prove device access",
+    "CA filtering can reject certificates issued by unlisted authorities",
+    "No claim of full modern JavaScript web or video functionality"
+  ]
+}

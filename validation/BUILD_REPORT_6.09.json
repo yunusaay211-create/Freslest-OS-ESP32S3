@@ -1,0 +1,308 @@
+{
+  "version": "6.09",
+  "date": "2026-10-18",
+  "target": "ESP32-S3 N16R8 / ILI9488 or original 8-bit composite DAC",
+  "idf": "v5.4.4",
+  "arduino": "3.2.1",
+  "compiler": "GCC 14.2.0 esp-20260121",
+  "cross_build": {
+    "OS": "PASS",
+    "Doom": "PASS"
+  },
+  "firmware_sizes_bytes": {
+    "bootloader.bin": 19872,
+    "freslest_doom_s3.bin": 884240,
+    "freslest_os_s3.bin": 1616256,
+    "littlefs.bin": 327680,
+    "ota_data_initial.bin": 8192,
+    "partition-table.bin": 3072
+  },
+  "slot_spare_bytes": {
+    "OS": 153216,
+    "Doom": 33264
+  },
+  "apps": {
+    "OS": {
+      "size": 1616256,
+      "spare": 153216,
+      "sha256": "bd28fdca5f32ac088fac38d4f1d58df8a1d29278de4b3e76edc345dd31687152"
+    },
+    "Doom": {
+      "size": 884240,
+      "spare": 33264,
+      "sha256": "f2a99ae15d288b966048fe50d998305adacf52a88602bd65ac7e532d84ae4ce9"
+    }
+  },
+  "engine": {
+    "name": "Freslest AV Engine",
+    "version": "0.1",
+    "status": "experimental hardware bring-up",
+    "transport": "raw LCD_CAM i80 / GDMA; no RGB panel driver",
+    "field_buffers": 3,
+    "field_bytes": 238420,
+    "field_allocation_bytes": 238464,
+    "descriptors_per_field": 60,
+    "descriptor_lengths": [
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      4032,
+      532
+    ],
+    "fields_immutable_during_DMA": true,
+    "release_policy": "previous field reusable only after the NEW field EOF",
+    "single_startup_dummy_cycles": 1,
+    "IRAM_audit": {
+      "OS": {
+        "encoder_stack_bytes": 80,
+        "ISR_symbols_in_IRAM": true,
+        "byte_stores_present": true
+      },
+      "Doom": {
+        "encoder_stack_bytes": 80,
+        "ISR_symbols_in_IRAM": true,
+        "byte_stores_present": true
+      }
+    },
+    "lab_boot": "physical UP GPIO4 held during RESET; BACK GPIO16 has LCD recovery priority",
+    "lab_scenes": [
+      "mono grid/ramp",
+      "colour bars",
+      "mono text/grid",
+      "white"
+    ],
+    "normal_OS_services_in_lab": false,
+    "lab_confirms_OTA_trial": false
+  },
+  "changes": [
+    "Independent raw LCD_CAM/GDMA transport replaces esp_lcd RGB-panel composite path in OS and Doom",
+    "Every sample of 910x262 progressive field is explicit, including all porches, pre/post equalization, serrations and burst",
+    "Active image lines 20..259; 320x240 canvas with 744 physical samples per active line",
+    "Three aligned PSRAM field rings; internal descriptors, deferred handover and protection against late prefetch",
+    "New interpolating renderer, packed phase-lane carrier trap, byte stores on unaligned odd scanlines and fixed workspace",
+    "Static AV Lab before OS services, with original physical buttons and UART diagnostics",
+    "Real driver resource cleanup/error health, queue-confirmed first-frame health and IRAM callbacks audited"
+  ],
+  "unchanged_from_608": {
+    "assets_and_layout_files": 186,
+    "doom_component_sources": 182,
+    "os_application_sources": 69,
+    "common_components": 8
+  },
+  "timing": {
+    "sample_request_hz": 14318181,
+    "predicted_sample_hz": 14318181.818181818,
+    "line_samples": 910,
+    "carrier_cycles_per_line": 227.5,
+    "progressive_lines": 262,
+    "predicted_horizontal_hz": 15734.265734265735,
+    "predicted_progressive_refresh_hz": 60.05444936742647,
+    "dma_bytes": [
+      910,
+      262
+    ],
+    "active_top": 20,
+    "active_samples": 744,
+    "original_dac_gpios_lsb_to_msb": [
+      8,
+      13,
+      14,
+      39,
+      2,
+      40,
+      42,
+      48
+    ],
+    "vertical_format": "existing 240p-style progressive; not 525-line interlaced NTSC",
+    "clock_measurement": "software prediction from real IDF helper; no physical measurement"
+  },
+  "encoder_stack_bytes_xtensa_disassembly": {
+    "OS": 80,
+    "Doom": 80
+  },
+  "filter_model": {
+    "current_renderer": "horizontal interpolation; optional four-sample unmodulated-phase carrier trap",
+    "glyph_chroma_band_energy_clean_over_sharp": 0.064094,
+    "glyph_low_band_luma_retained": 0.898746,
+    "measurement": "software model only"
+  },
+  "host_test_results": {
+    "ble-callbacks": [
+      "PASS: actual BLE HID open/input/close callbacks: two peripherals, parser-to-OS state, malformed input, disabled input, USB key retention, unplug release and unsupported-device closure"
+    ],
+    "ble-map": [
+      "PASS: BLE HID descriptor/ID parsing, 6KRO/NKRO/modifiers, signed 12-bit mouse, truncation/rollover/bounds, independent report holds, USB+BLE union and disconnect release"
+    ],
+    "ble-ui": [
+      "PASS: actual BLE settings ON/OFF/save, asynchronous list redraw, separate keyboard/mouse selection, scan, confirmed forget/cancel, passkey display/explicit numeric confirmation, pointer selection and 320/360-height bounds"
+    ],
+    "boot-video": [
+      "PASS: actual Doom I_FinishUpdate and real composite backend defer first asynchronous frame, require presentation and three syncs, bound warmup, detect later failure immediately and preserve LCD health"
+    ],
+    "clock": [
+      "PASS: real IDF fractional clock helper: PLL240M / (8 + 24/63) / 2; predicted sample 14318181.818182 Hz, carrier 3579545.454545 Hz, line 15734.265734 Hz; software prediction only"
+    ],
+    "colors": [
+      "PASS: AV chroma vectors/hue rotation, 8 neutral greys at every hue, all RGB565 greys, monochrome color=0, Clean/Sharp scalar-vs-rolling FIR, exact sync/burst and guards; model carrier-energy ratio 0.015759"
+    ],
+    "composite": [
+      "PASS: exact composite buffer bounds, 910x262 timing budget, alternating burst, black/white levels, full waveform, RGB565 byte order, indexed conversion, 4:3 uniform 480x360-to-320x240 scale and square/cursor bounds, TV calibration and invariant sync/burst, and triple-buffer ownership",
+      "PASS: real backend LCD default/invalid preference, BACK recovery, TV alignment and colour v1/v2 migration and legacy preservation, detail/monochrome persistence/clamping/NVS errors, immutable field publication and stationary-frame recolour/detail, all allocation/driver/task failure cleanup, original GPIO mapping, source ownership, bounded first-frame wait and immediate later stalled-DMA health"
+    ],
+    "display-menu": [
+      "PASS: actual AV colour page, colour bars/grey ramp, hue/saturation bounds, Clean/Sharp and reset rows, mouse, preview, save failure/retry, reset and BACK cancellation",
+      "PASS: actual Display selection/confirmation/cancel/save failure/restart; TV alignment buttons and mouse, live preview, save failure/retry, committed state and cancel restoration without restart"
+    ],
+    "doom-host": [
+      "PASS: E1M1 -> intermission -> E1M2, repeat, pause, volume, stop; nonblocking Doom APIs",
+      "PASS: superseded transition, SD removal/reinsertion uses current map",
+      "PASS: missing status reply, corrupt UART packet recovery",
+      "PASS: stopped/busy response retries playback",
+      "PASS: GPIO21 direct duty, silent boot/30kHz carrier, real WAD pistol PCM, mute, handle bounds, long sample phase",
+      "PASS: all four OK+direction chords, only owned weapons, no movement/door events",
+      "PASS: direction held before OK; OK alone uses door on release",
+      "PASS: menu confirmation and parent BACK release pairing",
+      "PASS: 5-second repair recovers lost KEYUP; held fire is continuous",
+      "PASS: BACK+OK manual reset and both-key release latch",
+      "PASS: actual HID decoder to Doom WASD/Shift, mouse turn/fire, physical+USB holds, tap latch, menu click and unplug release",
+      "PASS: quarter-rate mouse turning, fractional slow movement, reversal, menu sprite motion, game/unplug hiding",
+      "PASS: exact 4:3 centered scaling, unchanged-frame skip, one-row dirty transfer, palette invalidation, centered mode",
+      "PASS: actual Doom DMA sprite motion/unplug restore base pixels; composite routing bypasses all SPI setup",
+      "PASS: menu-first startup syntax and configuration"
+    ],
+    "doom-launch": [
+      "PASS: actual OS Doom launcher queues early input, cancels on re-entry, checks image identity, reports missing/corrupt/boot errors, presents loading status and preserves audio/filesystem shutdown"
+    ],
+    "doom-pointer": [
+      "PASS: actual Doom menu hover matches stretched rows, skips disabled entries and respects bounds/message/setup/inactive states"
+    ],
+    "engine-driver": [
+      "PASS: actual raw driver configuration, original 8 GPIOs, exact 60-node/238420-byte rings, 64-byte PSRAM alignment, data-popped EOF, prefetched old-field delay without mixed data, confirmed-new-field ownership, clock wrap/stall/error health and stopped-stream detection",
+      "PASS: actual driver cleanup at all 42 fallible initialization boundaries, including all three field buffers/rings, source/bus references, GDMA and PM locks"
+    ],
+    "engine-signal": [
+      "PASS: all 238420 physical samples, 910x262 field continuity, pre/post equalization and serrations, reversible burst, scalar interpolation/trap oracle on every sample, flat-colour phase, mono lab patterns and unaligned destination guards",
+      "PASS: 20000 immutable-field handovers with delayed old-ring EOF, a third prepared field, busy retry, protected active/pending slots and no premature buffer reuse"
+    ],
+    "idf-rollback": [
+      "PASS: actual IDF selector and bootloader rollback, both A/B directions, 36 sector/word-boundary power cuts, Doom never chosen"
+    ],
+    "legacy-ntsc-reference": [
+      "PASS: 227.5-cycle NTSC line/field phase continuity, alternating burst, all-line flat-colour comb recovery (max error 0.000000 DAC codes), zero model cross-colour on repeated monochrome detail, retained luma contrast and DMA guards",
+      "PASS: receiver model rejects both non-alternating burst and non-alternating active chroma negative controls"
+    ],
+    "os-host": [
+      "PASS: actual GPIO -> debounce sampler -> NES pad -> CPU/controller port path for all eight buttons and releases",
+      "PASS: actual NES blitter skips unchanged frames, redraws one dirty source row, maps all fullscreen pixels into LCD 426x320 and full 4:3 composite 480x360, invalidates palette and frees cache",
+      "PASS: actual ROM -> APU -> PCM queue -> GPIO21 PWM; 80000 samples/10s, range 327..701, 23077 transitions, skipped-frame audio retained",
+      "PASS: actual NES CPU/PPU/APU ROM frames, input, palette, pixel bounds, 40 open/exit cycles, missing ROM and mapper rejection",
+      "PASS: actual emulated $4016 receives and releases all eight Player 1 buttons across 40 ROM restarts",
+      "PASS: DHT11 checksum/decimal decode, iNES size/trainer/magic/format validation",
+      "PASS: OS MP3 packets/checksums, reset/SD/DAC sequence, boot priority, mute, volume, no-feedback playback, UART reply/SD/error parsing and corrupt packet recovery",
+      "PASS: all eight OS events address only /MP3/0105..0112 with MP3-folder playback; no Doom file or ADVERT selection",
+      "PASS: PCM queue prefill/wrap/overflow, exact GPIO21 timer/PWM setup, mute/gain, underrun fade, stale callbacks, in-flight shutdown and failed-device cleanup",
+      "PASS: USB FAT16 format, FAT12/FAT16 fragmented reads, Windows short/long names, corrupt/cyclic/truncated chains, geometry and bounds",
+      "PASS: physical button debounce, bounce rejection, one-shot edges, FIRE and simultaneous OK/direction",
+      "PASS: absent/invalid/USB-level battery readings select X, valid cell voltage selects bounded percentage",
+      "PASS: install banner waits for healthy startup/visible header, persists before display, appears once per version across reset, expires after six seconds, throttles failed commits and handles clock wrap",
+      "PASS: real sampling code retains a 50ms tap across a 200ms UI stall, continuous movement, START/SELECT overlap, neutral launch frame without release blocking and bounce rejection",
+      "PASS: actual USB callbacks, delayed eject acknowledgement, OK import fallback, preserved result/error across Library/details, explicit reconnect, partial redraws without flash queries, new/unchanged/replaced ROMs, invalid/full-storage/write-failure preservation and buffer cleanup",
+      "PASS: actual TinyUSB worker/event-loop bodies bound an endless queue to 16 events per sleep; empty and uninitialized queues return safely",
+      "PASS: actual USB initialization checks worker allocation, unwinds failure, restores failed descriptor state and reuses descriptors on driver/task retry without duplicate length or leaks",
+      "PASS: actual Task Switcher hold/release/selection/mouse/BACK and seven Game rows; Fullscreen removed from Game",
+      "PASS: real nested file operations, nonempty folder protection, binary rejection, bounded text pages and explicit deletion",
+      "PASS: boot HID decoder, composite slots, tap latch, modifiers, rollover/malformed reports, bounded mouse motion and unplug releases",
+      "PASS: actual OS USB navigation, tap latches/repeat, NES controls, typing, pointer clamp/hit/unplug and persisted USB roles with save-error protection",
+      "PASS: actual Files UI C:/D: Disks, USB folders/text, hot removal during preview, replaced-drive root reset, USB-only confirmed delete, retry/eject/PC-role switch, internal ROM preservation and lock release; original actions/cancel/parent behavior",
+      "PASS: actual LCD pointer is composed before SPI DMA, has no background-only erase, stationary pointer sends no pixels, base restored after DMA, horizontal/vertical movement, unplug, redraw and edge clipping",
+      "PASS: actual NES menu has visible final Fullscreen row with zero/many ROMs, click/OK persistence, paged rows and separate USB action",
+      "PASS: real USB storage service shares HID host; no format; allocation/driver/task failures clean up; mount/retry/eject/replug; callback defers unmount until readers unlock; stale removal ignored; removal during mount/info cannot resurrect D:; failed-device disappearance polled"
+    ],
+    "package": [
+      "PASS: actual 6.09 v2 update ZIP accepted by production parser and exactly matches OS binary",
+      "PASS: both ESP32-S3/16MB app descriptors, 6.09 version, XOR and embedded SHA256; strict slot limits",
+      "PASS: 186 assets/layout files, 182 Doom component sources, 69 OS application sources and 8 common component files byte-identical to 6.08",
+      "PASS: flasher ordinary/Doom-only/with-files/files-only checksums and bounds; no physical flash performed",
+      "PASS: original GPIO bit order and voltage codes; new 238420-byte explicit waveform, internal descriptor rings and immutable whole-field handover",
+      "PASS: watchdog panic, bootloader rollback and continuous DMA configuration retained"
+    ],
+    "text-band": [
+      "PASS: new engine with actual GLCD menu/header/footer glyphs and RGB565 grey stay neutral before encoding; no-comb chroma-band energy Clean/Sharp 0.064094, low-band luma retained 0.898746 (software model only)",
+      "PASS: Clean/Sharp flat-colour equivalence, reversible no-burst monochrome without sync/image changes, and DMA guards"
+    ],
+    "update-tests": [
+      "PASS: warning and BACK cancellation make no firmware writes",
+      "PASS: verified inactive-slot update, trial boot, 10-second/60-frame confirmation and manual restore",
+      "PASS: 205 cuts across every erase/write/read-back/intent/selection boundary preserve the old OS destination",
+      "PASS: stalled startup deadline and failed first-boot health return to the prior OS",
+      "PASS: corrupt SHA, heap/NVS, OTA begin/write/end, read-back and boot-selection failures retain old OS",
+      "PASS: 37 production update ZIP/manifest/CRC/SHA/ESP image cases; monotonic bounded progress and output guards"
+    ]
+  },
+  "hardware_tested": false,
+  "limits": [
+    "First AV Engine 0.1 bring-up: no physical ESP32/TV/DAC/cable/clock or FPS measurement",
+    "Mocked HAL/GDMA tests do not prove peripheral clock behavior, electrical levels or PSRAM arbitration during flash writes",
+    "Fractional sample-clock jitter remains; exact mean divider prediction is not an analog measurement",
+    "The field is 262-line progressive/240p-style, not full 525-line interlaced broadcast NTSC; no PAL mode",
+    "A late descriptor prefetch may repeat one old complete field; actual display latency/FPS remain unmeasured",
+    "Engine health indicates DMA/software progress, not TV picture quality; fixed AV Lab is the next physical test",
+    "RGB332 palette, analog headroom and composite bandwidth remain limited",
+    "Full PC package updates OS and Doom; small v2 ZIP updates OS only; lab does not confirm a pending OTA trial"
+  ]
+}

@@ -1,0 +1,157 @@
+{
+  "ui_task_stack": 24576,
+  "functions": 669,
+  "largest": [
+    {
+      "bytes": 4480,
+      "type": "static",
+      "function": "common/usb_update/freslest_update.c:426:13:install.isra"
+    },
+    {
+      "bytes": 4432,
+      "type": "static",
+      "function": "common/usb_update/freslest_update_package.c:91:13:read_entry"
+    },
+    {
+      "bytes": 3376,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/browser_native.cpp:219:6:void {anonymous}::worker(void*)"
+    },
+    {
+      "bytes": 2816,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/nes_usb.cpp:121:6:void {anonymous}::importRoms()"
+    },
+    {
+      "bytes": 2800,
+      "type": "static",
+      "function": "common/usb_update/freslest_update_package.c:176:6:freslest_update_inspect"
+    },
+    {
+      "bytes": 1200,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/browser_html.cpp:189:6:bool web_lite::resolveUrl(const char*, const char*, char*, size_t)"
+    },
+    {
+      "bytes": 1104,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/update_display.cpp:3:17:void freslest_update_draw_indexed(const uint8_t*)"
+    },
+    {
+      "bytes": 1056,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/storage_init.cpp:7:6:bool {anonymous}::blank(const esp_partition_t*)"
+    },
+    {
+      "bytes": 1024,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/power_recovery.cpp:145:6:void {anonymous}::viewLog()"
+    },
+    {
+      "bytes": 960,
+      "type": "static",
+      "function": "OS/freslest/gfx.cpp:146:6:void gfxPresent()"
+    },
+    {
+      "bytes": 944,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/browser_html.cpp:385:6:void web_lite::Parser::tagDone()"
+    },
+    {
+      "bytes": 816,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/app_browser.cpp:215:6:void {anonymous}::follow(int)"
+    },
+    {
+      "bytes": 672,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/power_recovery.cpp:295:6:void freslestRecoveryRun(const char*)"
+    },
+    {
+      "bytes": 640,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/file_browser.cpp:128:6:bool FileBrowser::textPage(unsigned int, unsigned int, char*, size_t, bool&)"
+    },
+    {
+      "bytes": 592,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/system_status.cpp:80:6:void systemStatusDraw(bool)"
+    },
+    {
+      "bytes": 576,
+      "type": "static",
+      "function": "common/usb_update/freslest_update.c:338:13:scan"
+    },
+    {
+      "bytes": 560,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/app_browser.cpp:275:6:void browserLoop(uint32_t)"
+    },
+    {
+      "bytes": 544,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/file_browser.cpp:70:6:bool FileBrowser::openDirectory(unsigned int)"
+    },
+    {
+      "bytes": 528,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/power_recovery.cpp:352:6:void freslestIdleUpdate(uint32_t)"
+    },
+    {
+      "bytes": 528,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/ble_advertising.cpp:858:6:void freslestBleScan()"
+    },
+    {
+      "bytes": 528,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/ble_advertising.cpp:863:6:void freslestBleConnect(unsigned int)"
+    },
+    {
+      "bytes": 528,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/ble_advertising.cpp:878:6:void freslestBleForget()"
+    },
+    {
+      "bytes": 496,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/ble_advertising.cpp:258:6:void {anonymous}::gap(esp_gap_ble_cb_event_t, esp_ble_gap_cb_param_t*)"
+    },
+    {
+      "bytes": 480,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/file_browser.cpp:23:6:bool FileBrowser::refresh()"
+    },
+    {
+      "bytes": 480,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/ble_advertising.cpp:826:6:void freslestBleStart()"
+    },
+    {
+      "bytes": 464,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/ble_advertising.cpp:896:6:void freslestBleDiagnostics()"
+    },
+    {
+      "bytes": 432,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/wifi_manager.cpp:308:6:void setWifiLoop(uint32_t)"
+    },
+    {
+      "bytes": 432,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/settings_pages.cpp:137:13:void drawBtScreen()"
+    },
+    {
+      "bytes": 432,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/settings_pages.cpp:169:6:void setBtLoop(uint32_t)"
+    },
+    {
+      "bytes": 384,
+      "type": "static",
+      "function": "OS/freslest/src/freslest/nes_core.cpp:56:13:void blit(bitmap_t*, int, rect_t*)"
+    }
+  ],
+  "note": "Static compiler per-function frame sizes; not a runtime high-water measurement. Worker stack sizes are separate."
+}

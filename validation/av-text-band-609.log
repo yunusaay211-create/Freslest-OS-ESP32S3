@@ -1,0 +1,2 @@
+PASS: new engine with actual GLCD menu/header/footer glyphs and RGB565 grey stay neutral before encoding; no-comb chroma-band energy Clean/Sharp 0.064094, low-band luma retained 0.898746 (software model only)
+PASS: Clean/Sharp flat-colour equivalence, reversible no-burst monochrome without sync/image changes, and DMA guards

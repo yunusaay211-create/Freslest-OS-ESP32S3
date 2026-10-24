@@ -1,0 +1,10 @@
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/zipfile/__init__.py:1625: UserWarning: Duplicate name: 'freslest-update.json'
+  return self._open_to_write(zinfo, force_zip64=force_zip64)
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/zipfile/__init__.py:1625: UserWarning: Duplicate name: 'firmware/freslest_os_s3.bin'
+  return self._open_to_write(zinfo, force_zip64=force_zip64)
+PASS: warning and BACK cancellation make no firmware writes
+PASS: verified inactive-slot update, trial boot, 10-second/60-frame confirmation and manual restore
+PASS: 205 cuts across every erase/write/read-back/intent/selection boundary preserve the old OS destination
+PASS: stalled startup deadline and failed first-boot health return to the prior OS
+PASS: corrupt SHA, heap/NVS, OTA begin/write/end, read-back and boot-selection failures retain old OS
+PASS: 37 production update ZIP/manifest/CRC/SHA/ESP image cases; monotonic bounded progress and output guards

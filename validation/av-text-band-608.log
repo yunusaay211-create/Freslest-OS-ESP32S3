@@ -1,0 +1,2 @@
+PASS: actual GLCD menu/header/footer glyphs and RGB565 grey stay neutral before encoding; no-comb chroma-band energy Clean/Sharp 0.013176, low-band luma retained 0.816332 (software model only)
+PASS: Clean/Sharp flat-colour equivalence, reversible no-burst monochrome without sync/image changes, and DMA guards

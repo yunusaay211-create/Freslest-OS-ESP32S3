@@ -1,0 +1,17 @@
+SHARED DFPLAYER MP3 FOLDER
+
+0001-0104: original Doom files, unchanged.
+0105: BOOT
+0106: CLICK
+0107: DINO_JUMP
+0108: SNAKE_PICKUP
+0109: TETRIS_LINE
+0110: GAME_START
+0111: GAME_OVER
+0112: WIN
+
+Copy MP3 and ADVERT to the DFPlayer FAT32 card root, preserving filenames.
+DFPlayer TX -> ESP GPIO17; ESP GPIO18 -> existing 1k -> DFPlayer RX.
+Common GND is required. GPIO21 supplies live NES audio and Doom WAD effects.
+Settings > Sound: UP tests MP3 0105, DOWN requests diagnostics.
+Serial 115200: m tests MP3, i requests diagnostic TX/RX/status output.

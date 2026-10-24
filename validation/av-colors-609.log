@@ -1,0 +1,1 @@
+PASS: AV chroma vectors/hue rotation, 8 neutral greys at every hue, all RGB565 greys, monochrome color=0, Clean/Sharp scalar-vs-rolling FIR, exact sync/burst and guards; model carrier-energy ratio 0.015759

@@ -1,0 +1,1 @@
+PASS: complete BLE production source: persistent peers, reboot/wake reconnect without UUID, two HID devices, real report parser/state, USB key retention, unplug release, manual pause, stale SDK OPEN cancellation, retry backoff, wrap-safe timers and NVS retry.

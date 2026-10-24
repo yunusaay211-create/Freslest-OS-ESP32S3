@@ -1,0 +1,1 @@
+PASS: BLE HID descriptor/ID parsing, 6KRO/NKRO/modifiers, signed 12-bit mouse, truncation/rollover/bounds, independent report holds, USB+BLE union and disconnect release

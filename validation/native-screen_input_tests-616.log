@@ -1,0 +1,1 @@
+PASS: production screen+input integration keeps PC independent of both BLE peers, BLE stop, PC release/timeout, pointer buttons and keyboard edges

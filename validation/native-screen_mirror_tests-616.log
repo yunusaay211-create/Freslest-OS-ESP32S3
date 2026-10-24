@@ -1,0 +1,1 @@
+PASS: production C++ RGB565 -> RGB332/RLE -> actual Python decoder, 5 full/half frames, all 65536 input colors, pointer, malformed packets/noise/CRC, actual viewer serial handshake/frame/cancel at both baud rates.

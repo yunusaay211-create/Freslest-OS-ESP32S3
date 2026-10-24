@@ -1,0 +1,1 @@
+PASS: real USB storage service shares HID host; no format; allocation/driver/task failures clean up; mount/retry/eject/replug; callback defers unmount until readers unlock; stale removal ignored; removal during mount/info cannot resurrect D:; failed-device disappearance polled; sleep gate refuses live/busy media and prevents late mounts
