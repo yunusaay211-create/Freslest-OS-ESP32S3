@@ -1,0 +1,35 @@
+{
+  "release": "Freslest OS 1.0",
+  "source_commit": "574d27fe5f746d4a5ec95f0506765595754d485d",
+  "workflow_run": 39835602353,
+  "workflow_url": "https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/39835602353",
+  "source_tests_passed": 12,
+  "windows_build": true,
+  "windows_packaged_gui_launch": true,
+  "bundled_installer_diagnostics": true,
+  "firmware_changed": false,
+  "physical_esp32_flash_tested": false,
+  "physical_esp32_viewer_tested": false,
+  "source_sha256": {
+    "build_windows.py": "067cc285012d15e9225223f5225ec49be14aaeb1cfc8202dc91c6070c4cbb196",
+    "prepare_firmware.py": "303a4f253c138b8b06eb856b720d6cc0cdeea03d511a275abe9b3567e5a5663e",
+    "viewer/freslest_viewer.py": "c10b1d4f4cbbcaec63735b512020a7f8edf81d8da5d100dc8fc76f4c3a77bccd",
+    "viewer/control.py": "3e781b696286b3a34b697d0b74b03e38555a4aa180d5c8a30226864ff15f1d3a",
+    "viewer/protocol.py": "f8ba0844a96917637a4b010e6ead0d821eb2cd32bf56412d5196f54963577931",
+    "tests/prove_regressions.py": "3659a7c7e59339b209bfd57034f9d23d4ec9727960525cd976ec057d3c33a90f",
+    "tests/test_diagnostics.py": "b88e91c81cb746c89b7b75442a5efae3de14f3e8b7fa8cfe7ae2036e4d6517c5",
+    "tests/run_all.py": "1cd5113da86eb39bbed954bf130d6d65ec40201a52f9e131fa6009710e360646",
+    "tests/smoke_exes_windows.py": "ebbe61643238c600c5b51f7c97a8cbd09d383a63f93a976420147d71e37f17be",
+    "tests/test_installer.py": "4856f45cff044d9ce1e34946020e363e102e063b0c0a30618a3ff2f7f84beeb9",
+    "installer/installer.py": "8d78a7f5bb7aacaabdbb23627994b973abd6285e7e5be9614c49350951903feb",
+    "viewer/tests/test_performance.py": "4bf25c92c3ee78e1da30d86c60a63502becd5914b759b71479cd88cf5c1705c6",
+    "viewer/tests/test_transport_latency.py": "221ee2d688a007b16aec6f508081751c186f3a9f6d8a81080b506ac6f4791b62",
+    "viewer/tests/test_gui_performance.py": "836bbe75df11c3d1aceb4f68fdb2b81178e0565a656a134ecf696169a0533919",
+    "viewer/tests/benchmark_gui.py": "a7e69276adc3cc56c789cc97497bb64bb4af55e78ec36fb589d4ef4a4d255f46",
+    "tests/fixtures/installer_original.py": "0a35312b5a942c2e85f4fedd0cdf7fd6c82e3d67288ec6157b2c3fcd3acbc547"
+  },
+  "exe_sha256": {
+    "Freslest Installer.exe": "de49ceb797735f52b96eba5bbea319b9fd1c8432568eadb2d8d3d5bb640a0a02",
+    "Freslest USB Viewer.exe": "64ff38ecacb54987717cf6b44c1f7ee440fa31d049fa6048f5259e4133f32965"
+  }
+}

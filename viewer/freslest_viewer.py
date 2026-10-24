@@ -183,7 +183,8 @@ class Viewer:
             if self.image is None:self.image=tk.PhotoImage(data=data,format='PPM')
             else:self.image.configure(width=w,height=h,data=data,format='PPM')
             self._revision+=1;self.show_image();now=time.monotonic()
-            fps=1/(now-self.last_frame_at) if self.last_frame_at else 0;self.last_frame_at=now
+            elapsed=now-self.last_frame_at if self.last_frame_at is not None else 0
+            fps=1/elapsed if elapsed>0 else 0;self.last_frame_at=now
             if now-self._status_at>=.5:
                 self._status_at=now
                 self.status.set(f'Live · {self.connection_label} · {w} × {h} · {fps:.1f} fps · ESP frame/transfer buffer: PSRAM · Click screen to control')

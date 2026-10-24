@@ -18,12 +18,13 @@ checks = []
 diagnostics_path = ROOT / 'dist/INSTALLER_DIAGNOSTICS.json'
 subprocess.run([str(ROOT / 'dist/Freslest Installer.exe'), '--diagnostics', str(diagnostics_path)], check=True, timeout=60)
 diagnostics = json.loads(diagnostics_path.read_text(encoding='utf-8'))
-if not diagnostics['ok'] or not diagnostics['frozen'] or len(diagnostics['firmware']) != 7:
+if not diagnostics['ok'] or not diagnostics['frozen'] or len(diagnostics['firmware']) != 7 or set(diagnostics['installer_languages']) != {'tr', 'en'} or diagnostics['firmware_version'] != '1.0':
     raise RuntimeError('The actual frozen installer did not validate its bundled flash components.')
-for name, title in [('Freslest Installer.exe', 'Freslest Installer | OS 1.0'),
-                    ('Freslest USB Viewer.exe', 'Freslest USB Viewer | OS 1.0')]:
+for name, title, arguments in [('Freslest Installer.exe', 'Freslest Installer | OS 1.0', []),
+                    ('Freslest Installer.exe', 'Freslest Installer | OS 1.0 | English', ['--lang', 'en']),
+                    ('Freslest USB Viewer.exe', 'Freslest USB Viewer | OS 1.0', [])]:
     exe = ROOT / 'dist' / name
-    process = subprocess.Popen([str(exe)], cwd=ROOT / 'dist')
+    process = subprocess.Popen([str(exe), *arguments], cwd=ROOT / 'dist')
     found = []
     @CALLBACK
     def visit(hwnd, _):

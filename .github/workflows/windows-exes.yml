@@ -10,6 +10,7 @@ on:
       - 'firmware-payload/**'
       - 'build_windows.py'
       - 'prepare_firmware.py'
+      - 'firmware_release.py'
       - 'requirements-build.txt'
       - '.github/workflows/windows-exes.yml'
 permissions:
@@ -28,7 +29,7 @@ jobs:
           cache-dependency-path: requirements-build.txt
       - name: Install pinned build tools
         run: python -m pip install -r requirements-build.txt
-      - name: Verify original firmware
+      - name: Prepare and verify firmware release 1.0
         run: python prepare_firmware.py
       - name: Confirm original installer regression failures
         run: python tests/prove_regressions.py
