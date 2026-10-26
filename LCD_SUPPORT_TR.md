@@ -25,7 +25,7 @@ ESP-IDF **v5.4.4**, ESP32-S3 araç zinciri ve Python bulunan ESP-IDF komut istem
 python tools/build_lcd_profiles.py
 ```
 
-Bu komut her ekran için OS ve Doom'u ayrı `build-ili9488` / `build-ili9341` dizinlerine derler. WAD/LittleFS verilerini orijinal payload'dan alır; profil dosyalarını `firmware/ili9488` ve `firmware/ili9341` altında hazırlar. İşlem, derleme başarısızsa veya binary bölüm sınırını aşıyorsa hata verir.
+Bu komut her ekran için OS ve Doom'u derler. Ortak bağımlılıkları tekrar derlememek için her projenin `build-lcd` dizinini kullanır; tamamlanan ilk profil, model değiştirilmeden önce ayrı klasöre kopyalanır. WAD/LittleFS verilerini orijinal payload'dan alır; profil dosyalarını `firmware/ili9488` ve `firmware/ili9341` altında hazırlar. İşlem, derleme başarısızsa veya binary bölüm sınırını aşıyorsa hata verir.
 
 Ardından Windows'ta 64-bit Python **3.11** ile:
 

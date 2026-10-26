@@ -29,7 +29,9 @@ def build():
         builds = {}
         for project in ('OS', 'Doom'):
             directory = ROOT / project
-            output = directory / f'build-{profile}'
+            # Stage each completed profile before switching the CMake define.
+            # The same build tree reuses unchanged SDK/Arduino dependencies.
+            output = directory / 'build-lcd'
             subprocess.run([sys.executable, str(idf), '-B', str(output),
                             f'-DFRESLEST_LCD_MODEL={model}', 'build'], cwd=directory,
                            env={**os.environ, 'IDF_COMPONENT_MANAGER':'0', 'IDF_TARGET':'esp32s3'}, check=True)
