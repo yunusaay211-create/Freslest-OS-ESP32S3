@@ -2,6 +2,7 @@
 #include "../../gfx.h"
 #include "../../input.h"
 #include "../../usb_input.h"
+#include "settings_canvas.h"
 #include "apps.h"
 #include "settings.h"
 #include "text_entry.h"
@@ -128,15 +129,16 @@ void beginConnect(uint32_t now) {
   message("Connecting to saved network...");
 }
 void drawMain() {
+  gfxSetCompactUi(true);
   tft.fillScreen(TH().bg);
   drawHeader("Settings: WiFi");
   clearBody();
   drawFooter("UP/DOWN Select OK Open", "BACK Settings");
-  tft.setTextSize(1);
+  settingTextSize(1);
   tft.setTextColor(TH().text, TH().bg);
-  tft.setCursor(20, 52);
+  settingCursor(20, 52);
   if (WiFi.status() == WL_CONNECTED)
-    tft.printf("Connected: %.32s  IP: %s", wifiSSID.c_str(),
+    tft.printf(settingCompact()?"Connected: %.16s  %s":"Connected: %.32s  IP: %s", wifiSSID.c_str(),
                WiFi.localIP().toString().c_str());
   else
     tft.print(wifiEnabled ? "Not connected" : "Station Wi-Fi is OFF");
@@ -146,9 +148,9 @@ void drawMain() {
   for (int i = 0; i < 5; i++) {
     int y = 78 + i * 34;
     bool sel = i == row;
-    tft.fillRoundRect(18, y, 444, 30, 5, sel ? TH().selbg : TH().panel);
+    settingFillRoundRect(18, y, 444, 30, 5, sel ? TH().selbg : TH().panel);
     tft.setTextColor(TH().text, sel ? TH().selbg : TH().panel);
-    tft.setCursor(28, y + 10);
+    settingCursor(28, y + 10);
     tft.print(names[i]);
     if (i == 0)
       tft.print(wifiEnabled ? " ON" : " OFF");
@@ -156,19 +158,20 @@ void drawMain() {
       tft.print(portalOn ? " ON (192.168.4.1)" : " OFF");
   }
   tft.setTextColor(TH().dim, TH().bg);
-  tft.setCursor(20, 258);
-  tft.print(wifiMessage);
-  tft.setCursor(20, 279);
+  settingCursor(20, 258);
+  tft.printf("%.48s",wifiMessage);
+  settingCursor(20, 279);
   tft.print("Wi-Fi stays connected when you leave this page.");
 }
 void drawNetworks() {
+  gfxSetCompactUi(true);
   tft.fillScreen(TH().bg);
   drawHeader("WiFi: Networks");
   clearBody();
   drawFooter("UP/DOWN Select OK Join", "FIRE Scan BACK Exit");
-  tft.setTextSize(1);
+  settingTextSize(1);
   tft.setTextColor(TH().text, TH().bg);
-  tft.setCursor(20, 54);
+  settingCursor(20, 54);
   if (scanning) {
     tft.print("Scanning... existing Wi-Fi stays on.");
     return;
@@ -184,16 +187,16 @@ void drawNetworks() {
   for (int n = networkTop; n < networkCount && n < networkTop + 6; n++) {
     int y = 78 + (n - networkTop) * 32;
     bool sel = n == networkRow;
-    tft.fillRoundRect(18, y, 444, 29, 5, sel ? TH().selbg : TH().panel);
+    settingFillRoundRect(18, y, 444, 29, 5, sel ? TH().selbg : TH().panel);
     tft.setTextColor(TH().text, sel ? TH().selbg : TH().panel);
-    tft.setCursor(28, y + 10);
-    tft.printf("%s %.32s  %ld dBm",
+    settingCursor(28, y + 10);
+    tft.printf(settingCompact()?"%s %.24s %ld":"%s %.32s  %ld dBm",
                WiFi.encryptionType(n) == WIFI_AUTH_OPEN ? "[Open]" : "[Lock]",
                WiFi.SSID(n).c_str(), (long)WiFi.RSSI(n));
   }
   tft.setTextColor(TH().dim, TH().bg);
-  tft.setCursor(20, 279);
-  tft.printf("%d networks. Password entry supports buttons and keyboards.",
+  settingCursor(20, 279);
+  tft.printf(settingCompact()?"%d networks. OK Join / BACK Return":"%d networks. Password entry supports buttons and keyboards.",
              networkCount);
 }
 void scanNetworks() {
@@ -315,6 +318,7 @@ void setWifiLoop(uint32_t now) {
       if (field == ManualSsid && value[0]) {
         strlcpy(selectedSsid, value, sizeof(selectedSsid));
         editing = Password;
+        gfxSetCompactUi(false);
         textEntryBegin("WiFi: Password", "", 64, true);
         return;
       }
@@ -358,8 +362,8 @@ void setWifiLoop(uint32_t now) {
         redraw = true;
       }
       bool open = bOk.pressed();
-      if (usbInputHit(18, 78, 444, 192)) {
-        int n = networkTop + (usbPointer.y - 78) / 32;
+      if (settingHit(18, 78, 444, 192)) {
+        int n = networkTop + (settingPointerY() - 78) / 32;
         if (n < networkCount) {
           networkRow = n;
           open = true;
@@ -377,6 +381,7 @@ void setWifiLoop(uint32_t now) {
           return;
         }
         editing = Password;
+        gfxSetCompactUi(false);
         textEntryBegin("WiFi: Password", "", 64, true);
         return;
       }
@@ -400,8 +405,8 @@ void setWifiLoop(uint32_t now) {
     redraw = true;
   }
   bool open = bOk.pressed();
-  if (usbInputHit(18, 78, 444, 170)) {
-    row = (usbPointer.y - 78) / 34;
+  if (settingHit(18, 78, 444, 170)) {
+    row = (settingPointerY() - 78) / 34;
     open = true;
   }
   if (bFire.pressed()) {
@@ -425,7 +430,8 @@ void setWifiLoop(uint32_t now) {
       redraw = true;
     } else if (row == 3) {
       editing = ManualSsid;
-      textEntryBegin("WiFi: Network name", "", 32);
+      gfxSetCompactUi(false);
+        textEntryBegin("WiFi: Network name", "", 32);
       return;
     } else {
       if (portalOn)

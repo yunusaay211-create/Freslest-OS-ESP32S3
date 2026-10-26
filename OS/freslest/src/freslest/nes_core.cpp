@@ -54,7 +54,7 @@ static void clearVideo(uint8) {}
 static bitmap_t* lockWrite() {return screen;}
 static void freeWrite(int,rect_t*) {}
 static void blit(bitmap_t* frame,int,rect_t*) {
-  // Native NES, or a 4:3 fit: LCD 426x320 / composite UI 480x360.
+  // Native NES, or a 4:3 fit: LCD/VGA source 426x320.
   // Only rows whose indexed pixels changed need an SPI transfer.
   bool dirty[240],any=false;
   for(int y=0;y<240;++y) {

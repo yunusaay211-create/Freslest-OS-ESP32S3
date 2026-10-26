@@ -9,11 +9,9 @@ include("${CMAKE_CURRENT_LIST_DIR}/../../common/lcd_profile.cmake")
 # Keep per-function stack budgets for the OS main-task audit.
 target_compile_options(${COMPONENT_LIB} PRIVATE -fstack-usage)
 
-# gfx.cpp has no throw/catch path. Avoid unused constructor-unwind tables in
-# this translation unit; Arduino's inherited -fexceptions remains elsewhere.
+# UI sources use return/status based error handling, without throw/catch.
+# Do not emit unused constructor-unwind metadata into the nearly-full OS slot.
 foreach(ui_source IN LISTS ui_srcs)
-    if(ui_source MATCHES "/gfx\\.cpp$")
-        set_property(SOURCE "${ui_source}" APPEND PROPERTY COMPILE_OPTIONS -fno-exceptions)
-    endif()
+    set_property(SOURCE "${ui_source}" APPEND PROPERTY COMPILE_OPTIONS -fno-exceptions)
 endforeach()
-
+set_property(SOURCE "entry.cpp" APPEND PROPERTY COMPILE_OPTIONS -fno-exceptions)

@@ -1,4 +1,5 @@
 #include "apps.h"
+#include "ui_layout.h"
 #include "../../gfx.h"
 #include "settings.h"
 
@@ -7,29 +8,17 @@ static const char* APPS_ITEMS[] = { "Calculator", "Note", "Paint", "Clock", "Cam
 static constexpr int APPS_COUNT = sizeof(APPS_ITEMS)/sizeof(APPS_ITEMS[0]);
 static int appsIndex = 0;
 static int appsTop = 0;
-static int appsVisible(){return (tft.height()-78)/34;}
+static int appsVisible(){return (tft.height()-uiMenuTop(tft.width())-24)/uiMenuRowHeight(tft.width(),34);}
 static void appsScroll(){if(appsIndex<appsTop)appsTop=appsIndex;if(appsIndex>=appsTop+appsVisible())appsTop=appsIndex-appsVisible()+1;}
 
-static void drawAppsRow(int i, bool selected) {
-  if(i<appsTop||i>=appsTop+appsVisible())return;
-  int y = 54 + (i-appsTop) * 34;
-  tft.fillRect(18, y - 2, 444, 34, TH().bg);
-
-  if (selected) {
-    tft.fillRoundRect(20, y, 440, 30, 8, TH().selbg);
-    tft.drawRoundRect(20, y, 440, 30, 8, TH().accent);
-    tft.setTextColor(TH().text, TH().selbg);
-    tft.setCursor(40, y + 8);
-    tft.setTextSize(2);
-    tft.print("> ");
-    tft.print(APPS_ITEMS[i]);
-  } else {
-    tft.setTextColor(TH().dim, TH().bg);
-    tft.setCursor(40, y + 8);
-    tft.setTextSize(2);
-    tft.print("  ");
-    tft.print(APPS_ITEMS[i]);
-  }
+static void drawAppsRow(int i,bool selected){
+ if(i<appsTop||i>=appsTop+appsVisible())return;
+ int w=tft.width(),row=uiMenuRowHeight(w,34),x=uiMenuLeft(w),y=uiMenuTop(w,54)+(i-appsTop)*row;
+ int box=uiCompact(w)?row-2:30;
+ tft.fillRect(x-2,y-2,w-2*x+4,row,TH().bg);
+ if(selected){tft.fillRoundRect(x,y,w-2*x,box,6,TH().selbg);tft.drawRoundRect(x,y,w-2*x,box,6,TH().accent);}
+ tft.setTextColor(selected?TH().text:TH().dim,selected?TH().selbg:TH().bg);tft.setTextSize(2);
+ tft.setCursor(uiMenuTextX(w),y+uiMenuTextY(w,8));tft.print(selected?"> ":"  ");tft.print(APPS_ITEMS[i]);
 }
 
 void drawAppsMenuFull() {
@@ -67,26 +56,14 @@ static const char* GAME_ITEMS[] = { "Dino", "Tetris", "Snake", "Mines", "2048", 
 static constexpr int GAME_COUNT = sizeof(GAME_ITEMS)/sizeof(GAME_ITEMS[0]);
 static int gameIndex = 0;
 
-static void drawGameRow(int i, bool selected) {
-  // Fullscreen is inside NES Library.
-  int y = 50 + i * 30;
-  tft.fillRect(18, y - 2, 444, 30, TH().bg);
-
-  if (selected) {
-    tft.fillRoundRect(20, y, 440, 28, 8, TH().selbg);
-    tft.drawRoundRect(20, y, 440, 28, 8, TH().accent);
-    tft.setTextColor(TH().text, TH().selbg);
-    tft.setCursor(40, y + 6);
-    tft.setTextSize(2);
-    tft.print("> ");
-    tft.print(GAME_ITEMS[i]);
-  } else {
-    tft.setTextColor(TH().dim, TH().bg);
-    tft.setCursor(40, y + 6);
-    tft.setTextSize(2);
-    tft.print("  ");
-    tft.print(GAME_ITEMS[i]);
-  }
+static void drawGameRow(int i,bool selected){
+ 
+ int w=tft.width(),row=uiMenuRowHeight(w,30),x=uiMenuLeft(w),y=uiMenuTop(w,50)+i*row;
+ int box=uiCompact(w)?row-2:28;
+ tft.fillRect(x-2,y-2,w-2*x+4,row,TH().bg);
+ if(selected){tft.fillRoundRect(x,y,w-2*x,box,6,TH().selbg);tft.drawRoundRect(x,y,w-2*x,box,6,TH().accent);}
+ tft.setTextColor(selected?TH().text:TH().dim,selected?TH().selbg:TH().bg);tft.setTextSize(2);
+ tft.setCursor(uiMenuTextX(w),y+uiMenuTextY(w,6));tft.print(selected?"> ":"  ");tft.print(GAME_ITEMS[i]);
 }
 
 void drawGameMenuFull() {
@@ -119,7 +96,7 @@ static AppId gameMenuToApp(int idx){
 // Expose indices to apps.cpp
 int& __appsIndex(){ return appsIndex; }
 int  __appsCount(){ return APPS_COUNT; }
-int __appsMenuRowAt(int y){int n=(y-54)/34;return y>=54&&n<appsVisible()&&n+appsTop<APPS_COUNT?n+appsTop:-1;}
+int __appsMenuRowAt(int y){int top=uiMenuTop(tft.width()),n=(y-top)/uiMenuRowHeight(tft.width(),34);return y>=top&&n<appsVisible()&&n+appsTop<APPS_COUNT?n+appsTop:-1;}
 AppId __appsMenuToApp(int idx){ return appsMenuToApp(idx); }
 
 int& __gameIndex(){ return gameIndex; }

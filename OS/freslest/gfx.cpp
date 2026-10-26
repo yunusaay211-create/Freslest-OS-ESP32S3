@@ -74,23 +74,37 @@ static bool firstPresent=true,oldPointer=false;
 static int oldX=0,oldY=0;
 
 static uint32_t _lastFrame = 0;
-int gfxUiHeight(){return freslest_video_output()==FRESLEST_DISPLAY_COMPOSITE?360:320;}
+static bool compactUi=FRESLEST_LCD_MODEL==9341;
+int gfxUiWidth(){return compactUi?320:480;}
+int gfxUiHeight(){return compactUi?240:320;}
+void gfxSetCompactUi(bool enabled){
+#if FRESLEST_LCD_MODEL == 9341
+ int ow=frame.width(),oh=frame.height();compactUi=enabled;
+ int w=gfxUiWidth(),h=gfxUiHeight();
+ if(ow==w&&oh==h)return;
+ frame.createSprite(w,h);frame.setSwapBytes(true);frame.setTextWrap(frame.width()!=320);
+ if(ow&&oh){usbPointer.x=usbPointer.x*w/ow;usbPointer.y=usbPointer.y*h/oh;}
+ firstPresent=true;oldPointer=false;
+#else
+ (void)enabled;
+#endif
+}
 
 // === GFX INIT ===
 void gfxBegin()
 {
   Serial.println(FRESLEST_LCD_TAG);
-  bool composite=freslest_video_boot_output()==FRESLEST_DISPLAY_COMPOSITE;
-  if(composite){if(!freslest_video_begin())Serial.println("E411: Composite unavailable; hold BACK during reset for LCD.");}
+  bool vga=freslest_video_boot_output()==FRESLEST_DISPLAY_VGA;
+  if(vga){if(!freslest_video_begin())Serial.println("E411: VGA unavailable; hold BACK during reset for LCD.");}
   else {
     // No LCD/touch writes may follow RGB-DMA initialization on shared pins.
     _tft.init();_tft.setRotation(3);_tft.setColorDepth(16);
     _tft.setSwapBytes(false); // sprite storage is already wire-order RGB565
   }
   frame.setPsram(true);frame.setColorDepth(16);
-  if(!frame.createSprite(480,gfxUiHeight())){Serial.println("E410: UI framebuffer unavailable");return;}
-  frame.setSwapBytes(true);
-  if(!composite)presented=(uint16_t*)heap_caps_malloc(480*320*2,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
+  if(!frame.createSprite(gfxUiWidth(),gfxUiHeight())){Serial.println("E410: UI framebuffer unavailable");return;}
+  frame.setSwapBytes(true);frame.setTextWrap(frame.width()!=320);
+  if(!vga)presented=(uint16_t*)heap_caps_malloc(480*320*2,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
 
   backlightInit();
 }
@@ -110,7 +124,7 @@ void gfxBegin()
 
 void backlightInit()
 {
-  if (PIN_TFT_BL < 0 || freslest_video_output()==FRESLEST_DISPLAY_COMPOSITE) return;
+  if (PIN_TFT_BL < 0 || freslest_video_output()==FRESLEST_DISPLAY_VGA) return;
 
 #if ESP_ARDUINO_VERSION_MAJOR >= 3
   ledcAttachChannel(PIN_TFT_BL, BL_FREQ, BL_RES, BL_CH);
@@ -124,7 +138,7 @@ void backlightInit()
 
 void backlightSet(uint8_t level255)
 {
-  if (PIN_TFT_BL < 0 || freslest_video_output()==FRESLEST_DISPLAY_COMPOSITE) return;
+  if (PIN_TFT_BL < 0 || freslest_video_output()==FRESLEST_DISPLAY_VGA) return;
 
   uint32_t duty = (uint32_t)level255 * ((1 << BL_RES) - 1) / 255;
 #if ESP_ARDUINO_VERSION_MAJOR >= 3
@@ -147,16 +161,17 @@ bool frameReady(uint32_t now)
 bool gfxHealthy(){return frame.getBuffer()&&freslest_video_healthy();}
 void gfxMirrorTick(){
  screenMirrorPoll();
- if(frame.getBuffer())screenMirrorFrame((const uint16_t*)frame.getBuffer(),480,frame.height(),usbPointer.visible,usbPointer.x,usbPointer.y);
+ if(frame.getBuffer())screenMirrorFrame((const uint16_t*)frame.getBuffer(),frame.width(),frame.height(),usbPointer.visible,usbPointer.x,usbPointer.y);
 }
 // Reuse the clipping/address walk for composition and restoration. Keep one
 // copy in flash: the original A/B OS slots have very little remaining space.
 static __attribute__((noinline,noclone)) void gfxCursor(uint16_t* pixels,uint16_t* saved,bool restore){
+ int w=frame.width(),h=frame.height();
  for(int y=0;y<FRESLEST_CURSOR_H;y++)for(int x=0;x<FRESLEST_CURSOR_W;x++){
   int px=usbPointer.x+x,py=usbPointer.y+y;
-  if(px<0||py<0||px>=480||py>=320)continue;
+  if(px<0||py<0||px>=w||py>=h)continue;
   int index=y*FRESLEST_CURSOR_W+x;
-  uint16_t& pixel=pixels[py*480+px];
+  uint16_t& pixel=pixels[py*w+px];
   if(restore){pixel=saved[index];continue;}
   saved[index]=pixel;
   unsigned color=freslest_cursor_pixel(x,y);
@@ -166,14 +181,15 @@ static __attribute__((noinline,noclone)) void gfxCursor(uint16_t* pixels,uint16_
 void gfxPresent(){
  gfxMirrorTick();
  auto* pixels=(uint16_t*)frame.getBuffer();if(!pixels)return;
- if(freslest_video_output()==FRESLEST_DISPLAY_COMPOSITE){
-  freslest_video_rgb565(pixels,480,frame.height(),true,usbPointer.visible,usbPointer.x,usbPointer.y);return;
+ if(freslest_video_output()==FRESLEST_DISPLAY_VGA){
+  freslest_video_rgb565(pixels,frame.width(),frame.height(),true,usbPointer.visible,usbPointer.x,usbPointer.y);return;
  }
+ const int width=frame.width(),height=frame.height(),rowBytes=width*2;
  bool dirty[320];
  bool moved=oldPointer!=usbPointer.visible||(usbPointer.visible&&(oldX!=usbPointer.x||oldY!=usbPointer.y));
- for(int y=0;y<320;y++){
-  dirty[y]=firstPresent||!presented||memcmp(pixels+y*480,presented+y*480,960)!=0;
-  if(dirty[y]&&presented)memcpy(presented+y*480,pixels+y*480,960);
+ for(int y=0;y<height;y++){
+  dirty[y]=firstPresent||!presented||memcmp(pixels+y*width,presented+y*width,rowBytes)!=0;
+  if(dirty[y]&&presented)memcpy(presented+y*width,pixels+y*width,rowBytes);
   if(moved)dirty[y]|=(oldPointer&&y>=oldY&&y<oldY+FRESLEST_CURSOR_H)||
     (usbPointer.visible&&y>=usbPointer.y&&y<usbPointer.y+FRESLEST_CURSOR_H);
  }
@@ -187,10 +203,11 @@ void gfxPresent(){
  // Compose the cursor first so it follows the same mapping as its hit target.
  uint16_t line[FRESLEST_LCD_WIDTH];
  for(int y=0;y<FRESLEST_LCD_HEIGHT;y++){
-  int sy=freslest_lcd_source_y(y);
+  int sy=width==320?y:freslest_lcd_source_y(y);
   if(!dirty[sy])continue;
-  for(int x=0;x<FRESLEST_LCD_WIDTH;x++)line[x]=pixels[sy*480+freslest_lcd_source_x(x)];
-  _tft.pushImage(0,y,FRESLEST_LCD_WIDTH,1,line);
+  if(width==320)_tft.pushImage(0,y,320,1,pixels+y*320);
+  else{for(int x=0;x<320;x++)line[x]=pixels[sy*480+freslest_lcd_source_x(x)];
+   _tft.pushImage(0,y,320,1,line);}
  }
 #else
  int start=-1;

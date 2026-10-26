@@ -37,10 +37,11 @@ void wifiManagerBegin();
 struct Theme{unsigned panel=1,text=2,accent=3,dim=4;};Theme& TH(){static Theme t;return t;}
 struct Screen {
  std::vector<std::tuple<int,int,int,int>> rects;std::vector<std::tuple<int,int,std::string>> words;
- int x=0,y=0;
+ int w=480;int width(){return w;}int x=0,y=0;
  void fillRect(int a,int b,int c,int d,unsigned){rects.emplace_back(a,b,c,d);}
  void setTextSize(int n){assert(n==1);}void setTextColor(unsigned,unsigned){}
  void setCursor(int a,int b){x=a;y=b;}void print(const char*s){words.emplace_back(x,y,s);}
+ void printf(const char*fmt,const char*s){char b[32];snprintf(b,sizeof(b),fmt,s);print(b);}
  void drawLine(int a,int b,int c,int d,unsigned){assert(a>=345&&a<=387&&c>=345&&c<=387&&b>=4&&d<=21);}
  void fillCircle(int a,int b,int,unsigned){assert(a==354&&b==18);}
 }tft;

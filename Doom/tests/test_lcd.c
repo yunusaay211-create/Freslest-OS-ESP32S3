@@ -7,11 +7,11 @@ int host_gpio[64],host_ledc_fail;
 uint32_t host_duty,host_freq;
 int freslest_fullscreen=1;
 #include <freslest_video.h>
-static bool composite,cursorVisible;static int cursorX,cursorY,compositeCalls,compositeW,compositeH;
-freslest_display_t freslest_video_boot_output(void){return composite?FRESLEST_DISPLAY_COMPOSITE:FRESLEST_DISPLAY_LCD;}
+static bool vga,cursorVisible;static int cursorX,cursorY,vgaCalls,vgaW,vgaH;
+freslest_display_t freslest_video_boot_output(void){return vga?FRESLEST_DISPLAY_VGA:FRESLEST_DISPLAY_LCD;}
 freslest_display_t freslest_video_output(void){return freslest_video_boot_output();}
 bool freslest_video_begin(void){return true;}
-void freslest_video_indexed(const uint8_t* src,int w,int h,const uint32_t* pal,bool c,int x,int y){assert(src&&pal);(void)c;(void)x;(void)y;compositeCalls++;compositeW=w;compositeH=h;}
+void freslest_video_indexed(const uint8_t* src,int w,int h,const uint32_t* pal,bool c,int x,int y){assert(src&&pal);(void)c;(void)x;(void)y;vgaCalls++;vgaW=w;vgaH=h;}
 bool usbDoomPointer(int* x,int* y){*x=cursorX;*y=cursorY;return cursorVisible;}
 #include "../components/prboom-esp32-compat/spi_lcd.c"
 static unsigned command;
@@ -66,10 +66,10 @@ int main(void)
  cursorX=110;cursorY=90;spi_lcd_send((uint16_t*)frame);
  assert(display[(80*480+110)*3]==255&&display[(130*480+190)*3]==0);
  cursorVisible=false;spi_lcd_send((uint16_t*)frame);assert(display[(130*480+190)*3]==255);
- puts("PASS: actual Doom DMA sprite motion/unplug restore base pixels; composite routing bypasses all SPI setup");
- composite=true;unsigned before=total_pixel_bytes;spi_lcd_init();spi_lcd_send((uint16_t*)frame);
- assert(compositeCalls==1&&compositeW==320&&compositeH==240&&before==total_pixel_bytes);
+ puts("PASS: actual Doom DMA sprite motion/unplug restore base pixels; vga routing bypasses all SPI setup");
+ vga=true;unsigned before=total_pixel_bytes;spi_lcd_init();spi_lcd_send((uint16_t*)frame);
+ assert(vgaCalls==1&&vgaW==320&&vgaH==240&&before==total_pixel_bytes);
  uint8_t* ui=calloc(480*320,1);spi_lcd_draw_indexed(ui);free(ui);
- assert(compositeCalls==2&&compositeW==480&&compositeH==320&&before==total_pixel_bytes);
+ assert(vgaCalls==2&&vgaW==480&&vgaH==320&&before==total_pixel_bytes);
  free(frame);free(previous_frame);free(dma_buf[0]);free(dma_buf[1]);return 0;
 }

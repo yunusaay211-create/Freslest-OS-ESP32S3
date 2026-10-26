@@ -25,7 +25,7 @@ struct {int x=0,y=0;bool click=false;}usbPointer;
 bool usbInputHit(int x,int y,int w,int h){return usbPointer.click&&usbPointer.x>=x&&usbPointer.x<x+w&&usbPointer.y>=y&&usbPointer.y<y+h;}
 struct Theme{unsigned bg=0,text=1,selbg=2,dim=3;};Theme& TH(){static Theme t;return t;}
 struct Display {
- std::vector<std::string> text;int h=320;
+ std::vector<std::string> text;int h=320;int width(){return 480;}
  void fillScreen(unsigned){text.clear();}void setTextSize(unsigned){}void setTextColor(unsigned,unsigned){}
  void setCursor(int x,int y){assert(x>=0&&x<480&&y>=44&&y<h-24);}
  void fillRoundRect(int,int y,int,int h1,int,unsigned){assert(y>=44&&y+h1<=h-24);}
@@ -54,6 +54,6 @@ int main(){
 }
 '''
 with tempfile.TemporaryDirectory() as tmp:
- p=Path(tmp)/'bt.cpp';p.write_text(pre+code+test);exe=p.with_suffix('')
+ p=Path(tmp)/'bt.cpp';p.write_text(pre+s[s.index("// Compact settings adapter"):s.index("// ===== Settings menu =====")]+code+test);exe=p.with_suffix('')
  subprocess.run(['g++','-std=c++17','-Wall','-Wextra','-Werror','-g','-fsanitize=address,undefined','-I'+str(a),str(p),'-o',str(exe)],check=True)
  subprocess.run([str(exe)],check=True,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'})

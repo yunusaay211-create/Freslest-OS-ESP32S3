@@ -1,3 +1,9 @@
+# LCD/VGA güncellemesi
+
+LCD RGB565 görüntüsü aynı içerikle VGA RGB332/256 renk çıkışına dönüştürülür. Kompozit AV kaldırıldı. ILI9341 menüleri 320×240’a uyarlandı. Ayrıntılar: [Release notu](RELEASE_LCD_VGA.md), [VGA bağlantıları](VGA_DISPLAY_TR.md).
+
+Önceki paket bilgileri aşağıdadır; bu güncellemenin derleme sonuçları ayrıca kaydedilir.
+
 # Freslest OS 1.0 — Windows kaynak ve derleme paketi
 
 **Bu klasör, Windows'ta derlenip açılış testleri geçen Freslest 1.0 uygulamalarının kaynaklarını ve firmware dosyalarını içerir. Doğrulama sonucu DOGRULAMA.txt içindedir.**

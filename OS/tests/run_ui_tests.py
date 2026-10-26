@@ -18,6 +18,7 @@ prelude=r'''
 #include <string>
 #include <vector>
 #include "task_hold.h"
+#include "ui_layout.h"
 struct Button {bool state=false,edge=false,pressedEdge=false;bool down()const{return state;}bool pressed()const{return edge||pressedEdge;}};
 Button bOk,bUp,bDown,bLeft,bRight,bBack;
 struct Pointer{int x=0,y=0;bool click=false;}usbPointer;
@@ -30,14 +31,15 @@ unsigned switcherDraws=0,menuDraws=0,entered=0;
 struct Theme {unsigned bg=0,text=1,dim=2,accent=3,selbg=4;};
 Theme& TH(){static Theme t;return t;}
 struct Display {
- int h=320;int height(){return h;}
+ int w=480,h=320;int width(){return w;}int height(){return h;}
  int cursorX=0,cursorY=0,size=1;std::vector<std::string> words;
- void fillScreen(unsigned){}void fillRect(int,int y,int,int h,unsigned){assert(y>=44&&y+h<=this->h-24);}
- void fillRoundRect(int,int y,int,int h,int,unsigned){assert(y>=44&&y+h<=this->h-24);}
- void drawRoundRect(int,int y,int,int h,int,unsigned){assert(y>=44&&y+h<=this->h-24);}
+ void bounds(int x,int y,int width,int height){assert(y>=(w==320?36:44)&&y+height<=h-24);if(w==320)assert(x>=0&&x+width<=w);}
+ void fillScreen(unsigned){}void fillRect(int x,int y,int w,int h,unsigned){bounds(x,y,w,h);}
+ void fillRoundRect(int x,int y,int w,int h,int,unsigned){bounds(x,y,w,h);}
+ void drawRoundRect(int x,int y,int w,int h,int,unsigned){bounds(x,y,w,h);}
  void setTextColor(unsigned,unsigned){}void setTextSize(int n){size=n;}
- void setCursor(int x,int y){cursorX=x;cursorY=y;assert(y>=44&&y+8*size<=h-24);}
- void print(const char* text){words.emplace_back(text);cursorX+=strlen(text)*6*size;assert(cursorX<=480);}
+ void setCursor(int x,int y){cursorX=x;cursorY=y;assert(y>=(w==320?36:44)&&y+8*size<=h-24);}
+ void print(const char* text){words.emplace_back(text);cursorX+=strlen(text)*6*size;assert(cursorX<=w);}
 }tft;
 void drawHeader(const char*){}void drawFooter(const char*,const char*){}void clearBody(){}void drawAppsMenuFull();
 void audioClick(){}void nesPlayerExit(){}void noteExit(){}
@@ -48,6 +50,12 @@ globals=r'''
 AppId app=APP_MENU,tasks[]={APP_CALC,APP_NOTE,APP_CLOCK};int taskCount=3,taskSel=0;
 void enterApp(AppId next){app=next;++entered;}
 '''
+pointer=r'''
+int menuIndex=0,settingsIndex=0,testIndex=0;constexpr int MENU_COUNT=6;
+int& __appsIndex(){return appsIndex;}int& __settingsIndex(){return settingsIndex;}
+int& __gameIndex(){return gameIndex;}int __settingsCount(){return 7;}int __gameCount(){return GAME_COUNT;}int& testIdx(){return testIndex;}
+void actualMenuPointer(){
+'''+source[source.index('  int mouseRow=-1;'):source.index('  // BACK navigation tree:')]+"}\n"
 test=r'''
 static void edges(){bOk.edge=bUp.edge=bDown.edge=bLeft.edge=bRight.edge=bBack.edge=false;bOk.pressedEdge=false;}
 int main(){
@@ -78,9 +86,17 @@ int main(){
  puts("PASS: Browser pauses for Task Switcher; text editing blocks long-OK task switching");
  puts("PASS: Apps Browser entry, LCD scrolling/mouse row mapping and eight-row 4:3 TV bounds");
  puts("PASS: actual Task Switcher hold/release/selection/mouse/BACK and seven Game rows; Fullscreen removed from Game");
+ tft.w=320;tft.h=240;appsIndex=7;drawAppsMenuFull();
+ assert(appsTop==1&&appsVisible()==7);assert(__appsMenuRowAt(42)==1&&__appsMenuRowAt(186)==7&&__appsMenuRowAt(215)==-1);
+ drawGameMenuFull();
+ appsTop=0;app=APP_APPS;usbPointer={22,43,true};actualMenuPointer();assert(appsIndex==0&&bOk.pressed());edges();
+ app=APP_TEST;usbPointer={22,43,true};actualMenuPointer();assert(testIndex==0&&bOk.pressed());edges();
+ app=APP_TEST;usbPointer={22,71,true};actualMenuPointer();assert(testIndex==1&&bOk.pressed());edges();
+ app=APP_SETTINGS;usbPointer={22,187,true};actualMenuPointer();assert(settingsIndex==6&&bOk.pressed());edges();
+ puts("PASS: native 320x240 Apps/Game rows and mouse targets stay inside the body with unscaled fonts");
 }
 '''
-code=prelude+enum+'\n'+globals+function(source,'static void removeTaskAt(')+'\n'+function(source,'void taskSwitcherHandle(')+'\n'+appitems+'\n'+function(menus,'int __appsMenuRowAt(')+'\n'+items+'\n'+function(menus,'static void drawGameRow(')+'\n'+function(menus,'void drawGameMenuFull(')+'\n'+function(menus,'void drawGameMenuSelectionOnly(')+'\n'+test
+code=prelude+enum+'\n'+globals+function(source,'static void removeTaskAt(')+'\n'+function(source,'void taskSwitcherHandle(')+'\n'+appitems+'\n'+function(menus,'int __appsMenuRowAt(')+'\n'+items+'\n'+function(menus,'static void drawGameRow(')+'\n'+function(menus,'void drawGameMenuFull(')+'\n'+function(menus,'void drawGameMenuSelectionOnly(')+'\n'+pointer+test
 p=build/'ui_actual.cpp';p.write_text(code)
 binary=build/'test_ui_actual'
 subprocess.run(['g++','-std=c++17','-g','-fsanitize=address,undefined','-I'+str(app),str(p),'-o',str(binary)],check=True)

@@ -31,7 +31,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Test actual LCD C and C++ output paths
-        run: python -m unittest discover -s tests -p test_lcd_profiles.py -v
+        run: |
+          python -m unittest discover -s tests -p test_lcd_profiles.py -v
+          python -m unittest discover -s tests -p test_vga_transition.py -v
       - name: Build ILI9488 and ILI9341 OS and Doom firmware
         shell: bash
         run: |

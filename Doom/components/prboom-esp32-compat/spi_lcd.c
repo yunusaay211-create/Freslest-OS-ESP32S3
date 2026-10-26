@@ -127,7 +127,7 @@ void spi_lcd_init(void)
 {
     // Keep the profile identifier in the binary even with INFO logging disabled.
     puts(FRESLEST_LCD_TAG);
-    if(freslest_video_boot_output()==FRESLEST_DISPLAY_COMPOSITE){
+    if(freslest_video_boot_output()==FRESLEST_DISPLAY_VGA){
         ESP_ERROR_CHECK(freslest_video_begin()?ESP_OK:ESP_FAIL);return;
     }
     for (int x = 0; x < LCD_FIT_W; ++x)
@@ -296,7 +296,7 @@ void spi_lcd_wait_finish(void)
 
 void spi_lcd_draw_indexed(const uint8_t *frame)
 {
-    if(freslest_video_output()==FRESLEST_DISPLAY_COMPOSITE){freslest_video_indexed(frame,480,320,pal_rgb,false,0,0);return;}
+    if(freslest_video_output()==FRESLEST_DISPLAY_VGA){freslest_video_indexed(frame,480,320,pal_rgb,false,0,0);return;}
     window(0, 0, LCD_PANEL_W, LCD_PANEL_H);
     for (int y = 0; y < LCD_PANEL_H; y += LCD_BATCH_LINES) {
         for (int yy = 0; yy < LCD_BATCH_LINES; ++yy) {
@@ -313,7 +313,7 @@ void spi_lcd_draw_indexed(const uint8_t *frame)
 
 void spi_lcd_send(uint16_t *scr)
 {
-    if(freslest_video_output()==FRESLEST_DISPLAY_COMPOSITE){
+    if(freslest_video_output()==FRESLEST_DISPLAY_VGA){
         int x,y;bool cursor=usbDoomPointer(&x,&y);
         freslest_video_indexed((uint8_t*)scr,320,240,pal_rgb,cursor,x,y);return;
     }

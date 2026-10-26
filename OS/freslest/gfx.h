@@ -21,7 +21,9 @@ static constexpr uint32_t FRAME_MS = 16;             // ~60fps
 extern lgfx::LGFXBase& tft;
 
 void gfxBegin();
+int gfxUiWidth();
 int gfxUiHeight();
+void gfxSetCompactUi(bool enabled);
 void gfxPresent();
 void gfxMirrorTick();
 bool gfxHealthy();

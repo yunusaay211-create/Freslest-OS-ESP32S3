@@ -1,5 +1,6 @@
 #include "test_3d.h"
 #include "apps.h"
+#include "ui_layout.h"
 #include "../../camera.h"
 #include "../../gfx.h"
 #include "../../battery.h"
@@ -84,7 +85,7 @@ static bool isInTasksLocal(AppId a) {
   return false;
 }
 static void addTaskLocal(AppId a) {
-  if (a == APP_MENU || a == APP_SET_TV || a == APP_SET_TV_COLOR) return;
+  if (a == APP_MENU) return;
   if (isInTasksLocal(a)) return;
   if (taskCount < MAX_TASKS) tasks[taskCount++] = a;
 }
@@ -99,16 +100,17 @@ static void removeTaskAt(int idx) {
 static char headerTitle[35]="Main Menu";
 static void drawHeaderSubtitle() {
   const char* notice=installNoticeText();
-  tft.fillRect(0,24,232,20,TH().panel);
+  int y=uiCompact(tft.width())?22:24;
+  tft.fillRect(0,y,232,uiCompact(tft.width())?14:20,TH().panel);
   tft.setTextSize(1);tft.setTextColor(notice?TH().accent:TH().dim,TH().panel);
-  tft.setCursor(10,28);tft.print(notice?notice:headerTitle);
+  tft.setCursor(uiCompact(tft.width())?8:10,uiCompact(tft.width())?24:28);tft.print(notice?notice:headerTitle);
 }
 void appInstallNoticeUpdate(uint32_t now,bool startupReady) {
   bool headerVisible=app!=APP_CAMERA&&app!=APP_FRESLEST_UPDATE&&!(app==APP_NES_PLAYER&&nesPlayerFullscreen());
   if(installNoticeUpdate(now,startupReady,headerVisible)&&headerVisible)drawHeaderSubtitle();
 }
 void drawHeader(const char* title) {
-  tft.fillRect(0,0,480,44,TH().panel);
+  tft.fillRect(0,0,tft.width(),uiHeaderHeight(tft.width()),TH().panel);
   tft.setTextColor(TH().text,TH().panel);
   tft.setTextSize(2);tft.setCursor(10,4);tft.print("FRESLEST");
   snprintf(headerTitle,sizeof(headerTitle),"%.34s",title);
@@ -117,26 +119,19 @@ void drawHeader(const char* title) {
 }
 
 void drawFooter(const char* leftHint, const char* rightHint) {
-  const int y=tft.height()-24;
-  tft.fillRect(0, y, 480, 24, TH().panel);
-  tft.setTextColor(TH().text, TH().panel);
-  tft.setTextSize(1);
-  tft.setCursor(10, y+6);
-  tft.print(leftHint);
-
-  tft.setCursor(200, y+6);
-  tft.print("FPS:");
-  tft.print(fpsValue);
-
-  tft.setCursor(330, y+6);
-  tft.print(rightHint);
-
-  footerDirty = false;
+  const int y=tft.height()-24,w=tft.width();
+  tft.fillRect(0,y,w,24,TH().panel);tft.setTextColor(TH().text,TH().panel);tft.setTextSize(1);
+  if(uiCompact(w)){
+    tft.setCursor(8,y+2);tft.printf("%.50s",leftHint);
+    tft.setCursor(8,y+14);tft.printf("FPS:%lu",(unsigned long)fpsValue);
+    int n=std::min(26,(int)strlen(rightHint));tft.setCursor(w-8-n*6,y+14);tft.printf("%.*s",n,rightHint);
+  }else{
+    tft.setCursor(10,y+6);tft.print(leftHint);tft.setCursor(200,y+6);tft.print("FPS:");tft.print(fpsValue);
+    tft.setCursor(330,y+6);tft.print(rightHint);
+  }
+  footerDirty=false;
 }
-
-void clearBody() {
-  tft.fillRect(0, 44, 480, tft.height()-68, TH().bg);
-}
+void clearBody(){int y=uiHeaderHeight(tft.width());tft.fillRect(0,y,tft.width(),tft.height()-y-24,TH().bg);}
 
 // ======================= BOOT =======================
 void bootScreen() {
@@ -148,27 +143,16 @@ void bootScreen() {
 static constexpr int MENU_TOPY = 54;
 static constexpr int MENU_ITEMH = 39;
 
-static void drawMenuRow(int i, bool selected) {
-  int y = MENU_TOPY + i * MENU_ITEMH;
-  tft.fillRect(18, y - 2, 444, 39, TH().bg);
-
-  tft.setTextSize(2);
-  if (selected) {
-    tft.fillRoundRect(20, y, 440, 36, 8, TH().selbg);
-    tft.drawRoundRect(20, y, 440, 36, 8, TH().accent);
-    tft.setTextColor(TH().text, TH().selbg);
-    tft.setCursor(40, y + 9);
-    tft.print("> ");
-    tft.print(MENU_ITEMS[i]);
-  } else {
-    tft.setTextColor(TH().dim, TH().bg);
-    tft.setCursor(40, y + 9);
-    tft.print("  ");
-    tft.print(MENU_ITEMS[i]);
-  }
+static void drawMenuRow(int i,bool selected){
+ int w=tft.width(),row=uiMenuRowHeight(w,MENU_ITEMH),x=uiMenuLeft(w),y=uiMenuTop(w)+i*row;
+ tft.fillRect(x-2,y-2,w-2*x+4,row,TH().bg);tft.setTextSize(2);
+ if(selected){tft.fillRoundRect(x,y,w-2*x,row-3,6,TH().selbg);tft.drawRoundRect(x,y,w-2*x,row-3,6,TH().accent);}
+ tft.setTextColor(selected?TH().text:TH().dim,selected?TH().selbg:TH().bg);
+ tft.setCursor(uiMenuTextX(w),y+uiMenuTextY(w,9));tft.print(selected?"> ":"  ");tft.print(MENU_ITEMS[i]);
 }
 
 void drawMenuFull() {
+  gfxSetCompactUi(true);
   tft.fillScreen(TH().bg);
   drawHeader("Main Menu");
   drawFooter("UP/DOWN Move  OK Enter", "HOLD OK Tasks");
@@ -197,8 +181,6 @@ static const char* appName(AppId a) {
     case APP_PAINT: return "Paint";
     case APP_CLOCK: return "Clock";
     case APP_SET_DISPLAY: return "Display";
-    case APP_SET_TV: return "TV setup";
-    case APP_SET_TV_COLOR: return "AV colors";
     case APP_SET_BRIGHTNESS: return "Bright";
     case APP_SET_THEME: return "Theme";
     case APP_SET_WIFI: return "WiFi";
@@ -219,6 +201,7 @@ static const char* appName(AppId a) {
 
 // ======================= TASK SWITCHER UI =======================
 static void drawTaskSwitcherFull() {
+  gfxSetCompactUi(true);
   tft.fillScreen(TH().bg);
   drawHeader("Task Switcher");
   drawFooter("L/R Select  OK Switch", "UP Close  BACK Exit");
@@ -236,19 +219,19 @@ static void drawTaskSwitcherFull() {
   }
 
   // 3 apps per page
-  static constexpr int PER_PAGE = 3;
+  const int PER_PAGE = uiCompact(tft.width())?2:3;
   int totalPages = (taskCount + PER_PAGE - 1) / PER_PAGE;
   int page = taskSel / PER_PAGE;
   int start = page * PER_PAGE;
   int end = start + PER_PAGE;
   if (end > taskCount) end = taskCount;
 
-  int cardW = 140, cardH = 90;
-  int gap = 10;
+  int cardW = 140, cardH = uiCompact(tft.width())?76:90;
+  int gap = uiCompact(tft.width())?12:10;
   int shown = end - start;
   int totalW = shown * cardW + (shown - 1) * gap;
-  int startX = (480 - totalW) / 2;
-  int y = 110;
+  int startX = (tft.width() - totalW) / 2;
+  int y = uiCompact(tft.width())?92:110;
 
   for (int i = start; i < end; i++) {
     int local = i - start;
@@ -271,9 +254,9 @@ static void drawTaskSwitcherFull() {
 
   // page dots
   tft.setTextSize(2);
-  int dotsY = 250;
+  int dotsY = uiCompact(tft.width())?190:250;
   int dotsW = totalPages * 14;
-  int dotsX = (480 - dotsW) / 2;
+  int dotsX = (tft.width() - dotsW) / 2;
   for (int p = 0; p < totalPages; p++) {
     uint16_t c = (p == page) ? TH().accent : TH().dim;
     tft.fillCircle(dotsX + p * 14, dotsY, 4, c);
@@ -281,14 +264,14 @@ static void drawTaskSwitcherFull() {
 
   tft.setTextSize(1);
   tft.setTextColor(TH().dim, TH().bg);
-  tft.setCursor(20, 270);
+  tft.setCursor(20,uiCompact(tft.width())?202:270);
   tft.print("Tip: UP closes selected task.");
 }
 
 void taskSwitcherHandle(uint32_t now) {
   taskInputConsumed=false;
-  if (textEntryActive()||app==APP_NES_PLAYER||app==APP_USB_TRANSFER||app==APP_FRESLEST_UPDATE||app==APP_SET_TV||app==APP_SET_TV_COLOR) {taskHold.blockUntilRelease();return;}
-  bool open=taskHold.update(bOk.down(),now,OK_HOLD_MS)||usbInputTasks()||(app==APP_MENU&&usbInputHit(330,tft.height()-24,150,24));
+  if (textEntryActive()||app==APP_NES_PLAYER||app==APP_USB_TRANSFER||app==APP_FRESLEST_UPDATE) {taskHold.blockUntilRelease();return;}
+  bool open=taskHold.update(bOk.down(),now,OK_HOLD_MS)||usbInputTasks()||(app==APP_MENU&&usbInputHit(tft.width()-150,tft.height()-24,150,24));
   if (!taskView && open) {
       if(app==APP_BROWSER)browserExit();
       taskView = true;
@@ -302,9 +285,10 @@ void taskSwitcherHandle(uint32_t now) {
 
   bool changed = false;
   if(usbPointer.click&&taskCount>0){
-    int first=(taskSel/3)*3,end=std::min(first+3,taskCount),shown=end-first;
-    int x=(480-(shown*140+(shown-1)*10))/2;
-    for(int i=first;i<end;i++)if(usbInputHit(x+(i-first)*150,110,140,90)){taskSel=i;bOk.pressedEdge=true;taskHold.waitingRelease=false;break;}
+    int count=uiCompact(tft.width())?2:3,gap=uiCompact(tft.width())?12:10;
+    int first=(taskSel/count)*count,end=std::min(first+count,taskCount),shown=end-first;
+    int x=(tft.width()-(shown*140+(shown-1)*gap))/2;
+    for(int i=first;i<end;i++)if(usbInputHit(x+(i-first)*(140+gap),uiCompact(tft.width())?92:110,140,uiCompact(tft.width())?76:90)){taskSel=i;bOk.pressedEdge=true;taskHold.waitingRelease=false;break;}
   }
   if (bLeft.pressed() && taskCount > 0)  { taskSel = (taskSel - 1 + taskCount) % taskCount; changed = true; audioClick(); }
   if (bRight.pressed() && taskCount > 0) { taskSel = (taskSel + 1) % taskCount; changed = true; audioClick(); }
@@ -359,24 +343,25 @@ void drawSysInfo() {
   tft.setTextColor(TH().text, TH().bg);
   tft.setTextSize(1);
 
-  int y = 70;
-  tft.setCursor(20,y);tft.printf("Freslest OS: %s",esp_app_get_description()->version);y+=18;
-  tft.setCursor(20, y); tft.printf("CPU: %u MHz", (unsigned)getCpuFrequencyMhz()); y += 18;
-  tft.setCursor(20, y); tft.printf("Flash: %u bytes", (unsigned)ESP.getFlashChipSize()); y += 18;
-  tft.setCursor(20, y); tft.printf("Heap Free: %u bytes", (unsigned)ESP.getFreeHeap()); y += 18;
+  int y = uiCompact(tft.width())?54:70;
+  const int line=uiCompact(tft.width())?14:18;
+  tft.setCursor(20,y);tft.printf("Freslest OS: %s",esp_app_get_description()->version);y+=line;
+  tft.setCursor(20, y); tft.printf("CPU: %u MHz", (unsigned)getCpuFrequencyMhz()); y += line;
+  tft.setCursor(20, y); tft.printf("Flash: %u bytes", (unsigned)ESP.getFlashChipSize()); y += line;
+  tft.setCursor(20, y); tft.printf("Heap Free: %u bytes", (unsigned)ESP.getFreeHeap()); y += line;
 
 #if defined(BOARD_HAS_PSRAM)
-  tft.setCursor(20, y); tft.printf("PSRAM Found: %s", psramFound() ? "YES" : "NO"); y += 18;
-  tft.setCursor(20, y); tft.printf("PSRAM Free: %u bytes", (unsigned)ESP.getFreePsram()); y += 18;
+  tft.setCursor(20, y); tft.printf("PSRAM Found: %s", psramFound() ? "YES" : "NO"); y += line;
+  tft.setCursor(20, y); tft.printf("PSRAM Free: %u bytes", (unsigned)ESP.getFreePsram()); y += line;
 #else
-  tft.setCursor(20, y); tft.print("PSRAM: (board flag off)"); y += 18;
+  tft.setCursor(20, y); tft.print("PSRAM: (board flag off)"); y += line;
 #endif
 
-  tft.setCursor(20, y); tft.printf("Theme: %s", darkMode ? "Dark" : "Light"); y += 18;
-  tft.setCursor(20, y); tft.printf("Brightness(UI): %d", brightnessUI); y += 18;
+  tft.setCursor(20, y); tft.printf("Theme: %s", darkMode ? "Dark" : "Light"); y += line;
+  tft.setCursor(20, y); tft.printf("Brightness(UI): %d", brightnessUI); y += line;
   freslest_hid_snapshot_t usb{};freslest_hid_peek(&usb);
-  tft.setCursor(20,y);tft.printf("Input: %u keyboard(s), %u mouse/mice",usb.keyboards,usb.mice);y+=18;
-  tft.setCursor(20,y);tft.print(freslest_hid_status());
+  tft.setCursor(20,y);tft.printf("Input: %u keyboard(s), %u mouse/mice",usb.keyboards,usb.mice);y+=line;
+  tft.setCursor(20,y);tft.printf("%.48s",freslest_hid_status());
 }
 
 void drawTestBase() {
@@ -387,24 +372,24 @@ void drawTestBase() {
 
   tft.setTextColor(TH().text, TH().bg);
   tft.setTextSize(2);
-  tft.setCursor(20, 70);
+  tft.setCursor(20,uiCompact(tft.width())?54:70);
   tft.print("Buttons live:");
 
-  tft.fillRoundRect(20, 120, 440, 150, 12, TH().panel);
+  tft.fillRoundRect(uiCompact(tft.width())?12:20,uiCompact(tft.width())?94:120,tft.width()-(uiCompact(tft.width())?24:40),uiCompact(tft.width())?108:150,8,TH().panel);
 }
 
 void drawTestStatesOnly() {
-  tft.fillRect(30, 130, 420, 130, TH().panel);
+  tft.fillRect(uiCompact(tft.width())?16:30,uiCompact(tft.width())?100:130,tft.width()-(uiCompact(tft.width())?32:60),uiCompact(tft.width())?96:130,TH().panel);
   tft.setTextColor(TH().text, TH().panel);
   tft.setTextSize(2);
-  tft.setCursor(40, 140);
+  tft.setCursor(uiCompact(tft.width())?24:40,uiCompact(tft.width())?104:140);
   tft.printf("UP:%d  DOWN:%d", bUp.down(), bDown.down());
-  tft.setCursor(40, 170);
+  tft.setCursor(uiCompact(tft.width())?24:40,uiCompact(tft.width())?132:170);
   tft.printf("LT:%d  RT:%d", bLeft.down(), bRight.down());
-  tft.setCursor(40, 200);
+  tft.setCursor(uiCompact(tft.width())?24:40,uiCompact(tft.width())?160:200);
   tft.printf("OK:%d  BK:%d", bOk.down(), bBack.down());
   tft.setTextSize(1);
-  tft.setCursor(40, 235);
+  tft.setCursor(uiCompact(tft.width())?24:40,uiCompact(tft.width())?188:235);
   tft.printf("FPS:%u", (unsigned)fpsValue);
 }
 
@@ -431,8 +416,7 @@ void enterApp(AppId next) {
   if(app==APP_NOTE && next!=APP_NOTE)noteExit();
   if(app==APP_BROWSER && next!=APP_BROWSER)browserExit();
   if(app==APP_SET_WIFI && next!=APP_SET_WIFI)setWifiExit();
-  if(app==APP_SET_TV && next!=APP_SET_TV)setTvExit();
-  if(app==APP_SET_TV_COLOR && next!=APP_SET_TV_COLOR)setTvColorExit();
+  gfxSetCompactUi(next==APP_MENU||next==APP_APPS||next==APP_SETTINGS||next==APP_GAME_MENU||next==APP_SYSINFO||next==APP_TEST||next==APP_TEST_BUTTONS||next==APP_SET_BRIGHTNESS||next==APP_SET_THEME||next==APP_SET_WIFI||next==APP_SET_BT||next==APP_SET_SOUND||next==APP_SET_FLASHRESET||next==APP_SET_DISPLAY);
   app = next;
   addTaskLocal(app);
   footerDirty = true;
@@ -459,8 +443,6 @@ void enterApp(AppId next) {
     case APP_CLOCK:       clockEnter(); break;
 
     case APP_SET_DISPLAY: setDisplayEnter(); break;
-    case APP_SET_TV:      setTvEnter(); break;
-    case APP_SET_TV_COLOR: setTvColorEnter(); break;
     case APP_SET_BRIGHTNESS: setBrightnessEnter(); break;
     case APP_SET_THEME:      setThemeEnter(); break;
     case APP_SET_WIFI:       setWifiEnter(); break;
@@ -503,16 +485,16 @@ void appLoop(uint32_t now) {
   if(app!=APP_CAMERA&&!(app==APP_NES_PLAYER&&nesPlayerFullscreen())) {systemStatusDraw();drawBatteryTopBar();}
   if(app==APP_USB_TRANSFER) {nesUsbLoop(now);return;}
   if(app==APP_FRESLEST_UPDATE) {freslestUpdateLoop(now);return;}
-  if(usbInputHit(330,tft.height()-24,150,24))bBack.pressedEdge=true;
+  if(usbInputHit(tft.width()-150,tft.height()-24,150,24))bBack.pressedEdge=true;
   if(app==APP_FILES){filesLoop(now);return;}
   if(app==APP_SET_WIFI){setWifiLoop(now);return;}
   if(app==APP_BROWSER){browserLoop(now);return;}
   int mouseRow=-1;
-  if(app==APP_MENU&&usbInputHit(20,54,440,MENU_COUNT*39))mouseRow=(usbPointer.y-54)/39;
-  if(app==APP_APPS&&usbInputHit(20,54,440,tft.height()-78))mouseRow=__appsMenuRowAt(usbPointer.y);
-  if(app==APP_SETTINGS&&usbInputHit(20,54,440,__settingsCount()*34))mouseRow=(usbPointer.y-54)/34;
-  if(app==APP_GAME_MENU&&usbInputHit(20,50,440,__gameCount()*30))mouseRow=(usbPointer.y-50)/30;
-  if(app==APP_TEST&&usbInputHit(20,54,440,2*39))mouseRow=(usbPointer.y-54)/39;
+  if(app==APP_MENU&&usbInputHit(uiMenuLeft(tft.width()),uiMenuTop(tft.width()),tft.width()-2*uiMenuLeft(tft.width()),MENU_COUNT*uiMenuRowHeight(tft.width(),39)))mouseRow=(usbPointer.y-uiMenuTop(tft.width()))/uiMenuRowHeight(tft.width(),39);
+  if(app==APP_APPS&&usbInputHit(uiMenuLeft(tft.width()),uiMenuTop(tft.width()),tft.width()-2*uiMenuLeft(tft.width()),tft.height()-uiMenuTop(tft.width())-24))mouseRow=__appsMenuRowAt(usbPointer.y);
+  if(app==APP_SETTINGS&&usbInputHit(uiMenuLeft(tft.width()),uiMenuTop(tft.width()),tft.width()-2*uiMenuLeft(tft.width()),__settingsCount()*uiMenuRowHeight(tft.width(),34)))mouseRow=(usbPointer.y-uiMenuTop(tft.width()))/uiMenuRowHeight(tft.width(),34);
+  if(app==APP_GAME_MENU&&usbInputHit(uiMenuLeft(tft.width()),uiMenuTop(tft.width(),50),tft.width()-2*uiMenuLeft(tft.width()),__gameCount()*uiMenuRowHeight(tft.width(),30)))mouseRow=(usbPointer.y-uiMenuTop(tft.width(),50))/uiMenuRowHeight(tft.width(),30);
+  if(app==APP_TEST&&usbInputHit(uiMenuLeft(tft.width()),uiMenuTop(tft.width()),tft.width()-2*uiMenuLeft(tft.width()),2*uiMenuRowHeight(tft.width(),39)))mouseRow=(usbPointer.y-uiMenuTop(tft.width()))/uiMenuRowHeight(tft.width(),39);
   if(mouseRow>=0){
     if(app==APP_MENU)menuIndex=mouseRow;
     if(app==APP_APPS)__appsIndex()=mouseRow;
@@ -535,7 +517,6 @@ void appLoop(uint32_t now) {
       enterApp(APP_APPS);
       return;
     }
-    if (app == APP_SET_TV || app == APP_SET_TV_COLOR) { enterApp(APP_SET_DISPLAY); return; }
     if (app == APP_SET_BRIGHTNESS || app == APP_SET_THEME || app == APP_SET_WIFI || app == APP_SET_BT || app == APP_SET_SOUND || app == APP_SET_FLASHRESET || app == APP_SET_DISPLAY) {
       settingsSave();
       enterApp(APP_SETTINGS);
@@ -703,8 +684,6 @@ if (app == APP_TEST) {
   if (app == APP_CLOCK) { clockLoop(now); return; }
 
   if(app==APP_SET_DISPLAY) {setDisplayLoop(now);return;}
-  if(app==APP_SET_TV) {setTvLoop(now);return;}
-  if(app==APP_SET_TV_COLOR) {setTvColorLoop(now);return;}
   if(app==APP_SET_SOUND) {setSoundLoop(now);return;}
   // Settings pages
   if (app == APP_SET_BRIGHTNESS) { setBrightnessLoop(now); return; }
@@ -732,46 +711,18 @@ static int& __testIndex(){ return __test_idx; }
 static int __testCount(){ return 2; }
 
 void drawTestMenuFull(){
-  tft.fillScreen(TH().bg);
-  drawHeader("Test");
-  drawFooter("UP/DOWN Move  OK Enter", "BACK Main");
-  testIdx() = 0;
-
-  // draw both rows once
-  drawTestMenuSelectionOnly(-1, 0);
-  // draw row1 unselected
-  int y = MENU_TOPY + 1 * MENU_ITEMH;
-  tft.fillRect(18, y - 2, 444, 40, TH().bg);
-  tft.setTextSize(2);
-  tft.setTextColor(TH().dim, TH().bg);
-  tft.setCursor(40, y + 9);
-  tft.print("  3D Tester");
+ tft.fillScreen(TH().bg);drawHeader("Test");drawFooter("UP/DOWN Move  OK Enter","BACK Main");testIdx()=0;
+ drawTestMenuSelectionOnly(-1,0);drawTestMenuSelectionOnly(-1,1);drawTestMenuSelectionOnly(1,0);
 }
-
-
-void drawTestMenuSelectionOnly(int old, int cur){
-  auto drawRow = [&](int i, bool selected){
-    int y = MENU_TOPY + i * MENU_ITEMH; // reuse same geometry
-    tft.fillRect(18, y - 2, 444, 40, TH().bg);
-
-    tft.setTextSize(2);
-    const char* label = (i==0) ? "Buttons Test" : "3D Tester";
-    if (selected) {
-      tft.fillRoundRect(20, y, 440, 36, 8, TH().selbg);
-      tft.drawRoundRect(20, y, 440, 36, 8, TH().accent);
-      tft.setTextColor(TH().text, TH().selbg);
-      tft.setCursor(40, y + 9);
-      tft.print("> ");
-      tft.print(label);
-    } else {
-      tft.setTextColor(TH().dim, TH().bg);
-      tft.setCursor(40, y + 9);
-      tft.print("  ");
-      tft.print(label);
-    }
-  };
-  if (old >= 0) drawRow(old, false);
-  drawRow(cur, true);
+void drawTestMenuSelectionOnly(int old,int cur){
+ auto drawRow=[&](int i,bool selected){
+  int w=tft.width(),row=uiMenuRowHeight(w,39),x=uiMenuLeft(w),y=uiMenuTop(w)+i*row;
+  tft.fillRect(x-2,y-2,w-2*x+4,row,TH().bg);
+  if(selected){tft.fillRoundRect(x,y,w-2*x,row-3,6,TH().selbg);tft.drawRoundRect(x,y,w-2*x,row-3,6,TH().accent);}
+  tft.setTextSize(2);tft.setTextColor(selected?TH().text:TH().dim,selected?TH().selbg:TH().bg);
+  tft.setCursor(uiMenuTextX(w),y+uiMenuTextY(w,9));tft.print(selected?"> ":"  ");tft.print(i==0?"Buttons Test":"3D Tester");
+ };
+ if(old>=0)drawRow(old,false);drawRow(cur,true);
 }
 
 // --- Test submenu index ---

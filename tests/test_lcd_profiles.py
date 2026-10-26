@@ -23,9 +23,9 @@ class LcdProfiles(unittest.TestCase):
 #include "freslest_cursor.h"
 #include "freslest_video.h"
 void gfxMirrorTick(){}
-static bool composite=false;static int compositeCalls;
-freslest_display_t freslest_video_output(){return composite?FRESLEST_DISPLAY_COMPOSITE:FRESLEST_DISPLAY_LCD;}
-void freslest_video_rgb565(const uint16_t*,int w,int h,bool,bool,int,int){assert(w==480&&h==360);++compositeCalls;}
+static bool vga=false;static int vgaCalls;
+freslest_display_t freslest_video_output(){return vga?FRESLEST_DISPLAY_VGA:FRESLEST_DISPLAY_LCD;}
+void freslest_video_rgb565(const uint16_t*,int w,int h,bool,bool,int,int){assert(w==480&&h==320);++vgaCalls;}
 struct {int x=240,y=160;bool visible=false;}usbPointer;
 static uint16_t buffer[480*320],shadow[480*320],lcd[320*240];
 static uint16_t* presented=shadow;
@@ -38,7 +38,7 @@ struct Device{
   memcpy(lcd+y*320,p,640);++rows;
  }
 }_tft;
-struct Frame{int height(){return composite?360:320;}void* getBuffer(){return buffer;}
+struct Frame{int w=480;int width(){return w;}int height(){return w==320?240:320;}void* getBuffer(){return buffer;}
  void pushSprite(Device*,int,int){assert(false);}}frame;
 '''
         test = r'''
@@ -60,15 +60,36 @@ int main(){
  usbPointer.visible=false;gfxPresent();assert(lcd[150*320+200]==buffer[200*480+300]);
  usbPointer={479,319,true};gfxPresent();assert(lcd[320*240-1]==0);
  usbPointer.visible=false;gfxPresent();assert(lcd[320*240-1]==buffer[480*320-1]);
- composite=true;int before=_tft.rows;gfxPresent();assert(compositeCalls==1&&before==_tft.rows);
+ // Native menus must preserve each glyph pixel, without any bitmap resampling.
+ frame.w=320;firstPresent=true;
+ for(int i=0;i<320*240;i++)buffer[i]=(i*19)&65535;
+ gfxPresent();assert(!memcmp(lcd,buffer,320*240*2));
+ _tft.rows=0;buffer[100*320+123]=0xa55a;gfxPresent();assert(_tft.rows==1&&lcd[100*320+123]==0xa55a);
+ usbPointer={319,239,true};gfxPresent();assert(lcd[320*240-1]==0);
+ usbPointer.visible=false;gfxPresent();assert(lcd[320*240-1]==buffer[320*240-1]);
+ frame.w=480;vga=true;int before=_tft.rows;gfxPresent();assert(vgaCalls==1&&before==_tft.rows);
 }
 '''
         self.compile_run(pre + body + test, 'c++', 9341)
+
+    def test_vga_uses_the_same_lcd_canvas(self):
+        source=(ROOT/'OS/freslest/gfx.cpp').read_text()
+        dims=source[source.index('int gfxUiWidth()'):source.index('void gfxSetCompactUi(')]
+        code='#include <cassert>\nstatic bool compactUi=true;\n'+dims+r'''
+int main(){assert(gfxUiWidth()==320&&gfxUiHeight()==240);compactUi=false;assert(gfxUiWidth()==480&&gfxUiHeight()==320);}
+'''
+        self.compile_run(code,'c++',9341)
 
     def test_doom_both_lcd_profiles(self):
         for model in (9341, 9488):
             with self.subTest(model=model):
                 self.compile_run((ROOT / 'Doom/tests/test_lcd_profiles.c').read_text(), 'c', model)
+
+    def test_native_navigation_and_settings_geometry(self):
+        subprocess.run([sys.executable, str(ROOT / 'OS/tests/run_ui_tests.py')], check=True)
+        subprocess.run([sys.executable, str(ROOT / 'tests/run_display_menu_tests.py')], check=True,
+                       env={**os.environ, 'FRESLEST_TEST_NATIVE_UI':'1'})
+        subprocess.run([sys.executable, str(ROOT / 'tests/run_native_wifi_ui_tests.py')], check=True)
 
     def compile_run(self, code, language, model):
         with tempfile.TemporaryDirectory() as temp:
