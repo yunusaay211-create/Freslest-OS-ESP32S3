@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class LcdProfiles(unittest.TestCase):
     def test_os_present_scales_full_ui_and_restores_pointer(self):
         source = (ROOT / 'OS/freslest/gfx.cpp').read_text()
-        start = source.index('void gfxPresent()')
+        start = source.index('static __attribute__((noinline,noclone)) void gfxCursor(')
         body = source[start:]
         pre = r'''
 #include <cassert>

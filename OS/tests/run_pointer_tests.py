@@ -46,6 +46,6 @@ int main(){
  puts("PASS: actual LCD pointer is composed before SPI DMA, has no background-only erase, stationary pointer sends no pixels, base restored after DMA, horizontal/vertical movement, unplug, redraw and edge clipping");
 }
 '''
-p=build/'pointer_actual.cpp';p.write_text(pre+s[start:end]+test);exe=build/'test_pointer'
+p=build/'pointer_actual.cpp';p.write_text(pre+s[s.index('static __attribute__((noinline,noclone)) void gfxCursor('):end]+test);exe=build/'test_pointer'
 subprocess.run(['g++','-std=c++17','-g','-fsanitize=address,undefined','-I'+str(base.parent.parent/'shared_components/freslest_video/include'),str(p),'-o',str(exe)],check=True)
 subprocess.run([str(exe)],check=True,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'})

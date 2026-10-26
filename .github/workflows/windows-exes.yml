@@ -35,6 +35,14 @@ jobs:
           . "$IDF_PATH/export.sh"
           python tools/build_lcd_profiles.py
       - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: lcd-build-diagnostics
+          path: |
+            OS/build-*/freslest_os_s3.map
+            OS/build-*/compile_commands.json
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
         with:
           name: lcd-firmware-profiles
           path: |

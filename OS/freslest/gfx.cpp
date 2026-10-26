@@ -149,6 +149,20 @@ void gfxMirrorTick(){
  screenMirrorPoll();
  if(frame.getBuffer())screenMirrorFrame((const uint16_t*)frame.getBuffer(),480,frame.height(),usbPointer.visible,usbPointer.x,usbPointer.y);
 }
+// Reuse the clipping/address walk for composition and restoration. Keep one
+// copy in flash: the original A/B OS slots have very little remaining space.
+static __attribute__((noinline,noclone)) void gfxCursor(uint16_t* pixels,uint16_t* saved,bool restore){
+ for(int y=0;y<FRESLEST_CURSOR_H;y++)for(int x=0;x<FRESLEST_CURSOR_W;x++){
+  int px=usbPointer.x+x,py=usbPointer.y+y;
+  if(px<0||py<0||px>=480||py>=320)continue;
+  int index=y*FRESLEST_CURSOR_W+x;
+  uint16_t& pixel=pixels[py*480+px];
+  if(restore){pixel=saved[index];continue;}
+  saved[index]=pixel;
+  unsigned color=freslest_cursor_pixel(x,y);
+  if(color)pixel=color==1?0:color==2?0xffff:0x7f05; // raw swap565
+ }
+}
 void gfxPresent(){
  gfxMirrorTick();
  auto* pixels=(uint16_t*)frame.getBuffer();if(!pixels)return;
@@ -166,13 +180,7 @@ void gfxPresent(){
  // Compose before any SPI transfer. A new pointer is never exposed as a
  // background-only rectangle. Only this UI task owns the base framebuffer.
  uint16_t saved[FRESLEST_CURSOR_W*FRESLEST_CURSOR_H];
- if(usbPointer.visible)for(int y=0;y<FRESLEST_CURSOR_H;y++)for(int x=0;x<FRESLEST_CURSOR_W;x++){
-  int px=usbPointer.x+x,py=usbPointer.y+y;
-  if(px<0||py<0||px>=480||py>=320)continue;
-  saved[y*FRESLEST_CURSOR_W+x]=pixels[py*480+px];
-  unsigned color=freslest_cursor_pixel(x,y);
-  if(color)pixels[py*480+px]=color==1?0:color==2?0xffff:0x7f05; // raw swap565
- }
+ if(usbPointer.visible)gfxCursor(pixels,saved,false);
  _tft.startWrite();
 #if FRESLEST_LCD_MODEL == 9341
  // Transfer one scaled row at a time; no second full physical framebuffer.
@@ -194,9 +202,6 @@ void gfxPresent(){
 #endif
  _tft.waitDMA();_tft.endWrite();
  // Restore the pristine base only after the last DMA consumer has finished.
- if(usbPointer.visible)for(int y=0;y<FRESLEST_CURSOR_H;y++)for(int x=0;x<FRESLEST_CURSOR_W;x++){
-  int px=usbPointer.x+x,py=usbPointer.y+y;
-  if(px>=0&&py>=0&&px<480&&py<320)pixels[py*480+px]=saved[y*FRESLEST_CURSOR_W+x];
- }
+ if(usbPointer.visible)gfxCursor(pixels,saved,true);
  firstPresent=false;oldPointer=usbPointer.visible;oldX=usbPointer.x;oldY=usbPointer.y;
 }

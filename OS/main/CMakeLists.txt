@@ -9,9 +9,3 @@ include("${CMAKE_CURRENT_LIST_DIR}/../../common/lcd_profile.cmake")
 # Keep per-function stack budgets for the OS main-task audit.
 target_compile_options(${COMPONENT_LIB} PRIVATE -fstack-usage)
 
-# Keep room for both LCD profiles in the existing A/B slots. These cold menu
-# paths favour code size; gameplay and display transfer optimization is retained.
-set_source_files_properties(
-    "../freslest/src/freslest/settings_pages.cpp"
-    "../freslest/src/freslest/menus_sub.cpp"
-    PROPERTIES COMPILE_OPTIONS "-Oz")
