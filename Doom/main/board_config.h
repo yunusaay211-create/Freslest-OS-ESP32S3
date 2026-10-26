@@ -1,4 +1,5 @@
 #pragma once
+#include "../../OS/freslest/lcd_profile.h"
 
 // ESP32-S3 N16R8 + ILI9488 SPI
 #define LCD_MOSI 11
@@ -18,7 +19,7 @@
 #define LCD_X_OFFSET 0
 #define LCD_Y_OFFSET 0
 #define LCD_MADCTL 0xE8
-#define LCD_INVERT 1
+#define LCD_INVERT FRESLEST_LCD_INVERT
 
 // Keep an already-wired T_CS inactive; no touchscreen driver or MISO input.
 // Composite DAC D0..D7 uses GPIO8/13/14/2/42/40/39/48.

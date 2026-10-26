@@ -335,7 +335,13 @@ static bool displayConfirm=false,displaySaveError=false;
 static void drawDisplayPage(){
  tft.fillScreen(TH().bg);drawHeader("Settings: Display");clearBody();
  drawFooter(displayConfirm?"OK Restart + apply":"UP/DOWN Select  OK Apply","BACK Cancel");
- const char* names[]={"ILI9488 LCD","Composite TV (4:3)","TV alignment","AV colors",usbInputViewerMode()?"USB PC Viewer: ON":"USB PC Viewer: OFF"};
+ const char* names[]={
+#if FRESLEST_LCD_MODEL == 9341
+ "ILI9341 LCD (320x240)",
+#else
+ "ILI9488 LCD (480x320)",
+#endif
+ "Composite TV (4:3)","TV alignment","AV colors",usbInputViewerMode()?"USB PC Viewer: ON":"USB PC Viewer: OFF"};
  tft.setTextSize(2);
  for(int i=0;i<5;i++){
   int y=58+i*31;tft.fillRoundRect(20,y,440,28,8,i==displayChoice?TH().selbg:TH().panel);

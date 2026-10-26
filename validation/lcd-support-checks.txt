@@ -1,0 +1,42 @@
+LCD support verification — 2026-10-26
+
+PASS: tests/test_lcd_profiles.py — 2 test methods, 3 sanitized C/C++ runs.
+  Actual OS gfxPresent: full 480x320 -> 320x240 coverage, edge pixels,
+  row damage, cursor composition/motion/removal, base restoration and AV routing.
+  Actual Doom SPI LCD driver: both controllers, init format 0x55/0x66,
+  RGB565/RGB888 wire bytes, bounded windows, centered/full modes, changed rows,
+  update UI scaling and AV bypass. Profile tag present in linked host binary.
+PASS: tests/test_installer_displays.py — 6 non-GUI tests.
+  Matching OS+Doom paths, missing profile rejection, wrong-model rejection,
+  unknown model rejection, selected model flash arguments, no flash on failure.
+SKIPPED: test_display_page_preserves_selection_and_passes_it_to_worker:
+  no desktop DISPLAY or Xvfb is available.
+PASS: OS/tests/run_pointer_tests.py — original ILI9488 cursor behavior.
+PASS: tests/run_display_menu_tests.py — existing settings behavior.
+PASS: Doom/tests/test_lcd.c — original ILI9488 rendering and cursor behavior.
+PASS: tests/test_firmware_version.py — 15 tests.
+PASS: tests/test_diagnostics.py — 1 test.
+PASS: modified Python sources compile; workflow YAML parses.
+
+Full project command attempted: python tests/run_all.py
+Result: 35 tests, 6 GUI errors, 1 GUI test skipped.
+All six errors are TclError: no display name and no $DISPLAY environment variable:
+- test_failure_offers_a_retry_without_restarting_the_exe
+- test_success_opens_a_dedicated_completion_page
+- test_english_completion_screen
+- test_english_failure_retries_in_english
+- test_english_validation_and_overwrite_confirmation
+- test_language_switch_preserves_com_and_speed_across_back_navigation
+The runner stops before Viewer after these GUI errors. A separate Viewer discovery
+attempt encountered the same missing DISPLAY in its 3 GUI performance tests.
+
+NOT RUN / NOT CLAIMED:
+- ESP-IDF source build: IDF_PATH/toolchain not present. The new build helper exits
+  with an explicit environment requirement rather than reusing old firmware.
+- Windows EXE build or launch: Windows is not available.
+- GitHub Actions workflow: edited locally, not uploaded or triggered.
+- Physical ILI9341/ILI9488 tests: hardware not available.
+
+The old uploaded EXE and preserved precompiled firmware have NOT been rebuilt.
+The changed archive contains sources, tests and a build workflow, not a newly
+compiled ILI9341 executable or firmware image.

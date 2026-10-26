@@ -1,5 +1,7 @@
 # Freslest OS 1.0
 
+**LCD selection update (source):** the installer now has **Step 1: Displays**, with **ILI9488 480×320** (default) and **ILI9341 320×240**. Both OS and Doom use the selected profile. Rebuild both firmware profiles and the Windows installer; the original EXE/payload does not include the new ILI9341 code. See [LCD_SUPPORT_TR.md](LCD_SUPPORT_TR.md) for wiring, build commands and verification limits.
+
 **A graphical, desktop-style embedded environment for the ESP32-S3**, featuring applications, NES emulation, DOOM, USB input, file management, and experimental composite video.
 
 > **Public version:** Freslest OS **1.0**. `OS/CMakeLists.txt` sets `PROJECT_VER` to `1.0`. The packaged OS image also reports `1.0`; its release metadata was updated without rebuilding the compiled OS code. See [DOGRULAMA.txt](DOGRULAMA.txt).

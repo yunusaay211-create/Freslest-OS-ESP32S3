@@ -4,6 +4,11 @@ on:
   push:
     paths:
       - 'installer/**'
+      - 'OS/**'
+      - 'Doom/**'
+      - 'common/**'
+      - 'shared_components/**'
+      - 'tools/build_lcd_profiles.py'
       - 'viewer/**'
       - 'tests/**'
       - 'firmware-payload.zip'
@@ -16,7 +21,28 @@ on:
 permissions:
   contents: read
 jobs:
+  display-firmware:
+    runs-on: ubuntu-latest
+    container: espressif/idf:v5.4.4
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test actual LCD C and C++ output paths
+        run: python -m unittest discover -s tests -p test_lcd_profiles.py -v
+      - name: Build ILI9488 and ILI9341 OS and Doom firmware
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          python tools/build_lcd_profiles.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lcd-firmware-profiles
+          path: |
+            firmware/ili9488/*
+            firmware/ili9341/*
+          if-no-files-found: error
   build-and-launch:
+    needs: display-firmware
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
@@ -31,6 +57,10 @@ jobs:
         run: python -m pip install -r requirements-build.txt
       - name: Prepare and verify firmware release 1.0
         run: python prepare_firmware.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: lcd-firmware-profiles
+          path: firmware
       - name: Confirm original installer regression failures
         run: python tests/prove_regressions.py
       - name: Test corrected installer and preserved Viewer

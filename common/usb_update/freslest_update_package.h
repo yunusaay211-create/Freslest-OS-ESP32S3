@@ -2,8 +2,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "../../OS/freslest/lcd_profile.h"
 
+#if FRESLEST_LCD_MODEL == 9341
+#define FRESLEST_UPDATE_BOARD "esp32s3-n16r8-ili9341-buttons"
+#else
 #define FRESLEST_UPDATE_BOARD "esp32s3-n16r8-ili9488-buttons"
+#endif
 #define FRESLEST_UPDATE_LAYOUT "freslest-s3-ab-v2"
 #define FRESLEST_OS_SLOT_SIZE 0x1b0000u
 #define FRESLEST_UPDATE_MANIFEST "freslest-update.json"

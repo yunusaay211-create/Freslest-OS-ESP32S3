@@ -9,7 +9,11 @@
 // === LGFX SINIFI ===
 class LGFX : public lgfx::LGFX_Device
 {
+#if FRESLEST_LCD_MODEL == 9341
+  lgfx::Panel_ILI9341 _panel;
+#else
   lgfx::Panel_ILI9488 _panel;
+#endif
   lgfx::Bus_SPI _bus;
 
 public:
@@ -43,17 +47,17 @@ public:
       cfg.pin_busy = -1;
 
       // 🔥 DOĞRU BOYUT
-      cfg.memory_width  = 320;
-      cfg.memory_height = 480;
-      cfg.panel_width   = 320;
-      cfg.panel_height  = 480;
+      cfg.memory_width  = FRESLEST_LCD_NATIVE_WIDTH;
+      cfg.memory_height = FRESLEST_LCD_NATIVE_HEIGHT;
+      cfg.panel_width   = FRESLEST_LCD_NATIVE_WIDTH;
+      cfg.panel_height  = FRESLEST_LCD_NATIVE_HEIGHT;
 
       cfg.offset_x = 0;
       cfg.offset_y = 0;
 
       // 🔥 KRİTİK RENK AYARI
       cfg.rgb_order = false;
-      cfg.invert    = true;
+      cfg.invert    = FRESLEST_LCD_INVERT;
 
       _panel.config(cfg);
     }
@@ -75,11 +79,13 @@ int gfxUiHeight(){return freslest_video_output()==FRESLEST_DISPLAY_COMPOSITE?360
 // === GFX INIT ===
 void gfxBegin()
 {
+  Serial.println(FRESLEST_LCD_TAG);
   bool composite=freslest_video_boot_output()==FRESLEST_DISPLAY_COMPOSITE;
   if(composite){if(!freslest_video_begin())Serial.println("E411: Composite unavailable; hold BACK during reset for LCD.");}
   else {
     // No LCD/touch writes may follow RGB-DMA initialization on shared pins.
     _tft.init();_tft.setRotation(3);_tft.setColorDepth(16);
+    _tft.setSwapBytes(false); // sprite storage is already wire-order RGB565
   }
   frame.setPsram(true);frame.setColorDepth(16);
   if(!frame.createSprite(480,gfxUiHeight())){Serial.println("E410: UI framebuffer unavailable");return;}
@@ -167,12 +173,25 @@ void gfxPresent(){
   unsigned color=freslest_cursor_pixel(x,y);
   if(color)pixels[py*480+px]=color==1?0:color==2?0xffff:0x7f05; // raw swap565
  }
- int start=-1;_tft.startWrite();
+ _tft.startWrite();
+#if FRESLEST_LCD_MODEL == 9341
+ // Transfer one scaled row at a time; no second full physical framebuffer.
+ // Compose the cursor first so it follows the same mapping as its hit target.
+ uint16_t line[FRESLEST_LCD_WIDTH];
+ for(int y=0;y<FRESLEST_LCD_HEIGHT;y++){
+  int sy=freslest_lcd_source_y(y);
+  if(!dirty[sy])continue;
+  for(int x=0;x<FRESLEST_LCD_WIDTH;x++)line[x]=pixels[sy*480+freslest_lcd_source_x(x)];
+  _tft.pushImage(0,y,FRESLEST_LCD_WIDTH,1,line);
+ }
+#else
+ int start=-1;
  for(int y=0;y<=320;y++){
   bool changed=y<320&&dirty[y];
   if(changed&&start<0)start=y;
   if(!changed&&start>=0){_tft.setClipRect(0,start,480,y-start);frame.pushSprite(&_tft,0,0);_tft.clearClipRect();start=-1;}
  }
+#endif
  _tft.waitDMA();_tft.endWrite();
  // Restore the pristine base only after the last DMA consumer has finished.
  if(usbPointer.visible)for(int y=0;y<FRESLEST_CURSOR_H;y++)for(int x=0;x<FRESLEST_CURSOR_W;x++){

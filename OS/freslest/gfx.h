@@ -1,6 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include <LovyanGFX.hpp>
+#include "lcd_profile.h"
 
 // ===== PINS =====
 static constexpr int PIN_TFT_MOSI = 11;

@@ -1,0 +1,64 @@
+"""Build both LCD variants from source, then stage verified installer payloads.
+
+Run in an ESP-IDF v5.4.4 environment: python tools/build_lcd_profiles.py
+"""
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def build():
+    idf = Path(os.environ.get('IDF_PATH', '')) / 'tools/idf.py'
+    if not idf.is_file():
+        raise SystemExit('Run in an ESP-IDF v5.4.4 environment; both LCD profiles require a source build.')
+    # Restore common WAD/LittleFS assets from the preserved release payload.
+    sys.path.insert(0, str(ROOT))
+    from prepare_firmware import prepare
+    prepare()
+    sys.path.insert(0, str(ROOT / 'installer'))
+    from payload import ITEMS, validated_payload
+    for model in (9488, 9341):
+        profile = f'ili{model}'
+        builds = {}
+        for project in ('OS', 'Doom'):
+            directory = ROOT / project
+            output = directory / f'build-{profile}'
+            subprocess.run([sys.executable, str(idf), '-B', str(output),
+                            f'-DFRESLEST_LCD_MODEL={model}', 'build'], cwd=directory,
+                           env={**os.environ, 'IDF_COMPONENT_MANAGER':'0', 'IDF_TARGET':'esp32s3'}, check=True)
+            builds[project] = output
+        with tempfile.TemporaryDirectory(dir=ROOT / 'firmware') as temp:
+            stage = Path(temp)
+            sources = {
+                'bootloader.bin': builds['OS'] / 'bootloader/bootloader.bin',
+                'partition-table.bin': builds['OS'] / 'partition_table/partition-table.bin',
+                'ota_data_initial.bin': builds['OS'] / 'ota_data_initial.bin',
+                'freslest_os_s3.bin': builds['OS'] / 'freslest_os_s3.bin',
+                'freslest_doom_s3.bin': builds['Doom'] / 'freslest_doom_s3.bin',
+            }
+            manifest = {}
+            for _, name, limit in ITEMS:
+                source = sources.get(name, ROOT / 'firmware' / name)
+                data = source.read_bytes()
+                if not data or len(data) > limit:
+                    raise ValueError(f'{profile}: {name} does not fit its partition')
+                if name in ('freslest_os_s3.bin', 'freslest_doom_s3.bin'):
+                    if ('FRESLEST_LCD:' + profile.upper()).encode() not in data:
+                        raise ValueError(f'{profile}: firmware has the wrong LCD profile: {name}')
+                shutil.copyfile(source, stage / name)
+                manifest['firmware/' + name] = hashlib.sha256(data).hexdigest()
+            (stage / 'SHA256.json').write_text(json.dumps(manifest, indent=2) + '\n')
+            shutil.copytree(stage, ROOT / 'firmware' / profile, dirs_exist_ok=True)
+        validated_payload(ROOT / 'firmware', 'en', profile)
+        print(f'Built and verified {profile}: OS, Doom and all seven installer segments.')
+
+
+if __name__ == '__main__':
+    build()
