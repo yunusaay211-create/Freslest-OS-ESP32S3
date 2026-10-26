@@ -1,0 +1,49 @@
+name: LCD Windows installer from verified firmware
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/lcd-windows-build.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  package-windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Verify the reused firmware sources are unchanged
+        run: git diff --exit-code 54aaf9f4ae4aee3f2b40439ce5129f356b000a11 HEAD -- OS Doom common shared_components tools/build_lcd_profiles.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+          cache: pip
+          cache-dependency-path: requirements-build.txt
+      - name: Install build dependencies
+        run: python -m pip install -r requirements-build.txt
+      - name: Prepare preserved data files
+        run: python prepare_firmware.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: lcd-firmware-profiles
+          path: firmware
+          run-id: 40377333282
+          github-token: ${{ github.token }}
+      - name: Check baseline regressions
+        run: python tests/prove_regressions.py
+      - name: Test installer, display choice and Viewer
+        run: python tests/run_all.py
+      - name: Build x64 Windows EXEs
+        run: python build_windows.py
+      - name: Launch and close packaged EXEs
+        run: python tests/smoke_exes_windows.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Freslest-LCD-Windows-EXEs
+          path: dist/*
+          if-no-files-found: error
+          compression-level: 0

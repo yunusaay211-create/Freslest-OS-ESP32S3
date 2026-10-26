@@ -22,6 +22,9 @@ permissions:
   contents: read
 jobs:
   display-firmware:
+    # The dedicated Windows-only workflow verifies that reused firmware sources
+    # are unchanged, then downloads the already successful firmware artifact.
+    if: ${{ !contains(github.event.head_commit.message, '[windows-only]') }}
     runs-on: ubuntu-latest
     container: espressif/idf:v5.4.4
     timeout-minutes: 60

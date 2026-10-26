@@ -36,9 +36,17 @@ class DisplayWizardTests(unittest.TestCase):
                 window.flash('COM7')
             self.assertEqual(thread.call_args.kwargs['args'], ('COM7', 115200, 'ili9341'))
         finally:
-            for token in window.tk.splitlist(window.tk.call('after', 'info')):
-                window.after_cancel(token)
-            window.destroy()
+            # ttk's running progress bar owns a Tcl-list timer; stop it through
+            # the widget API before cancelling Python callbacks. Always destroy
+            # this interpreter so later language tests get a fresh default root.
+            try:
+                progress = window.__dict__.get('progress')
+                if progress is not None:
+                    progress.stop()
+                for token in window.tk.splitlist(window.tk.call('after', 'info')):
+                    window.after_cancel(token)
+            finally:
+                window.destroy()
 
 
 class DisplayInstallTests(unittest.TestCase):
