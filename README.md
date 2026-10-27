@@ -4,7 +4,7 @@
 
 **A graphical, desktop-style embedded environment for the ESP32-S3**, featuring applications, NES emulation, DOOM, USB input, file management, and experimental RGB332 VGA.
 
-> **Public version:** Freslest OS **1.0**. `OS/CMakeLists.txt` sets `PROJECT_VER` to `1.0`. The packaged OS image also reports `1.0`; its release metadata was updated without rebuilding the compiled OS code. See [DOGRULAMA.txt](DOGRULAMA.txt).
+> **Public version:** Freslest OS **1.0**. `OS/CMakeLists.txt` sets `PROJECT_VER` to `1.0`. Current LCD profile OS and Doom images are rebuilt from this source; the old baseline payload is used for unchanged data assets.
 
 ## Firmware source code
 
@@ -146,7 +146,7 @@ Use **Fit** to include top and bottom bars. Large frames over serial can be slow
 - DOOM and sound support
 - Basic file management and USB input support
 - Wi-Fi/BLE features and lightweight standalone browser (not a modern full-browser engine)
-- Experimental AV output and recovery/update functions
+- Experimental VGA output and recovery/update functions
 
 ## Repository layout
 
@@ -157,7 +157,7 @@ Use **Fit** to include top and bottom bars. Large frames over serial can be slow
 - Include license and attribution for **DOOM port code, libraries and external assets**, respecting each dependency's license. Do not publish copyrighted commercial game ROMs, MP3 files or WAD assets without redistribution rights.
 - Publish SHA-256 sums for installer and firmware; test releases on the target board before saying “one-click ready”.
 - Future OS source builds use version `1.0`; verify the board behavior before describing a release as hardware-tested.
-- Hardware diagrams, battery safety and AV DAC resistor values must be checked against the finished board-specific wiring before advertising them as fully verified.
+- Hardware diagrams, battery safety and VGA DAC resistor values must be checked against the finished board-specific wiring before advertising them as fully verified.
 
 ## License
 

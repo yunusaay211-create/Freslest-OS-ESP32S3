@@ -722,7 +722,8 @@ void drawTestMenuSelectionOnly(int old,int cur){
   tft.setTextSize(2);tft.setTextColor(selected?TH().text:TH().dim,selected?TH().selbg:TH().bg);
   tft.setCursor(uiMenuTextX(w),y+uiMenuTextY(w,9));tft.print(selected?"> ":"  ");tft.print(i==0?"Buttons Test":"3D Tester");
  };
- if(old>=0)drawRow(old,false);drawRow(cur,true);
+ if(old>=0)drawRow(old,false);
+ drawRow(cur,true);
 }
 
 // --- Test submenu index ---

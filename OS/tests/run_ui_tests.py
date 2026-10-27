@@ -41,6 +41,7 @@ struct Display {
  void setCursor(int x,int y){cursorX=x;cursorY=y;assert(y>=(w==320?36:44)&&y+8*size<=h-24);}
  void print(const char* text){words.emplace_back(text);cursorX+=strlen(text)*6*size;assert(cursorX<=w);}
 }tft;
+int& testIdx();void drawTestMenuSelectionOnly(int,int);
 void drawHeader(const char*){}void drawFooter(const char*,const char*){}void clearBody(){}void drawAppsMenuFull();
 void audioClick(){}void nesPlayerExit(){}void noteExit(){}
 bool editorActive=false;unsigned browserPauses=0;bool textEntryActive(){return editorActive;}void browserExit(){browserPauses++;}
@@ -88,7 +89,7 @@ int main(){
  puts("PASS: actual Task Switcher hold/release/selection/mouse/BACK and seven Game rows; Fullscreen removed from Game");
  tft.w=320;tft.h=240;appsIndex=7;drawAppsMenuFull();
  assert(appsTop==1&&appsVisible()==7);assert(__appsMenuRowAt(42)==1&&__appsMenuRowAt(186)==7&&__appsMenuRowAt(215)==-1);
- drawGameMenuFull();
+ drawGameMenuFull();drawTestMenuFull();
  appsTop=0;app=APP_APPS;usbPointer={22,43,true};actualMenuPointer();assert(appsIndex==0&&bOk.pressed());edges();
  app=APP_TEST;usbPointer={22,43,true};actualMenuPointer();assert(testIndex==0&&bOk.pressed());edges();
  app=APP_TEST;usbPointer={22,71,true};actualMenuPointer();assert(testIndex==1&&bOk.pressed());edges();
@@ -96,8 +97,8 @@ int main(){
  puts("PASS: native 320x240 Apps/Game rows and mouse targets stay inside the body with unscaled fonts");
 }
 '''
-code=prelude+enum+'\n'+globals+function(source,'static void removeTaskAt(')+'\n'+function(source,'void taskSwitcherHandle(')+'\n'+appitems+'\n'+function(menus,'int __appsMenuRowAt(')+'\n'+items+'\n'+function(menus,'static void drawGameRow(')+'\n'+function(menus,'void drawGameMenuFull(')+'\n'+function(menus,'void drawGameMenuSelectionOnly(')+'\n'+pointer+test
+code=prelude+enum+'\n'+globals+function(source,'static void removeTaskAt(')+'\n'+function(source,'void taskSwitcherHandle(')+'\n'+appitems+'\n'+function(menus,'int __appsMenuRowAt(')+'\n'+items+'\n'+function(menus,'static void drawGameRow(')+'\n'+function(menus,'void drawGameMenuFull(')+'\n'+function(menus,'void drawGameMenuSelectionOnly(')+'\n'+pointer+function(source,'void drawTestMenuFull(){')+function(source,'void drawTestMenuSelectionOnly(int old,int cur)')+test
 p=build/'ui_actual.cpp';p.write_text(code)
 binary=build/'test_ui_actual'
-subprocess.run(['g++','-std=c++17','-g','-fsanitize=address,undefined','-I'+str(app),str(p),'-o',str(binary)],check=True)
+subprocess.run(['g++','-std=c++17','-Werror=misleading-indentation','-g','-fsanitize=address,undefined','-I'+str(app),str(p),'-o',str(binary)],check=True)
 subprocess.run([str(binary)],check=True,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'})
