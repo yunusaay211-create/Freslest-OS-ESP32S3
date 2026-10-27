@@ -12,6 +12,7 @@
 #include "usb_storage.h"
 #include <algorithm>
 #include <cstring>
+#include "ui_canvas.h"
 #ifndef FRESLEST_INTERNAL_ROOT
 #define FRESLEST_INTERNAL_ROOT "/littlefs"
 #endif
@@ -45,14 +46,14 @@ void refresh() {
   top = selected / ROWS * ROWS;
 }
 void label(int x, int y, const char *text, unsigned size = 1) {
-  tft.setTextSize(size);
-  tft.setCursor(x, y);
-  tft.print(text);
+  uiCanvasTextSize(size);
+  uiCanvasCursor(x, y);
+  uiCanvasPrint(text);
 }
 void button(int x, int y, int w, const char *text, bool active) {
   uint16_t bg = active ? TH().selbg : TH().panel;
-  tft.fillRoundRect(x, y, w, 28, 6, bg);
-  tft.drawRoundRect(x, y, w, 28, 6, active ? TH().accent : TH().dim);
+  uiCanvasRoundRect(x, y, w, 28, 6, bg);
+  uiCanvasOutline(x, y, w, 28, 6, active ? TH().accent : TH().dim);
   tft.setTextColor(TH().text, bg);
   label(x + 10, y + 9, text);
 }
@@ -107,9 +108,9 @@ void draw() {
       bool sel = i == selected;
       int y = 84 + row * 30;
       uint16_t bg = sel ? TH().selbg : TH().bg;
-      tft.fillRoundRect(16, y, 448, 28, 6, bg);
+      uiCanvasRoundRect(16, y, 448, 28, 6, bg);
       if (sel)
-        tft.drawRoundRect(16, y, 448, 28, 6, TH().accent);
+        uiCanvasOutline(16, y, 448, 28, 6, TH().accent);
       tft.setTextColor(sel ? TH().text : TH().dim, bg);
       snprintf(text, sizeof(text), "%s %.31s", e->directory ? "[+]" : "   ",
                e->name);
@@ -148,9 +149,10 @@ void draw() {
   } else if (view == TEXT) {
     // Fixed byte pages show every byte, even when a file has many short lines.
     size_t n = strlen(preview);
-    for (unsigned row = 0; row < 12 && row * 64 < n; row++) {
+    for (unsigned row = 0; row < 12 && row * (uiCanvasCompact()?46u:64u) < n; row++) {
       char line[65] = {};
-      size_t offset = row * 64, length = std::min<size_t>(64, n - offset);
+      size_t columns=uiCanvasCompact()?46:64;
+      size_t offset=row*columns,length=std::min<size_t>(columns,n-offset);
       memcpy(line, preview + offset, length);
       for (size_t i = 0; i < length; i++)
         if (line[i] == '\n' || line[i] == '\r' || line[i] == '\t')
@@ -225,11 +227,11 @@ void filesLoop(uint32_t now) {
   }
   if(view==DISKS){
     if(bBack.pressed()||usbPointer.rightClick){enterApp(APP_APPS);return;}
-    if(!usbInputHostMode()&&(bFire.pressed()||usbInputHit(20,250,300,28))){usbInputSwitchMode(false);return;}
+    if(!usbInputHostMode()&&(bFire.pressed()||uiCanvasHit(20,250,300,28))){usbInputSwitchMode(false);return;}
     bool ok=bOk.pressed(),changed=false;
     if((bUp.pressed()||bDown.pressed()||bLeft.pressed()||bRight.pressed())&&usb.present()){disk^=1;changed=true;}
-    if(usbInputHit(20,96,440,28)){disk=0;ok=true;}
-    if(usb.present()&&usbInputHit(20,164,440,28)){disk=1;ok=true;}
+    if(uiCanvasHit(20,96,440,28)){disk=0;ok=true;}
+    if(usb.present()&&uiCanvasHit(20,164,440,28)){disk=1;ok=true;}
     if(bFire.pressed()&&usb.present()){usbStorageEject();return;}
     if(changed)draw();
     if(!ok)return;
@@ -244,9 +246,9 @@ void filesLoop(uint32_t now) {
   UsbAccess access(onUsb);
   if(!access.ok){view=DISKS;draw();return;}
   if (usbPointer.rightClick) {
-    if (view == LIST && usbPointer.x >= 16 && usbPointer.x < 464 &&
-        usbPointer.y >= 84 && usbPointer.y < 264) {
-      unsigned i = top + (usbPointer.y - 84) / 30;
+    if (view == LIST && uiCanvasPointerX() >= 16 && uiCanvasPointerX() < 464 &&
+        uiCanvasPointerY() >= 84 && uiCanvasPointerY() < 264) {
+      unsigned i = top + (uiCanvasPointerY() - 84) / 30;
       if (i < browser.count()) {
         selected = i;
         view = ACTIONS;
@@ -274,7 +276,7 @@ void filesLoop(uint32_t now) {
     return;
   }
   if (!ready) {
-    if (bOk.pressed() || usbInputHit(20, 230, 160, 28)) {
+    if (bOk.pressed() || uiCanvasHit(20, 230, 160, 28)) {
       refresh();
       draw();
     }
@@ -306,8 +308,8 @@ void filesLoop(uint32_t now) {
       selected = std::min(selected + ROWS, count - 1);
       changed = true;
     }
-    if (usbInputHit(16, 84, 448, ROWS * 30)) {
-      unsigned i = top + (usbPointer.y - 84) / 30;
+    if (uiCanvasHit(16, 84, 448, ROWS * 30)) {
+      unsigned i = top + (uiCanvasPointerY() - 84) / 30;
       if (i < count) {
         selected = i;
         ok = true;
@@ -317,7 +319,7 @@ void filesLoop(uint32_t now) {
       top = selected / ROWS * ROWS;
       draw();
     }
-    if (bFire.pressed() || usbInputHit(358, 268, 106, 28)) {
+    if (bFire.pressed() || uiCanvasHit(358, 268, 106, 28)) {
       view = ACTIONS;
       action = 0;
       draw();
@@ -335,7 +337,7 @@ void filesLoop(uint32_t now) {
       changed = true;
     }
     for (unsigned i = 0; i < 3; i++)
-      if (usbInputHit(40, 126 + i * 42, 400, 28)) {
+      if (uiCanvasHit(40, 126 + i * 42, 400, 28)) {
         action = i;
         ok = true;
       }
@@ -355,11 +357,11 @@ void filesLoop(uint32_t now) {
       confirmDelete = !confirmDelete;
       draw();
     }
-    if (usbInputHit(40, 218, 180, 28)) {
+    if (uiCanvasHit(40, 218, 180, 28)) {
       confirmDelete = false;
       ok = true;
     }
-    if (usbInputHit(260, 218, 180, 28)) {
+    if (uiCanvasHit(260, 218, 180, 28)) {
       confirmDelete = true;
       ok = true;
     }

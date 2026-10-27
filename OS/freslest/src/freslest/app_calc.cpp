@@ -1,4 +1,5 @@
 #include "apps.h"
+#include "ui_layout.h"
 #include "../../gfx.h"
 #include "../../input.h"
 #include "settings.h"
@@ -30,6 +31,11 @@ static void compute() {
   }
 }
 
+static int calcFieldX(int i){const int full[]={20,180,250,410},small[]={12,112,152,252};return uiCompact(tft.width())?small[i]:full[i];}
+static int calcFieldW(int i){const int full[]={150,60,150,50},small[]={96,36,96,56};return uiCompact(tft.width())?small[i]:full[i];}
+static int calcBoxY(){return uiCompact(tft.width())?60:95;}
+static int calcBoxH(){return uiCompact(tft.width())?54:58;}
+
 static void drawCalc() {
   tft.fillScreen(TH().bg);
   drawHeader("Apps: Calculator");
@@ -39,36 +45,41 @@ static void drawCalc() {
   tft.setTextColor(TH().text, TH().bg);
   tft.setTextSize(3);
 
-  int y = 95;
+  bool compact=uiCompact(tft.width());
+  int y=calcBoxY(),h=calcBoxH();
   auto drawBox = [&](int x, int w, const char* label, String val, bool sel) {
     uint16_t fill = sel ? TH().selbg : TH().panel;
-    tft.fillRoundRect(x, y, w, 58, 10, fill);
-    tft.drawRoundRect(x, y, w, 58, 10, sel ? TH().accent : TH().dim);
+    tft.fillRoundRect(x, y, w, h, 10, fill);
+    tft.drawRoundRect(x, y, w, h, 10, sel ? TH().accent : TH().dim);
     tft.setTextColor(TH().text, fill);
+    if(compact&&!strcmp(label,"=")){
+      tft.setTextSize(2);tft.setCursor(x+(w-12)/2,y+20);tft.print("=");return;
+    }
     tft.setTextSize(1);
     tft.setCursor(x + 10, y + 8);
     tft.print(label);
-    tft.setTextSize(2);
+    tft.setTextSize(compact&&val.length()>(unsigned)((w-20)/12)?1:2);
     tft.setCursor(x + 10, y + 28);
     tft.print(val);
   };
 
-  drawBox(20, 150, "A", String(A), field==0);
-  drawBox(180, 60, "OP", opStr(op), field==1);
-  drawBox(250, 150, "B", String(B), field==2);
-  drawBox(410, 50, "=", "", field==3);
+  drawBox(calcFieldX(0), calcFieldW(0), "A", String(A), field==0);
+  drawBox(calcFieldX(1), calcFieldW(1), "OP", opStr(op), field==1);
+  drawBox(calcFieldX(2), calcFieldW(2), "B", String(B), field==2);
+  drawBox(calcFieldX(3), calcFieldW(3), "=", "", field==3);
 
   tft.setTextSize(2);
   tft.setTextColor(TH().accent, TH().bg);
-  tft.setCursor(20, 190);
+  tft.setCursor(compact?12:20,compact?144:190);
   tft.print("Result: ");
   tft.setTextColor(TH().text, TH().bg);
   tft.print(R);
 
   tft.setTextSize(1);
   tft.setTextColor(TH().dim, TH().bg);
-  tft.setCursor(20, 225);
-  tft.print("OK on '=' computes. OK on OP cycles. Division by 0 -> 0.");
+  tft.setCursor(compact?12:20,compact?185:225);
+  tft.print(compact?"OK =: calculate / OK OP: change":"OK on '=' computes. OK on OP cycles. Division by 0 -> 0.");
+  if(compact){tft.setCursor(12,201);tft.print("Division by 0 -> 0");}
 }
 
 void calcEnter() {
@@ -81,8 +92,7 @@ void calcEnter() {
 void calcLoop(uint32_t now) {
   (void)now;
   bool redraw = false;
-  const int xs[]={20,180,250,410},ws[]={150,60,150,50};
-  for(int i=0;i<4;i++)if(usbInputHit(xs[i],95,ws[i],58)){field=i;redraw=true;if(i==1||i==3)bOk.pressedEdge=true;}
+  for(int i=0;i<4;i++)if(usbInputHit(calcFieldX(i),calcBoxY(),calcFieldW(i),calcBoxH())){field=i;redraw=true;if(i==1||i==3)bOk.pressedEdge=true;}
 
 
   if (bLeft.pressed())  { field = (field + 3) % 4; redraw = true; }

@@ -11,3 +11,5 @@ Evidence: tests/test_lcd_profiles.py now asserts that60 unchanged VGA ticks subm
 Primary references:
 - https://github.com/espressif/esp-idf/blob/v5.4.4/docs/en/api-reference/peripherals/lcd/rgb_lcd.rst (PSRAM bandwidth and restart section)
 - https://github.com/espressif/esp-idf/blob/v5.4.4/components/esp_lcd/rgb/esp_lcd_panel_rgb.c (lcd_rgb_panel_try_restart_transmission)
+
+Code uploaded to the previously approved public repository/branch after verifying public OS/Doom configs at04a042a4c95e7451af25e0f47f24458aec00e9b3; initial automatic review rejection was resolved by that authorization/destination check. Firmware candidate source915d1107c54a6ade6ba4395bc9cc3821b254a128; physical confirmation still pending.

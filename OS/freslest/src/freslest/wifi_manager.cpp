@@ -318,7 +318,6 @@ void setWifiLoop(uint32_t now) {
       if (field == ManualSsid && value[0]) {
         strlcpy(selectedSsid, value, sizeof(selectedSsid));
         editing = Password;
-        gfxSetCompactUi(false);
         textEntryBegin("WiFi: Password", "", 64, true);
         return;
       }
@@ -381,7 +380,6 @@ void setWifiLoop(uint32_t now) {
           return;
         }
         editing = Password;
-        gfxSetCompactUi(false);
         textEntryBegin("WiFi: Password", "", 64, true);
         return;
       }
@@ -430,8 +428,7 @@ void setWifiLoop(uint32_t now) {
       redraw = true;
     } else if (row == 3) {
       editing = ManualSsid;
-      gfxSetCompactUi(false);
-        textEntryBegin("WiFi: Network name", "", 32);
+      textEntryBegin("WiFi: Network name", "", 32);
       return;
     } else {
       if (portalOn)

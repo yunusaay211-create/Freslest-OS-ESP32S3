@@ -99,6 +99,8 @@ int main(){assert(gfxUiWidth()==320&&gfxUiHeight()==240);compactUi=false;assert(
         subprocess.run([sys.executable, str(ROOT / 'tests/run_display_menu_tests.py')], check=True,
                        env={**os.environ, 'FRESLEST_TEST_NATIVE_UI':'1'})
         subprocess.run([sys.executable, str(ROOT / 'tests/run_native_wifi_ui_tests.py')], check=True)
+        subprocess.run([sys.executable, str(ROOT / 'tests/run_native_app_tests.py')], check=True)
+        subprocess.run([sys.executable, str(ROOT / 'tests/run_native_views_tests.py')], check=True)
 
     def compile_run(self, code, language, model):
         with tempfile.TemporaryDirectory() as temp:

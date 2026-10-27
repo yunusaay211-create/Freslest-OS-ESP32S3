@@ -14,6 +14,7 @@
 #include "text_entry.h"
 #include <algorithm>
 #include <cstring>
+#include "ui_canvas.h"
 namespace {
 enum View { Home, Page, Help };
 View view = Home;
@@ -27,7 +28,7 @@ char address[web_lite::URL] = "https://", history[8][web_lite::URL]{};
 unsigned historyCount = 0;
 const char *urls[] = {"https://www.google.com/", "https://www.youtube.com/",
                       "https://chatgpt.com/"};
-int visibleLines() { return (tft.height() - 116) / 13; }
+int visibleLines() { return (uiCanvasHeight() - 116) / 13; }
 void release() {
   if (pageSlot >= 0)
     nativeBrowserRelease(pageSlot);
@@ -36,23 +37,23 @@ void release() {
 }
 void footer() { drawFooter("UP/DOWN Scroll L/R Link", "BACK Browser"); }
 void toolbar() {
-  tft.fillRect(0, 44, 480, 28, TH().panel);
+  uiCanvasFillRect(0, 44, 480, 28, TH().panel);
   const char *labels[] = {"< History", "Home", "Address", "Reload", "Info"};
-  tft.setTextSize(1);
+  uiCanvasTextSize(1);
   for (int i = 0; i < 5; i++) {
-    tft.drawRect(20 + i * 88, 47, 84, 21, TH().dim);
+    uiCanvasRect(20 + i * 88, 47, 84, 21, TH().dim);
     tft.setTextColor(TH().text, TH().panel);
-    tft.setCursor(25 + i * 88, 54);
-    tft.print(labels[i]);
+    uiCanvasCursor(25 + i * 88, 54);
+    uiCanvasPrint(labels[i]);
   }
 }
 void notice(const char *s) {
-  int y = tft.height() - 41;
-  tft.fillRect(12, y - 3, 456, 17, TH().bg);
-  tft.setTextSize(1);
+  int y = uiCanvasHeight() - 41;
+  uiCanvasFillRect(12, y - 3, 456, 17, TH().bg);
+  uiCanvasTextSize(1);
   tft.setTextColor(TH().dim, TH().bg);
-  tft.setCursor(18, y);
-  tft.printf("%.73s", s);
+  uiCanvasCursor(18, y);
+  uiCanvasPrintf("%.73s", s);
 }
 void drawHome() {
   tft.fillScreen(TH().bg);
@@ -65,13 +66,13 @@ void drawHome() {
                           "Open address",
                           "Wi-Fi settings",
                           "Browser capabilities"};
-  tft.setTextSize(1);
+  uiCanvasTextSize(1);
   for (int i = 0; i < 6; i++) {
     int y = 60 + 34 * i;
-    tft.fillRoundRect(20, y, 440, 30, 5, i == row ? TH().selbg : TH().panel);
+    uiCanvasRoundRect(20, y, 440, 30, 5, i == row ? TH().selbg : TH().panel);
     tft.setTextColor(TH().text, i == row ? TH().selbg : TH().panel);
-    tft.setCursor(32, y + 10);
-    tft.print(labels[i]);
+    uiCanvasCursor(32, y + 10);
+    uiCanvasPrint(labels[i]);
   }
   notice("Runs on ESP32. HTML/text, links, GET forms, JPEG. No PC required.");
 }
@@ -93,19 +94,17 @@ void drawHelp() {
       "UP/DOWN scroll. LEFT/RIGHT selects a link. OK opens it.",
       "Mouse clicks links. Form fields use the screen keyboard.",
       "HTTPS needs valid time: Wi-Fi sets it through NTP."};
-  tft.setTextSize(1);
+  uiCanvasTextSize(1);
   tft.setTextColor(TH().text, TH().bg);
   for (unsigned i = 0; i < sizeof(lines) / sizeof(*lines); i++) {
-    tft.setCursor(18, 60 + i * 17);
-    tft.print(lines[i]);
+    uiCanvasCursor(18, 60 + i * 17);
+    uiCanvasPrint(lines[i]);
   }
 }
-bool jpegOutput(int16_t x, int16_t y, uint16_t w, uint16_t h,
-                uint16_t *pixels) {
-  if (x < 18 || y < 76 || x + w > 462 || y + h > tft.height() - 48)
-    return false;
-  tft.pushImage(x, y, w, h, pixels);
-  return true;
+bool jpegOutput(int16_t x,int16_t y,uint16_t w,uint16_t h,uint16_t*pixels){
+  int left=uiCanvasCompact()?12:18,top=uiCanvasCompact()?60:76;
+  if(x<left||y<top||x+w>tft.width()-left||y+h>tft.height()-48)return false;
+  tft.pushImage(x,y,w,h,pixels);return true;
 }
 void drawPage() {
   tft.fillScreen(TH().bg);
@@ -113,7 +112,7 @@ void drawPage() {
   clearBody();
   toolbar();
   footer();
-  tft.setTextSize(1);
+  uiCanvasTextSize(1);
   if (!page) {
     notice(nativeBrowserStatus().message);
     return;
@@ -125,16 +124,11 @@ void drawPage() {
     TJpgDec.setCallback(jpegOutput);
     if (TJpgDec.getJpgSize(&w, &h, page->jpeg, page->jpegLength) == JDR_OK &&
         w && h) {
-      unsigned scale = 1;
-      while (scale < 8 &&
-             ((w + scale - 1) / scale > 444 ||
-              (h + scale - 1) / scale > (unsigned)tft.height() - 124))
-        scale *= 2;
-      if ((w + scale - 1) / scale <= 444 &&
-          (h + scale - 1) / scale <= (unsigned)tft.height() - 124) {
+      unsigned scale=1;int maxW=tft.width()-(uiCanvasCompact()?24:36),maxH=tft.height()-(uiCanvasCompact()?108:124);
+      while(scale<8&&((w+scale-1)/scale>(unsigned)maxW||(h+scale-1)/scale>(unsigned)maxH))scale*=2;
+      if((w+scale-1)/scale<=(unsigned)maxW&&(h+scale-1)/scale<=(unsigned)maxH){
         TJpgDec.setJpgScale(scale);
-        TJpgDec.drawJpg(18 + (444 - (w + scale - 1) / scale) / 2, 76,
-                        page->jpeg, page->jpegLength);
+        TJpgDec.drawJpg((uiCanvasCompact()?12:18)+(maxW-(w+scale-1)/scale)/2,uiCanvasCompact()?60:76,page->jpeg,page->jpegLength);
         TJpgDec.setJpgScale(1);
       } else
         imageError = "JPEG dimensions are too large for the display.";
@@ -147,23 +141,23 @@ void drawPage() {
       int y = 77 + i * 13;
       bool focused = line.link >= 0 && line.link == selected;
       if (focused)
-        tft.fillRect(16, y - 2, 448, 13, TH().selbg);
+        uiCanvasFillRect(16, y - 2, 448, 13, TH().selbg);
       tft.setTextColor(line.link >= 0 ? TH().accent : TH().text,
                        focused ? TH().selbg : TH().bg);
-      tft.setCursor(18, y);
+      uiCanvasCursor(18, y);
       if (line.link >= 0 &&
           page->document.links[line.link].kind == web_lite::Field) {
         auto &f = page->document.fields[page->document.links[line.link].index];
-        tft.printf("[%.30s] %.35s", f.name, f.secret ? "***" : f.value);
+        uiCanvasPrintf("[%.30s] %.35s", f.name, f.secret ? "***" : f.value);
       } else
-        tft.print(line.text);
+        uiCanvasPrint(line.text);
     }
     if (page->document.lineCount == 1 && !page->document.lines[0].text[0]) {
-      tft.setCursor(18, 98);
-      tft.printf("%.72s", page->message);
+      uiCanvasCursor(18, 98);
+      uiCanvasPrintf("%.72s", page->message);
       if (strlen(page->message) > 72) {
-        tft.setCursor(18, 116);
-        tft.printf("%.47s", page->message + 72);
+        uiCanvasCursor(18, 116);
+        uiCanvasPrintf("%.47s", page->message + 72);
       }
     }
   }
@@ -323,8 +317,8 @@ void browserLoop(uint32_t) {
       changed = true;
     }
     bool choose = bOk.pressed();
-    if (usbInputHit(20, 60, 440, 204)) {
-      row = (usbPointer.y - 60) / 34;
+    if (uiCanvasHit(20, 60, 440, 204)) {
+      row = (uiCanvasPointerY() - 60) / 34;
       choose = true;
     }
     if (changed)
@@ -361,7 +355,7 @@ void browserLoop(uint32_t) {
       notice(status.message);
   }
   for (int i = 0; i < 5; i++)
-    if (usbInputHit(20 + i * 88, 47, 84, 21)) {
+    if (uiCanvasHit(20 + i * 88, 47, 84, 21)) {
       if (i == 0)
         back();
       if (i == 1)
@@ -397,8 +391,8 @@ void browserLoop(uint32_t) {
     moveLink(-1);
   if (bRight.pressed())
     moveLink(1);
-  if (usbInputHit(16, 75, 448, visibleLines() * 13)) {
-    int line = top + (usbPointer.y - 75) / 13;
+  if (uiCanvasHit(16, 75, 448, visibleLines() * 13)) {
+    int line = top + (uiCanvasPointerY() - 75) / 13;
     if (line < page->document.lineCount) {
       selected = page->document.lines[line].link;
       follow(selected);

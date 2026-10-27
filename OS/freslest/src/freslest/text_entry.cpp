@@ -4,47 +4,49 @@
 #include "../../usb_input.h"
 #include "apps.h"
 #include <algorithm>
+#include "ui_canvas.h"
 namespace {
 TextEntryState edit;
 bool active = false;
 TextEntryResult result = TextEntryResult::None;
 void draw() {
   clearBody();
-  tft.setTextSize(1);
+  uiCanvasTextSize(1);
   tft.setTextColor(TH().text, TH().panel);
-  tft.fillRoundRect(18, 57, 444, 42, 5, TH().panel);
-  unsigned start = edit.cursor > 67 ? edit.cursor - 67 : 0;
+  uiCanvasRoundRect(18, 57, 444, 42, 5, TH().panel);
+  unsigned visible=uiCanvasCompact()?44:67;
+  unsigned start=edit.cursor>visible?edit.cursor-visible:0;
   char view[71]{};
-  unsigned n = std::min(70u, edit.length - start);
+  unsigned n = std::min(uiCanvasCompact()?46u:70u,edit.length-start);
   for (unsigned i = 0; i < n; i++)
     view[i] = edit.secret ? '*' : edit.text[start + i];
-  tft.setCursor(25, 69);
-  tft.print(view);
-  int cx = 25 + 6 * (int)(edit.cursor - start);
-  tft.drawLine(cx, 84, cx + 4, 84, TH().accent);
+  uiCanvasCursor(25, 69);
+  uiCanvasPrint(view);
+  int cx = 25+(uiCanvasCompact()?9:6)*(int)(edit.cursor-start);
+  uiCanvasLine(cx, 84, cx+(uiCanvasCompact()?6:4),84, TH().accent);
   for (unsigned i = 0; i < 40; i++) {
     int x = 20 + (i % 10) * 44, y = 108 + (i / 10) * 30;
     bool sel = edit.focus == i;
-    tft.fillRoundRect(x, y, 41, 27, 4, sel ? TH().selbg : TH().panel);
+    uiCanvasRoundRect(x, y, 41, 27, 4, sel ? TH().selbg : TH().panel);
     if (sel)
-      tft.drawRoundRect(x, y, 41, 27, 4, TH().accent);
+      uiCanvasOutline(x, y, 41, 27, 4, TH().accent);
     TextEntryState item = edit;
     item.focus = i;
     char c[2] = {item.focusedChar(), 0};
     tft.setTextColor(TH().text, sel ? TH().selbg : TH().panel);
-    tft.setCursor(x + 17, y + 10);
-    tft.print(c);
+    uiCanvasCursor(x + 17, y + 10);
+    uiCanvasPrint(c);
   }
   const char *labels[] = {"Space", "Delete", "Case", "Done", "Cancel"};
   for (unsigned i = 0; i < 5; i++) {
     int x = 20 + i * 88;
     bool sel = edit.focus == 40 + i;
-    tft.fillRoundRect(x, 239, 85, 31, 5, sel ? TH().selbg : TH().panel);
+    uiCanvasRoundRect(x, 239, 85, 31, 5, sel ? TH().selbg : TH().panel);
     if (sel)
-      tft.drawRoundRect(x, 239, 85, 31, 5, TH().accent);
+      uiCanvasOutline(x, 239, 85, 31, 5, TH().accent);
     tft.setTextColor(TH().text, sel ? TH().selbg : TH().panel);
-    tft.setCursor(x + 11, 251);
-    tft.print(labels[i]);
+    uiCanvasCursor(x + 11, 251);
+    uiCanvasPrint(labels[i]);
   }
 }
 void finish(TextEntryResult r) {
@@ -68,6 +70,7 @@ void choose() {
 } // namespace
 void textEntryBegin(const char *title, const char *value, unsigned limit,
                     bool secret) {
+  gfxSetCompactUi(true);
   edit.begin(value, limit, secret);
   active = true;
   result = TextEntryResult::None;
@@ -123,13 +126,13 @@ void textEntryLoop() {
   }
   bool click = false;
   for (unsigned i = 0; i < 40; i++)
-    if (usbInputHit(20 + (i % 10) * 44, 108 + (i / 10) * 30, 41, 27)) {
+    if (uiCanvasHit(20 + (i % 10) * 44, 108 + (i / 10) * 30, 41, 27)) {
       edit.focus = i;
       click = true;
       break;
     }
   for (unsigned i = 0; i < 5; i++)
-    if (usbInputHit(20 + i * 88, 239, 85, 31)) {
+    if (uiCanvasHit(20 + i * 88, 239, 85, 31)) {
       edit.focus = 40 + i;
       click = true;
       break;

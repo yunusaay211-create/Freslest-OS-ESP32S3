@@ -416,7 +416,7 @@ void enterApp(AppId next) {
   if(app==APP_NOTE && next!=APP_NOTE)noteExit();
   if(app==APP_BROWSER && next!=APP_BROWSER)browserExit();
   if(app==APP_SET_WIFI && next!=APP_SET_WIFI)setWifiExit();
-  gfxSetCompactUi(next==APP_MENU||next==APP_APPS||next==APP_SETTINGS||next==APP_GAME_MENU||next==APP_SYSINFO||next==APP_TEST||next==APP_TEST_BUTTONS||next==APP_SET_BRIGHTNESS||next==APP_SET_THEME||next==APP_SET_WIFI||next==APP_SET_BT||next==APP_SET_SOUND||next==APP_SET_FLASHRESET||next==APP_SET_DISPLAY);
+  gfxSetCompactUi(next==APP_MENU||next==APP_APPS||next==APP_CALC||next==APP_NOTE||next==APP_CLOCK||next==APP_PAINT||next==APP_CAMERA||next==APP_FILES||next==APP_BROWSER||next==APP_SETTINGS||next==APP_GAME_MENU||next==APP_SYSINFO||next==APP_TEST||next==APP_TEST_BUTTONS||next==APP_SET_BRIGHTNESS||next==APP_SET_THEME||next==APP_SET_WIFI||next==APP_SET_BT||next==APP_SET_SOUND||next==APP_SET_FLASHRESET||next==APP_SET_DISPLAY);
   app = next;
   addTaskLocal(app);
   footerDirty = true;
