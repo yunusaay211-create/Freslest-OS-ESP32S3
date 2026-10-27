@@ -1,6 +1,6 @@
 # Freslest LCD RGB565 → VGA RGB332
 
-VGA, LCD için çizilen aynı framebuffer’ı kullanır. Ayrı bir VGA arayüzü yoktur: menüler, uygulamalar, oyunlar ve fare imleci aynı kaynaktan gelir. ILI9341 menü tuvali 320×240, ILI9488 ve uyumluluk uygulamaları 480×320’dir. Görüntünün tamamı 640×480 VGA alanına ölçeklenir. Doom’un 320×240 indeksli karesi kendi paletiyle aynı RGB332 çıkışına çevrilir.
+VGA, LCD için çizilen aynı framebuffer’ı kullanır. Ayrı bir VGA arayüzü yoktur: menüler, uygulamalar, oyunlar ve fare imleci aynı kaynaktan gelir. ILI9341 menüler ve Apps listesindeki uygulamalar için 320×240 tuval kullanır; ILI9488 ve mevcut oyun uyumluluk düzenleri 480×320’dir. Görüntünün tamamı 640×480 VGA alanına ölçeklenir. Doom’un 320×240 indeksli karesi kendi paletiyle aynı RGB332 çıkışına çevrilir.
 
 Fiziksel çıkış **RGB332 / 8 bit / 256 renk**; kaynak görüntü RGB565’tir. VGA RGB565 veya 65.536 renk çıkışı değildir. Kaynak `Freslest_VGA_RGB332_1_0_Core(1).zip` V1.0 çekirdeği, hedef zamanlama 25.175 MHz PCLK, 640×480 yaklaşık 59.94 Hz. Bu değerler yazılım hedefidir; osiloskop ölçümü değildir.
 
@@ -27,6 +27,12 @@ Settings → Display → LCD / VGA RGB332 / USB PC Viewer. LCD/VGA değişimi ik
 Aynı rengin direnç çıkışları birleşir; GPIO uçları birbirine doğrudan bağlanmaz. VGA pin 9 kullanılmaz. Renkler, VGA girişinin 75 Ω sonlandırmasını kullanır.
 
 GPIO8 LCD RESET, GPIO41 LCD arka ışık MOSFET’i ve GPIO13 SD-MISO ile ortaktır. PCB/mod anahtarlaması bu uçları ayırmalıdır: yazılım PWM’i durdursa da VGA’nın GPIO41 verisi bağlı MOSFET’i fiziksel olarak sürebilir. Bu bağlantıyla LCD ve VGA eşzamanlı sürülmez; aynı framebuffer seçilen çıkışa gider. SD ve VGA da bu ortak hatla eşzamanlı kullanılamaz.
+
+## Doom renkleri ve ses
+
+Doom aynı RGB332 devresini kullanır. OS renkleri doğruyken yalnızca Doom kırmızı görünüyorsa bağlantıdaki R/B uçlarını değiştirmeyin. İndeksli Doom paletinde koyu ton doğruluğu için sıralı renk yuvarlaması vardır; tam installer bu Doom firmware’ini de yükler. OS Update ZIP’i Doom’u güncellemez.
+
+DFPlayer ses yolu VGA’dan ayrıdır: ESP GPIO18 TX → DFPlayer RX, DFPlayer TX → ESP GPIO17 RX, ortak GND. SD kart/modül geri geldiğini UART üzerinden bildirirse yazılım kaynak, DAC ve ses ayarını geri kurar. RX hattı bağlı değilse bu bildirim alınamaz. Kesilme sürerse Settings ses testi ve Viewer tanı komutuyla DFPLAYER DIAG satırındaki RX, error ve recovery değerleri kaydedilmelidir.
 
 ## Durum ve test sınırı
 
