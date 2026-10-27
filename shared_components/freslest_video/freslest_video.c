@@ -27,7 +27,8 @@ bool freslest_video_save_output(freslest_display_t value){
  return e==ESP_OK;
 }
 freslest_display_t freslest_video_boot_output(void){
- if(boot_read)return output;boot_read=true;uint8_t value=0;nvs_handle_t n;
+ if(boot_read)return output;
+ boot_read=true;uint8_t value=0;nvs_handle_t n;
  if(nvs_open("fl_video",NVS_READONLY,&n)==ESP_OK){nvs_get_u8(n,"output_v2",&value);nvs_close(n);}
  gpio_config_t c={.pin_bit_mask=1ULL<<16,.mode=GPIO_MODE_INPUT,.pull_up_en=GPIO_PULLUP_ENABLE};
  gpio_config(&c);vTaskDelay(pdMS_TO_TICKS(5));

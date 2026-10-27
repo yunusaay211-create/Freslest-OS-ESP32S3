@@ -6,7 +6,9 @@
 static uint8_t from565(uint16_t c){return ((c>>8)&0xe0)|((c>>6)&0x1c)|((c>>3)&3);}
 bool vga_convert(uint8_t *dest,const void *source,int w,int h,const uint32_t *pal,bool swap,bool cursor,int cx,int cy){
  if(!dest||!source||w<1||h<1||w>480||h>360)return false;
- uint16_t columns[VGA_WIDTH];
+ // OS/Doom each have one video producer. Keep the coordinate scratch out of
+ // the small OS main-task stack; no DMA consumer reads this lookup table.
+ static uint16_t columns[VGA_WIDTH];
  for(int x=0;x<VGA_WIDTH;x++)columns[x]=x*w/VGA_WIDTH;
  for(int y=0;y<VGA_HEIGHT;y++){
   int sy=y*h/VGA_HEIGHT;uint8_t *out=dest+(size_t)y*VGA_WIDTH;
