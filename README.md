@@ -1,8 +1,10 @@
 # Freslest OS 1.0
 
-**A graphical, desktop-style embedded environment for the ESP32-S3**, featuring applications, NES emulation, DOOM, USB input, file management, and experimental composite video.
+**LCD/VGA update:** ILI9488 and ILI9341 profiles, native 320×240 menus, and the same LCD RGB565 image converted to physical RGB332 VGA. Composite AV has been removed. See [VGA wiring](VGA_DISPLAY_TR.md) and [release notes](RELEASE_LCD_VGA.md). Firmware and Windows CI results are recorded separately; physical hardware validation remains pending.
 
-> **Public version:** Freslest OS **1.0**. `OS/CMakeLists.txt` sets `PROJECT_VER` to `1.0`. The packaged OS image also reports `1.0`; its release metadata was updated without rebuilding the compiled OS code. See [DOGRULAMA.txt](DOGRULAMA.txt).
+**A graphical, desktop-style embedded environment for the ESP32-S3**, featuring applications, NES emulation, DOOM, USB input, file management, and experimental RGB332 VGA.
+
+> **Public version:** Freslest OS **1.0**. `OS/CMakeLists.txt` sets `PROJECT_VER` to `1.0`. Current LCD profile OS and Doom images are rebuilt from this source; the old baseline payload is used for unchanged data assets.
 
 ## Firmware source code
 
@@ -14,7 +16,7 @@ The ESP32-S3 firmware sources are included directly in this repository:
 | [OS/components](OS/components) | Bundled and modified Arduino, LovyanGFX, TinyUSB, Nofrendo and other dependencies |
 | [Doom](Doom) | ESP-IDF Doom project, PrBoom engine and ESP32-S3 platform code |
 | [common](common) | USB update implementation shared by the firmware |
-| [shared_components](shared_components) | Shared HID, OTA, video, AV and USB host components |
+| [shared_components](shared_components) | Shared HID, OTA, VGA video and USB host components |
 | [installer](installer) / [viewer](viewer) | Python sources for the separate Windows PC applications |
 
 Start with [freslest.ino](OS/freslest/freslest.ino), [apps.cpp](OS/freslest/src/freslest/apps.cpp), or [Doom app_main.c](Doom/main/app_main.c). The board firmware is written in **C and C++**. The installer and viewer are separate PC tools.
@@ -37,9 +39,9 @@ Host checks that compile production C/C++ modules with SDK test doubles include 
 ## Hardware requirements
 
 - ESP32-S3 N16R8 development board, **16 MB flash / 8 MB OPI PSRAM**
-- **ILI9488 480 × 320 SPI TFT** (non-touch configuration)
+- **ILI9488 480 × 320 or ILI9341 320 × 240 SPI TFT** (non-touch configuration)
 - Seven momentary buttons, wired **active-low** (between GPIO and GND)
-- Optional: DFPlayer Mini and microSD, DHT11, composite-video resistor DAC, amplifier, single-cell battery with sensing divider, USB host peripherals
+- Optional: DFPlayer Mini and microSD, DHT11, VGA RGB332 resistor DAC, amplifier, single-cell battery with sensing divider, USB host peripherals
 
 ## Pin connections
 
@@ -99,22 +101,9 @@ The DFPlayer handles recorded music/cues while GPIO21 provides live effects. An 
 
 **Never connect a Li-ion battery cell directly to GPIO1**. Use the correctly oriented voltage divider and an appropriate protected battery supply/charging circuit. USB connector roles vary by operating mode.
 
-### Experimental composite AV DAC (8-bit)
+### VGA RGB332 output
 
-| DAC bit | ESP32-S3 GPIO |
-|---|---:|
-| D0 | GPIO8 |
-| D1 | GPIO13 |
-| D2 | GPIO14 |
-| D3 | GPIO2 |
-| D4 | GPIO42 |
-| D5 | GPIO40 |
-| D6 | GPIO39 |
-| D7 | GPIO48 |
-
-Physical wiring order listed in the project, from **VIDEO OUT**, is `GPIO48 → 39 → 40 → 42 → 2 → 14 → 13 → 8`. **This is a parallel digital DAC**, not a direct composite signal. You must use the correct resistor ladder, sync/analog circuitry and grounded TV connection detailed in the original AV Engine documentation. Do not connect GPIO pins directly to a television's video input.
-
-**GPIO8 is shared in the documented pin list between TFT RESET and AV DAC D0.** This is a hardware conflict or requires project-specific mode-dependent handling. Do **not** directly attach both endpoints without checking the actual schematic and software behavior. Treat composite wiring as experimental until validated on your board. Some pins may also be unavailable on certain ESP32-S3 module variants.
+The same LCD RGB565 framebuffer is converted to 640×480 RGB332 (256 colors). VGA uses GPIO41/8/13/14/2/42/40/39 for D0..7 and GPIO47/48 for HSYNC/VSYNC. See [VGA_DISPLAY_TR.md](VGA_DISPLAY_TR.md) for the exact resistor table and shared LCD/SD pin routing. This is a mode-dependent output; the shared pins require hardware isolation. Composite AV is removed. Signal stability remains experimental.
 
 ## Installing on Windows
 
@@ -123,7 +112,7 @@ Physical wiring order listed in the project, from **VIDEO OUT**, is `GPIO48 → 
 The **Freslest Installer.exe** workflow:
 
 1. Start the installer and choose **Türkçe** or **English**.
-2. Continue to page 2 and **select your COM port**.
+2. Select **ILI9488** or **ILI9341** on **Step 1: Displays**, then choose the COM port.
 3. Review the flash/data warning and start installation.
 4. Keep the ESP32-S3 connected until flashing completes, then reset it.
 
@@ -131,15 +120,9 @@ The separate **Freslest USB Viewer.exe** launches directly into the viewer inter
 
 ### Developer/manual flashing
 
-The provided project includes `flash_all.bat COM5` and expects the programming/UART COM port. Follow its instructions for required esptool/Python version. For an initial install, the original manual script supports:
+Build current profiles with `python tools/build_lcd_profiles.py`, then package/use the verified installer for the selected LCD. The original `flash_all.bat` and baseline `firmware-payload` assets refer to the older release; they do not select the new LCD/VGA profile automatically. Do not treat those baseline OS/Doom images as this update.
 
-```bat
-flash_all.bat COM5 --with-files
-```
-
-**Warning:** `--with-files` replaces the packaged LittleFS image, including user files/ROMs/notes. Back up important data. The custom partition layout includes separate OS and DOOM images; do not use generic `idf.py flash` to overwrite the wrong slot.
-
-If the port is stuck connecting, use BOOT/RESET download mode as described in the source package. Close other serial monitors or viewers first.
+The partition layout includes separate OS and DOOM images. Back up user files/ROMs/notes before initial installation. If the port is stuck connecting, use BOOT/RESET download mode and close other serial monitors or viewers first.
 
 ## USB Screen Viewer
 
@@ -157,7 +140,7 @@ Use **Fit** to include top and bottom bars. Large frames over serial can be slow
 - DOOM and sound support
 - Basic file management and USB input support
 - Wi-Fi/BLE features and lightweight standalone browser (not a modern full-browser engine)
-- Experimental AV output and recovery/update functions
+- Experimental VGA output and recovery/update functions
 
 ## Repository layout
 
@@ -168,7 +151,7 @@ Use **Fit** to include top and bottom bars. Large frames over serial can be slow
 - Include license and attribution for **DOOM port code, libraries and external assets**, respecting each dependency's license. Do not publish copyrighted commercial game ROMs, MP3 files or WAD assets without redistribution rights.
 - Publish SHA-256 sums for installer and firmware; test releases on the target board before saying “one-click ready”.
 - Future OS source builds use version `1.0`; verify the board behavior before describing a release as hardware-tested.
-- Hardware diagrams, battery safety and AV DAC resistor values must be checked against the finished board-specific wiring before advertising them as fully verified.
+- Hardware diagrams, battery safety and VGA DAC resistor values must be checked against the finished board-specific wiring before advertising them as fully verified.
 
 ## License
 

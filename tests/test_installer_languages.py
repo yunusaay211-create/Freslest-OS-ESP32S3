@@ -84,6 +84,10 @@ class WizardLanguageTests(unittest.TestCase):
         back = next(widget for widget in widgets(self.window)
                     if isinstance(widget, app.ttk.Button) and str(widget.cget('text')) == '← Back')
         back.invoke()
+        # COM > Displays > Welcome; the chosen LCD survives language changes.
+        back = next(widget for widget in widgets(self.window)
+                    if isinstance(widget, app.ttk.Button) and str(widget.cget('text')) == '← Back')
+        back.invoke()
         self.choose('Türkçe')
         self.window.ports()
         self.assertIn('2 / 3   COM PORTUNU SEÇ', labels(self.window))

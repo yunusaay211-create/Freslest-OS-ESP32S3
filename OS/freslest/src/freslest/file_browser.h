@@ -1,9 +1,10 @@
 #pragma once
 #include <stddef.h>
+#include "../../lcd_profile.h"
 class FileBrowser {
 public:
   static constexpr unsigned MAX_ENTRIES = 128, NAME_SIZE = 65, PATH_SIZE = 256,
-                            TEXT_PAGE = 768;
+                            TEXT_PAGE = FRESLEST_LCD_MODEL==9341?552:768;
   struct Entry {
     char name[NAME_SIZE];
     size_t bytes;

@@ -1,0 +1,75 @@
+{
+  "source_commit": "8a5400bf1b1f86b949993e6afcc54c769f1beac7",
+  "workflow_run": 40525403029,
+  "firmware_artifact": 12743288333,
+  "firmware_zip_sha256": "b08972ea4d9a5d58560b1c1b38bcd278361b313e31f58d231346834d58cefed3",
+  "profiles": {
+    "ili9488": {
+      "os_bytes": 1753376,
+      "os_slot_bytes": 1769472,
+      "doom_bytes": 884528,
+      "doom_slot_bytes": 917504,
+      "all_seven_hashes_verified": true,
+      "sha256": {
+        "firmware/bootloader.bin": "ebf405fa4c6df354f69eb4fd52e52b4f1632dd2bf78afbb63ee0f72e28b3788c",
+        "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
+        "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
+        "firmware/freslest_doom_s3.bin": "323d33c8688d4eed610fa34a07c59e814b87d1c9d6e44b8d873a52b68f91c1ea",
+        "firmware/freslest_os_s3.bin": "c71cc6ba5891a46fe1cd35f734108a0c27adac35d4248adfc3a8be50fbfda6b6",
+        "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
+        "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
+      }
+    },
+    "ili9341": {
+      "os_bytes": 1754048,
+      "os_slot_bytes": 1769472,
+      "doom_bytes": 884560,
+      "doom_slot_bytes": 917504,
+      "all_seven_hashes_verified": true,
+      "sha256": {
+        "firmware/bootloader.bin": "ebf405fa4c6df354f69eb4fd52e52b4f1632dd2bf78afbb63ee0f72e28b3788c",
+        "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
+        "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
+        "firmware/freslest_doom_s3.bin": "5b745f201c922d77a1d8892bf36de210d7002558bc79bf72c876130d66302c0f",
+        "firmware/freslest_os_s3.bin": "ea355f81642a78887ce21b9b054f370d500ccc238cb80efac52140a96a4921b9",
+        "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
+        "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
+      }
+    }
+  },
+  "physical_hardware_tested": false,
+  "windows_status": "success",
+  "windows_artifact": 12744865677,
+  "windows_zip_sha256": "76e5a73af2a24b870d6144ebd3e572414880cf530894be40eaad686d1c026dff",
+  "installer_sha256": "462b2ab9f5385db320e511d41274f73f884dc0fcab29660d8ed8b45eb1a5c532",
+  "installer_bytes": 29464896,
+  "windows_smoke": [
+    {
+      "file": "Freslest Installer.exe",
+      "visible_title": "Freslest Installer | OS 1.0",
+      "native_windows_launch": true
+    },
+    {
+      "file": "Freslest Installer.exe",
+      "visible_title": "Freslest Installer | OS 1.0 | English",
+      "native_windows_launch": true
+    },
+    {
+      "file": "Freslest USB Viewer.exe",
+      "visible_title": "Freslest USB Viewer | OS 1.0",
+      "native_windows_launch": true
+    }
+  ],
+  "windows_unittest_cases": 42,
+  "windows_unittest_skipped_native_cases": 8,
+  "linux_display_audio_tests": 8,
+  "viewer_test_cases": 9,
+  "hardware_verification": "pending",
+  "changes": [
+    "native ILI9341 Apps-menu application layouts",
+    "preserve typed RGB565 through UI adapters",
+    "skip unchanged VGA submissions and recover DMA at VBlank",
+    "ordered rounding for indexed Doom RGB332 colors",
+    "DFPlayer SD query and module/SD reconnect recovery"
+  ]
+}

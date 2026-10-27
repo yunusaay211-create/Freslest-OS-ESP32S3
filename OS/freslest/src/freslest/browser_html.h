@@ -1,8 +1,9 @@
 #pragma once
 #include <stddef.h>
+#include "../../lcd_profile.h"
 #include <stdint.h>
 namespace web_lite {
-constexpr unsigned URL = 384, COLS = 72, LINES = 256, LINKS = 64, FIELDS = 12,
+constexpr unsigned URL = 384, COLS = FRESLEST_LCD_MODEL==9341?48:72, LINES = 256, LINKS = 64, FIELDS = 12,
                    FORMS = 6;
 enum LinkKind : uint8_t { Anchor, Image, Field, Submit, Video };
 struct Line {

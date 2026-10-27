@@ -1,0 +1,59 @@
+Final LCD build verification — 2026-10-26
+
+PASS: ESP-IDF v5.4.4 source builds of ILI9488 OS and Doom.
+PASS: ESP-IDF v5.4.4 source builds of ILI9341 OS and Doom.
+PASS: Original A/B partition sizes retained. Both profile payloads verified.
+PASS: Native Linux LCD C/C++ sanitizer tests (actual rendering sources).
+PASS: Windows test discovery: 36 tests, OK (2 native sanitizer tests run on Linux).
+PASS: Viewer test scripts: 2 + 3 + 2 + 2 tests; all passed.
+PASS: Packaged x64 Windows GUI executables built and checked.
+PASS: Installer launched/closed with Turkish and English interfaces on Windows.
+PASS: Viewer launched/closed on Windows.
+PASS: Downloaded artifact SHA256 and installer SHA256 match CI output.
+
+Installer SHA256:
+b493443d61a2a2c35b9b25dfc94c42690b6ab1cad37fa8594eaf0e5ea522940e
+Installer bytes: 29483130
+
+Firmware source commit: 54aaf9f4ae4aee3f2b40439ce5129f356b000a11
+Windows/test cleanup commit: a0cb3c399b18bf0e09fa57d4e645449d0fa848a9
+Firmware CI: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40377333282
+Windows CI: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40378905818
+
+Earlier failures: 48-byte OS slot overflow was resolved by sharing cursor
+clipping code and disabling unused exception-unwind metadata only in gfx.cpp.
+A GUI-test cleanup error was resolved by stopping the Tcl progress-bar timer
+before cancelling Python callbacks and always destroying the test window.
+The final Windows run passed; no firmware source changed after the successful
+firmware run. The Windows-only job verifies this with git diff before packaging.
+
+Physical LCD/device flash tests have NOT been performed.
+
+
+2026-10-26 ILI9341 native-menu and Doom orientation source correction:
+- native 320x240 Main/Apps/Settings/Game/Task Switcher; child settings and Wi-Fi drawing without font resampling
+- production pointer selection rectangles mapped to native row geometry
+- ILI9341 Doom MADCTL 0xB8 matches OS rotation3; ILI9488 remains0xE8
+- python -m unittest discover -s tests -p test_lcd_profiles.py -v: 3 tests PASS, including actual C/C++ drivers, output path, menu/settings/Wi-Fi geometry and pointer selection
+- python tests/run_display_menu_tests.py: PASS
+- python tests/run_ble_ui_tests.py: PASS
+- python tests/run_wifi_status_tests.py: PASS
+- python OS/tests/run_pointer_tests.py: PASS
+- production menu rasterization with bundled classic font: Main/Apps/Settings/Game shapes and glyph bounds PASS
+- full local unittest suite: 37 cases; 30 passed, 1 skipped, 6 Tk tests blocked by no DISPLAY (not firmware/UI failures)
+- NOT YET rebuilt as ESP32 firmware or Windows EXE: GitHub source upload rejected by automatic approval review because repository upload authorization could not be established.
+- NOT tested on physical LCD hardware. Previous build evidence above is for the preceding release only.
+
+
+2026-10-27 LCD/VGA transition verification (current run pending):
+- Source b17193d5cc0ca8905789501b80147b14e685929f; CI https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40450198464
+- Removed composite engine, lab and TV color/alignment pages. Same LCD RGB565 source -> VGA RGB332 640x480, with Doom indexed-palette conversion.
+- VGA actual C backend tests pass: timing/pin config from supplied V1.0 core, PSRAM framebuffer, NVS output_v2 migration, BACK/LCD recovery, init failure cleanup, bounded first-frame grace and stalled VSYNC health.
+- Strict host compilation reproduced and fixed misleading-indentation failure from first CI run. Converter stack regression reproduced1408-byte host frame; coordinate lookup moved to single-producer scratch; new <=256-byte budget test passes.
+- Local non-desktop unittest selection:33/33 PASS; 7 desktop cases reserved for Windows CI. Viewer timing/performance/transport:6/6 PASS.
+- Independent review unavailable due reviewer service usage limit; author review completed, above stack issue fixed.
+- Physical ESP32-S3/LCD/VGA hardware tests NOT performed. Single VGA framebuffer may tear. Prior signal interruptions are NOT claimed fixed. Shared GPIO8/41/13 require PCB isolation/routing.
+
+Current restarted CI after Test menu strict-compile fix: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40450817409 (source8a8ea4f039799fe986e3d7436f8c912338a26491). Build result pending.
+
+FINAL 2026-10-27: CI40450817409 SUCCESS. Both LCD OS/Doom profiles rebuilt from8a8ea4f039799fe986e3d7436f8c912338a26491; all seven segment hashes/model tags/slot bounds independently checked from artifact12710153066. OS: ILI9488 0x1ab280, ILI9341 0x1ab510 <=0x1b0000. Doom:0xd7e60/0xd7e80 <=0xe0000. Windows40 unittest cases (6 native cases skipped); Viewer9 cases; Turkish/English installer + Viewer native launches PASS. Artifact12710199332, installer SHA256 aa575e17c9bda65e1d9b3affa7f1303ee05352f79bb84bf0f990e6c47629e5df. PE AMD64 GUI verified. Physical hardware testing remains pending.

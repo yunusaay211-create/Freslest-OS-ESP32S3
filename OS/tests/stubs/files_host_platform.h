@@ -25,7 +25,20 @@ inline bool usbStorageRetry(){retries++;return true;}
 inline bool usbInputDeviceMode(){return hostPC;}
 inline bool usbInputSwitchMode(bool pc){hostPC=pc;modeSwitches++;return true;}
 struct Theme{unsigned bg=0,panel=1,text=2,dim=3,selbg=4,accent=5;};inline Theme theme;inline Theme& TH(){return theme;}
-struct Display{std::vector<std::string> words;void fillScreen(unsigned){words.clear();}void fillRoundRect(int,int y,int,int h,int,unsigned){assert(y>=44&&y+h<=296);}void drawRoundRect(int,int y,int,int h,int,unsigned){assert(y>=44&&y+h<=296);}void setTextSize(unsigned){}void setTextColor(unsigned,unsigned){}void setCursor(int x,int y){assert(x>=0&&x<480&&y>=44&&y<296);}void print(const char*s){words.emplace_back(s);}};inline Display tft;
+struct Display{
+#ifdef FRESLEST_TEST_NATIVE_UI
+ int w=320;
+#else
+ int w=480;
+#endif
+ int x=0,y=0,size=1;std::vector<std::string> words;int width(){return w;}int height(){return w==320?240:320;}
+ void bounds(int a,int b,int ww,int hh){assert(a>=0&&a+ww<=w&&b>=(w==320?36:44)&&b+hh<=height()-24);}
+ void fillScreen(unsigned){words.clear();}void fillRect(int x,int y,int w,int h,unsigned){bounds(x,y,w,h);}
+ void fillRoundRect(int x,int y,int w,int h,int,unsigned c){fillRect(x,y,w,h,c);}void drawRoundRect(int x,int y,int w,int h,int,unsigned c){fillRect(x,y,w,h,c);}
+ void drawRect(int x,int y,int w,int h,unsigned c){fillRect(x,y,w,h,c);}void drawLine(int x,int y,int xx,int yy,unsigned c){fillRect(std::min(x,xx),std::min(y,yy),abs(xx-x)+1,abs(yy-y)+1,c);}
+ void setTextSize(unsigned n){size=n;}void setTextColor(unsigned,unsigned){}void setCursor(int a,int b){x=a;y=b;bounds(x,y,0,size*8);}
+ void print(const char*s){assert(x+(int)strlen(s)*6*size<=w);words.emplace_back(s);}
+};inline Display tft;
 inline void drawHeader(const char*){}inline void clearBody(){}inline void drawFooter(const char*,const char*){}
 constexpr unsigned TFT_RED=0xf800;constexpr int APP_APPS=1;inline int entered=-1;inline void enterApp(int app){entered=app;}
 struct FS{size_t totalBytes(){return 320*1024;}size_t usedBytes(){return 24000;}};inline FS LittleFS;

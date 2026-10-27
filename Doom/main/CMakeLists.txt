@@ -12,6 +12,7 @@ idf_component_register(
          "../components/prboom-wad-tables/include" "${PLATFORM}/include"
     REQUIRES esp_driver_gpio esp_driver_spi esp_driver_uart esp_driver_ledc esp_partition esp_timer esp_psram spi_flash nvs_flash app_update freslest_ota freslest_hid freslest_video)
 target_compile_definitions(${COMPONENT_LIB} PRIVATE HAVE_CONFIG_H)
+include("${CMAKE_CURRENT_LIST_DIR}/../../common/lcd_profile.cmake")
 # Upstream is pre-C99-era C and depends on common-symbol and wrapping math semantics.
 target_compile_options(${COMPONENT_LIB} PRIVATE
     -fcommon

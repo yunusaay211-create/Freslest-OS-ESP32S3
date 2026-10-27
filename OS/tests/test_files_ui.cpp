@@ -6,7 +6,7 @@ static const char *testInternalRoot;
 #include <fstream>
 #include <unistd.h>
 static void clear(){bBack.pressedEdge=bUp.pressedEdge=bDown.pressedEdge=bLeft.pressedEdge=bRight.pressedEdge=bOk.pressedEdge=bFire.pressedEdge=false;usbPointer.click=usbPointer.rightClick=false;}
-static void click(int x,int y,bool right=false){clear();usbPointer={x,y,true,false,!right,right};filesLoop(0);clear();}
+static void click(int x,int y,bool right=false){clear();if(tft.width()==320){x=x*2/3;y=36+(y-44)*5/7;}usbPointer={x,y,true,false,!right,right};filesLoop(0);clear();}
 int main(){
  auto root=std::filesystem::temp_directory_path()/("files_ui_"+std::to_string(getpid()));std::string mount=root.string();std::filesystem::create_directories(root/"games/nes");std::ofstream(root/"note.txt")<<"Keep this note";std::ofstream(root/"games/nes/TEST.NES")<<"NES data";testInternalRoot=mount.c_str();filesEnter();assert(view==DISKS);bOk.pressedEdge=true;filesLoop(0);clear();assert(view==LIST&&browser.count()==2);
  click(40,120,true);assert(view==ACTIONS&&selected==1);click(60,220);assert(view==DELETE_CONFIRM&&!confirmDelete);bOk.pressedEdge=true;filesLoop(0);clear();assert(view==LIST&&std::filesystem::exists(root/"note.txt"));

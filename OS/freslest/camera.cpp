@@ -19,19 +19,10 @@ static int drawX = 0;
 static int drawY = 0;
 
 static int ledLevel = 0; // 0-255
-bool tft_output(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t* bitmap)
-{
-  static bool centered = false;
-
-  if (!centered)
-  {
-    drawX = (480 - w) / 2;
-    drawY = (320 - h) / 2;
-    centered = true;
-  }
-
-  tft.pushImage(drawX + x, drawY + y, w, h, bitmap);
-  return true;
+bool tft_output(int16_t x,int16_t y,uint16_t w,uint16_t h,uint16_t* bitmap){
+  // TJpgDec already supplies coordinates including the drawJpg origin.
+  if(x<0||y<0||x+w>tft.width()||y+h>tft.height()-25)return false;
+  tft.pushImage(x,y,w,h,bitmap);return true;
 }
 
 // ================= STATE =================
@@ -59,6 +50,7 @@ static bool uiDrawn = false;
 static void cameraDrawStatus(const char* line1, const char* line2 = nullptr)
 {
   tft.fillScreen(TFT_BLACK);
+  tft.setTextSize(1);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setCursor(10, 10);
   tft.print(line1);
@@ -71,9 +63,10 @@ static void cameraDrawStatus(const char* line1, const char* line2 = nullptr)
 
 static void cameraDrawBar()
 {
-  tft.fillRect(0, 295, 480, 25, TFT_DARKGREY);
+  tft.fillRect(0,tft.height()-25,tft.width(),25,TFT_DARKGREY);
+  tft.setTextSize(1);
   tft.setTextColor(TFT_WHITE, TFT_DARKGREY);
-  tft.setCursor(10, 300);
+  tft.setCursor(10,tft.height()-20);
   tft.print("WIFI CAMERA");
 }
 
@@ -135,6 +128,20 @@ void cameraEnter()
   TJpgDec.setSwapBytes(false);
 
   camState = CAM_WIFI_CONNECTING;
+}
+
+static bool cameraDecodeFrame(){
+  uint16_t w=0,h=0;
+  if(TJpgDec.getJpgSize(&w,&h,jpgBuf,frameLen)!=JDR_OK||!w||!h)return false;
+  unsigned scale=1;
+  while(scale<8&&((w+scale-1)/scale>(unsigned)tft.width()||(h+scale-1)/scale>(unsigned)tft.height()-25))scale*=2;
+  unsigned sw=(w+scale-1)/scale,sh=(h+scale-1)/scale;
+  if(sw>(unsigned)tft.width()||sh>(unsigned)tft.height()-25)return false;
+  drawX=(tft.width()-sw)/2;drawY=(tft.height()-25-sh)/2;
+  tft.fillRect(0,0,tft.width(),tft.height()-25,TFT_BLACK);
+  TJpgDec.setJpgScale(scale);tft.startWrite();
+  TJpgDec.drawJpg(drawX,drawY,jpgBuf,frameLen);
+  tft.endWrite();TJpgDec.setJpgScale(1);return true;
 }
 
 // ================= LOOP =================
@@ -319,9 +326,7 @@ void cameraLoop(uint32_t now)
 
       Serial.println("🎥 FRAME COMPLETE");
 
-      tft.startWrite();
-      TJpgDec.drawJpg(drawX, drawY, jpgBuf, frameLen);
-      tft.endWrite();
+      cameraDecodeFrame();
 
       cameraDrawBar();
 

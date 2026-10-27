@@ -9,7 +9,6 @@ extern "C" char _ext_ram_bss_start[],_ext_ram_bss_end[],_bt_bss_start[],_bt_bss_
 #endif
 #include <freslest_ota.h>
 #include <freslest_video.h>
-#include <freslest_av.h>
 #include "src/freslest/storage_init.h"
 #include "src/freslest/usb_storage.h"
 #include "gfx.h"
@@ -28,7 +27,6 @@ extern "C" char _ext_ram_bss_start[],_ext_ram_bss_end[],_bt_bss_start[],_bt_bss_
 static bool storageReady=false;
 static uint32_t menuReadyAt=0;
 static bool radioStartup=false,bluetoothStartup=false;
-static int avLabReadKey(){return Serial.available()?Serial.read():-1;}
 void setup() {
   Serial.begin(115200);
   Serial.printf("Freslest OS %s / ESP32-S3 N16R8\n",esp_app_get_description()->version);
@@ -43,7 +41,6 @@ void setup() {
     (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT));
   freslestSafetyBegin();
   bool recovery=freslestRecoveryRequested();
-  if(!recovery && freslest_av_lab_requested())freslest_av_lab_run(avLabReadKey);
   freslestSafetyStage(FreslestBootStage::Display);
   inputBegin();gfxBegin();
   freslestSafetyStage(FreslestBootStage::Settings);
@@ -87,7 +84,7 @@ void loop() {
   fpsTick(now);taskSwitcherHandle(now);
   // Sensor reads happen before display transactions.
   appLoop(now);
-  bool essentialsReady=psramFound()&&storageReady&&tft.width()==480&&tft.height()==gfxUiHeight();
+  bool essentialsReady=psramFound()&&storageReady&&tft.width()==gfxUiWidth()&&tft.height()==gfxUiHeight();
   bool startupReady=false;
   if(!essentialsReady||!freslest_video_starting())
     startupReady=freslest_ota_health_tick(essentialsReady&&gfxHealthy());

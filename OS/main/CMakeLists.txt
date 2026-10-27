@@ -4,6 +4,14 @@ file(GLOB_RECURSE ui_srcs "../freslest/*.cpp")
 list(FILTER ui_srcs EXCLUDE REGEX "/app_touch\\.cpp$")
 idf_component_register(SRCS "entry.cpp" ${ui_srcs} "../../common/usb_update/freslest_update.c" "../../common/usb_update/freslest_update_package.c" INCLUDE_DIRS "../../common/usb_update" "../freslest" "../freslest/src/freslest" REQUIRES arduino arduino_tinyusb LovyanGFX TJpgDecoder nofrendo joltwallet__littlefs app_update esp_http_client bt esp_hid esp_timer esp_driver_ledc freslest_ota freslest_hid freslest_video usb_host_msc json mbedtls bootloader_support)
 target_compile_definitions(${COMPONENT_LIB} PUBLIC BOARD_HAS_PSRAM=1)
+include("${CMAKE_CURRENT_LIST_DIR}/../../common/lcd_profile.cmake")
 
 # Keep per-function stack budgets for the OS main-task audit.
 target_compile_options(${COMPONENT_LIB} PRIVATE -fstack-usage)
+
+# UI sources use return/status based error handling, without throw/catch.
+# Do not emit unused constructor-unwind metadata into the nearly-full OS slot.
+foreach(ui_source IN LISTS ui_srcs)
+    set_property(SOURCE "${ui_source}" APPEND PROPERTY COMPILE_OPTIONS -fno-exceptions)
+endforeach()
+set_property(SOURCE "entry.cpp" APPEND PROPERTY COMPILE_OPTIONS -fno-exceptions)

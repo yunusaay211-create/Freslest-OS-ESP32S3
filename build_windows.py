@@ -18,6 +18,13 @@ def main():
         raise SystemExit('Use 64-bit Python 3.11.')
     os.chdir(ROOT)
     prepare()
+    # A dropdown alone is insufficient: package both actual source-built variants.
+    sys.path.insert(0, str(ROOT / 'installer'))
+    from installer import DISPLAY_MODELS, validated_payload
+    for model in DISPLAY_MODELS:
+        if not (ROOT / 'firmware' / model / 'SHA256.json').is_file():
+            raise SystemExit('Build both display profiles first: python tools/build_lcd_profiles.py')
+        validated_payload('en', model)
     common = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onefile', '--windowed', '--noupx']
     subprocess.run(common + ['--name', 'Freslest Installer', '--collect-all', 'esptool',
                             '--collect-all', 'serial', '--add-data', 'firmware;firmware',

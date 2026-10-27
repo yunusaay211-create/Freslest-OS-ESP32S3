@@ -1,4 +1,5 @@
 #include "apps.h"
+#include "ui_layout.h"
 #include "../../gfx.h"
 #include "../../input.h"
 #include "settings.h"
@@ -43,7 +44,7 @@ static void ensureCursor() {
   if (cursor > (int)noteText.length()) cursor = noteText.length();
 
   // scroll horizontally by characters in the single-line editor area
-  const int maxVisible = 28;
+  const int maxVisible=uiCompact(tft.width())?21:28;
   if (cursor < viewStart) viewStart = cursor;
   if (cursor > viewStart + maxVisible) viewStart = cursor - maxVisible;
   if (viewStart < 0) viewStart = 0;
@@ -72,18 +73,20 @@ static void drawNote() {
 
   tft.setTextColor(TH().text, TH().bg);
   tft.setTextSize(1);
-  tft.setCursor(20, 60);
-  tft.print("USB keyboard: type | physical keys: edit character");
+  bool compact=uiCompact(tft.width());
+  tft.setCursor(compact?12:20,compact?48:60);
+  tft.print(compact?"USB keyboard: type / arrows: edit":"USB keyboard: type | physical keys: edit character");
 
   // editor box
-  int boxX=18, boxY=90, boxW=444, boxH=60;
+  int boxX=compact?12:18,boxY=compact?74:90,boxW=compact?296:444,boxH=compact?52:60;
+  const int columns=compact?22:32;
   tft.fillRoundRect(boxX, boxY, boxW, boxH, 10, TH().panel);
   tft.drawRoundRect(boxX, boxY, boxW, boxH, 10, TH().dim);
 
   ensureCursor();
-  String view = noteText.substring(viewStart, std::min((int)noteText.length(), viewStart + 32));
+  String view = noteText.substring(viewStart, std::min((int)noteText.length(), viewStart + columns));
   // pad to show cursor at end
-  while (view.length() < 32) view += ' ';
+  while (view.length() < (unsigned)columns) view += ' ';
 
   tft.setTextSize(2);
   tft.setTextColor(TH().text, TH().panel);
@@ -93,16 +96,16 @@ static void drawNote() {
   // cursor indicator
   int curPos = cursor - viewStart;
   if (curPos < 0) curPos = 0;
-  if (curPos > 31) curPos = 31;
+  if(curPos>=columns)curPos=columns-1;
   int cx = boxX + 12 + curPos * 12; // approx for size2
-  tft.drawLine(cx, boxY + 48, cx + 10, boxY + 48, TH().accent);
+  tft.drawLine(cx, boxY + (compact?42:48), cx + 10, boxY + (compact?42:48), TH().accent);
 
   // help + info
   tft.setTextSize(1);
   tft.setTextColor(TH().dim, TH().bg);
-  tft.setCursor(20, 165);
-  tft.print("Tip: OK inserts space at cursor. U/D changes current char.");
-  tft.setCursor(20, 185);
+  tft.setCursor(compact?12:20,compact?148:165);
+  tft.print(compact?"OK: insert space / U/D: change char":"Tip: OK inserts space at cursor. U/D changes current char.");
+  tft.setCursor(compact?12:20,compact?168:185);
   tft.print("Length: ");
   tft.print(noteText.length());
   tft.print("  Cursor: ");
@@ -120,7 +123,8 @@ void noteEnter() {
 void noteLoop(uint32_t now) {
   (void)now;
   bool redraw = false;
-  if(usbInputHit(18,90,444,60)){cursor=constrain(viewStart+(usbPointer.x-30)/12,0,(int)noteText.length());redraw=true;}
+  bool compact=uiCompact(tft.width());
+  if(usbInputHit(compact?12:18,compact?74:90,compact?296:444,compact?52:60)){cursor=constrain(viewStart+std::max(0,(usbPointer.x-(compact?24:30))/12),0,(int)noteText.length());redraw=true;}
   int ch;
   while((ch=usbInputCharacter())>=0){
     ensureCursor();

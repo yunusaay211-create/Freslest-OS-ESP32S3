@@ -1,0 +1,47 @@
+#pragma once
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <stdarg.h>
+typedef int esp_err_t,nvs_handle_t;
+#define ESP_OK 0
+#define ESP_FAIL -1
+#define IRAM_ATTR
+#define GPIO_MODE_INPUT 1
+#define GPIO_MODE_OUTPUT 2
+#define GPIO_PULLUP_ENABLE 1
+#define NVS_READONLY 0
+#define NVS_READWRITE 1
+#define LCD_CLK_SRC_DEFAULT 0
+#define ESP_CACHE_MSYNC_FLAG_DIR_C2M 1
+#define pdMS_TO_TICKS(x) (x)
+typedef struct {uint64_t pin_bit_mask;int mode,pull_up_en;} gpio_config_t;
+typedef void* esp_lcd_panel_handle_t;
+typedef struct {int dummy;} esp_lcd_rgb_panel_event_data_t;
+typedef struct {bool (*on_vsync)(esp_lcd_panel_handle_t,const esp_lcd_rgb_panel_event_data_t*,void*);} esp_lcd_rgb_panel_event_callbacks_t;
+typedef struct {int clk_src,data_width,bits_per_pixel,num_fbs;int hsync_gpio_num,vsync_gpio_num,pclk_gpio_num,de_gpio_num,disp_gpio_num;int data_gpio_nums[16];struct {int pclk_hz,h_res,v_res,hsync_pulse_width,hsync_back_porch,hsync_front_porch,vsync_pulse_width,vsync_back_porch,vsync_front_porch;struct {int hsync_idle_low,vsync_idle_low;}flags;}timings;struct {int fb_in_psram;}flags;} esp_lcd_rgb_panel_config_t;
+static int stored_v2,legacy_output=1,back=1,nvs_failure,driver_failure,panels,creates,cache_calls,stage;
+static uint64_t pins;static int64_t now_us;static uint8_t host_fb[640*480];
+static esp_lcd_rgb_panel_config_t saved_config;static esp_lcd_rgb_panel_event_callbacks_t callbacks;
+static esp_err_t nvs_open(const char*n,int m,nvs_handle_t*h){assert(!strcmp(n,"fl_video"));(void)m;*h=1;return nvs_failure==1?-1:0;}
+static esp_err_t nvs_get_u8(nvs_handle_t h,const char*k,uint8_t*v){(void)h;*v=!strcmp(k,"output_v2")?stored_v2:legacy_output;return 0;}
+static esp_err_t nvs_set_u8(nvs_handle_t h,const char*k,uint8_t v){(void)h;assert(!strcmp(k,"output_v2"));if(nvs_failure==2)return -1;stored_v2=v;return 0;}
+static esp_err_t nvs_commit(nvs_handle_t h){(void)h;return nvs_failure==3?-1:0;}
+static void nvs_close(nvs_handle_t h){(void)h;}
+static int gpio_config(const gpio_config_t*c){pins|=c->pin_bit_mask;return 0;}
+static int gpio_get_level(int p){assert(p==16);return back;}
+static int gpio_set_level(int p,int v){assert((p==41&&v==0)||(p==10&&v==1));return 0;}
+static void vTaskDelay(int ms){now_us+=ms*1000;}
+static int64_t esp_timer_get_time(void){return now_us;}
+static void host_log(const char*t,const char*f,...){assert(t&&f);}
+#define ESP_LOGE(...) host_log(__VA_ARGS__)
+#define ESP_LOGW(...) host_log(__VA_ARGS__)
+static int esp_lcd_new_rgb_panel(const esp_lcd_rgb_panel_config_t*c,esp_lcd_panel_handle_t*p){creates++;saved_config=*c;if(driver_failure==1)return -1;*p=(void*)1;panels++;stage=1;return 0;}
+static int esp_lcd_rgb_panel_get_frame_buffer(esp_lcd_panel_handle_t p,int n,void**f){assert(p&&n==1&&stage==1);if(driver_failure==2)return -1;*f=host_fb;stage=2;return 0;}
+static int esp_lcd_rgb_panel_register_event_callbacks(esp_lcd_panel_handle_t p,const esp_lcd_rgb_panel_event_callbacks_t*c,void*ctx){assert(p&&!ctx);callbacks=*c;return driver_failure==3?-1:0;}
+static int esp_lcd_panel_reset(esp_lcd_panel_handle_t p){assert(p&&stage==2);for(unsigned i=0;i<sizeof(host_fb);i++)assert(!host_fb[i]);return driver_failure==4?-1:0;}
+static int esp_lcd_panel_init(esp_lcd_panel_handle_t p){assert(p);return driver_failure==5?-1:0;}
+static int esp_lcd_panel_del(esp_lcd_panel_handle_t p){assert(p);panels--;return 0;}
+static int esp_cache_msync(void*p,size_t n,int flags){assert(p==host_fb&&n==sizeof(host_fb)&&flags==1);cache_calls++;return driver_failure==6?-1:0;}

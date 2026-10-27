@@ -1,4 +1,5 @@
 #include "apps.h"
+#include "ui_layout.h"
 #include "../../gfx.h"
 #include "../../input.h"
 #include "settings.h"
@@ -6,9 +7,10 @@
 
 static constexpr int CW = 40;   // columns
 static constexpr int CH = 24;   // rows (fit screen)
-static constexpr int CELL = 10; // pixel size
-static constexpr int ORGX = 20;
-static constexpr int ORGY = 60;
+
+static int paintCell(){return uiCompact(tft.width())?6:9;}
+static int paintX(){return (tft.width()-CW*paintCell())/2;}
+static int paintY(){return uiCompact(tft.width())?54:60;}
 
 static uint8_t canvas[CH][CW];
 static int cx = CW/2;
@@ -22,14 +24,14 @@ static bool okWasDown = false;
 
 static void drawCell(int x, int y) {
   uint16_t c = canvas[y][x] ? penColor : TH().bg;
-  tft.fillRect(ORGX + x*CELL, ORGY + y*CELL, CELL, CELL, c);
+  tft.fillRect(paintX() + x*paintCell(), paintY() + y*paintCell(), paintCell(), paintCell(), c);
 }
 
 static void drawCursor(bool on) {
-  int x = ORGX + cx*CELL;
-  int y = ORGY + cy*CELL;
+  int x = paintX() + cx*paintCell();
+  int y = paintY() + cy*paintCell();
   uint16_t c = on ? TH().accent : TH().dim;
-  tft.drawRect(x, y, CELL, CELL, c);
+  tft.drawRect(x, y, paintCell(), paintCell(), c);
 }
 
 static void drawPaintFull() {
@@ -39,8 +41,8 @@ static void drawPaintFull() {
   clearBody();
 
   // canvas area
-  tft.fillRoundRect(ORGX-4, ORGY-4, CW*CELL+8, CH*CELL+8, 10, TH().panel);
-  tft.drawRoundRect(ORGX-4, ORGY-4, CW*CELL+8, CH*CELL+8, 10, TH().dim);
+  tft.fillRoundRect(paintX()-4, paintY()-4, CW*paintCell()+8, CH*paintCell()+8, 10, TH().panel);
+  tft.drawRoundRect(paintX()-4, paintY()-4, CW*paintCell()+8, CH*paintCell()+8, 10, TH().dim);
 
   for (int y=0;y<CH;y++){
     for(int x=0;x<CW;x++){
@@ -51,8 +53,8 @@ static void drawPaintFull() {
 
   tft.setTextSize(1);
   tft.setTextColor(TH().dim, TH().bg);
-  tft.setCursor(20, 48);
-  tft.print("Hold OK: cycle pen color (white/cyan/yellow/pink/green)");
+  tft.setCursor(uiCompact(tft.width())?12:20,uiCompact(tft.width())?40:48);
+  tft.print(uiCompact(tft.width())?"Hold OK: change pen color":"Hold OK: cycle pen color (white/cyan/yellow/pink/green)");
 }
 
 static void cycleColor() {
@@ -71,7 +73,7 @@ void paintEnter() {
 
 void paintLoop(uint32_t now) {
   bool moved=false;
-  if(usbPointer.visible&&usbPointer.left&&usbPointer.x>=ORGX&&usbPointer.x<ORGX+CW*CELL&&usbPointer.y>=ORGY&&usbPointer.y<ORGY+CH*CELL){drawCell(cx,cy);cx=(usbPointer.x-ORGX)/CELL;cy=(usbPointer.y-ORGY)/CELL;canvas[cy][cx]=1;drawCell(cx,cy);drawCursor(true);}
+  if(usbPointer.visible&&usbPointer.left&&usbPointer.x>=paintX()&&usbPointer.x<paintX()+CW*paintCell()&&usbPointer.y>=paintY()&&usbPointer.y<paintY()+CH*paintCell()){drawCell(cx,cy);cx=(usbPointer.x-paintX())/paintCell();cy=(usbPointer.y-paintY())/paintCell();canvas[cy][cx]=1;drawCell(cx,cy);drawCursor(true);}
 
 
   if (bLeft.pressed())  { drawCursor(false); cx = (cx-1+CW)%CW; moved=true; }
@@ -92,9 +94,9 @@ void paintLoop(uint32_t now) {
     if (held >= 500) {
       cycleColor();
       // small color indicator
-      tft.fillRect(360, 48, 100, 14, TH().bg);
+      tft.fillRect(tft.width()-84,uiCompact(tft.width())?40:48,72,14,TH().bg);
       tft.setTextColor(penColor, TH().bg);
-      tft.setCursor(360, 48);
+      tft.setCursor(tft.width()-84,uiCompact(tft.width())?40:48);
       tft.setTextSize(1);
       tft.print("PEN");
       return;

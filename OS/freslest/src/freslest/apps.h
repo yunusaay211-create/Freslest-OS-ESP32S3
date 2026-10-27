@@ -43,8 +43,6 @@ enum AppId : uint8_t {
   APP_FRESLEST_UPDATE,
   APP_FILES,
   APP_SET_DISPLAY,
-  APP_SET_TV,
-  APP_SET_TV_COLOR,
   APP_BROWSER,
 };
 
@@ -110,12 +108,6 @@ void clockLoop(uint32_t now);
 // ===== Settings =====
 void setDisplayEnter();
 void setDisplayLoop(uint32_t now);
-void setTvEnter();
-void setTvLoop(uint32_t now);
-void setTvExit();
-void setTvColorEnter();
-void setTvColorLoop(uint32_t now);
-void setTvColorExit();
 void setBrightnessEnter();
 void setBrightnessLoop(uint32_t now);
 

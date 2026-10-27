@@ -1,6 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include <LovyanGFX.hpp>
+#include "lcd_profile.h"
 
 // ===== PINS =====
 static constexpr int PIN_TFT_MOSI = 11;
@@ -20,7 +21,9 @@ static constexpr uint32_t FRAME_MS = 16;             // ~60fps
 extern lgfx::LGFXBase& tft;
 
 void gfxBegin();
+int gfxUiWidth();
 int gfxUiHeight();
+void gfxSetCompactUi(bool enabled);
 void gfxPresent();
 void gfxMirrorTick();
 bool gfxHealthy();

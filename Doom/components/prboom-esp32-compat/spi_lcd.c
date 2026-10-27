@@ -7,6 +7,7 @@
 // - per-frame 256-color RGB lookup table
 
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 
@@ -27,11 +28,17 @@
 // Scale RGB palette indices directly into DMA blocks (no full 480x320 buffer).
 #define LCD_SRC_W          320
 #define LCD_SRC_H          240
-#define LCD_PANEL_W        480
-#define LCD_PANEL_H        320
+#define LCD_PANEL_W        FRESLEST_LCD_WIDTH
+#define LCD_PANEL_H        FRESLEST_LCD_HEIGHT
+#if FRESLEST_LCD_MODEL == 9341
+#define LCD_FIT_W          320
+#define LCD_FIT_H          240
+#define LCD_BYTES_PER_PIXEL 2
+#else
 #define LCD_FIT_W          424
 #define LCD_FIT_H          318
 #define LCD_BYTES_PER_PIXEL 3
+#endif
 #define LCD_BATCH_LINES    16
 #define LCD_LINE_BYTES     (LCD_PANEL_W * LCD_BYTES_PER_PIXEL)
 #define LCD_DMA_BYTES      (LCD_LINE_BYTES * LCD_BATCH_LINES)
@@ -51,6 +58,20 @@ static spi_transaction_t dma_trans[2];
 // Cached 8-bit Doom palette -> ILI9488 RGB888 expansion tables.
 // Populated by I_SetPalette(), not regenerated for every frame.
 static uint32_t pal_rgb[256]; /* one aligned load per output pixel */
+
+static inline void lcd_pixel(uint8_t *out, uint32_t rgb)
+{
+#if FRESLEST_LCD_MODEL == 9341
+    // RGB888 table uses R in the low byte. SPI RGB565 is high byte first.
+    uint16_t c = ((rgb & 0xf8) << 8) | ((rgb & 0xfc00) >> 5) | ((rgb >> 19) & 31);
+    out[0] = c >> 8;
+    out[1] = c;
+#else
+    out[0] = rgb;
+    out[1] = rgb >> 8;
+    out[2] = rgb >> 16;
+#endif
+}
 
 void spi_lcd_set_palette(const int16_t *palette)
 {
@@ -104,7 +125,9 @@ static void window(int x, int y, int w, int h)
 
 void spi_lcd_init(void)
 {
-    if(freslest_video_boot_output()==FRESLEST_DISPLAY_COMPOSITE){
+    // Keep the profile identifier in the binary even with INFO logging disabled.
+    puts(FRESLEST_LCD_TAG);
+    if(freslest_video_boot_output()==FRESLEST_DISPLAY_VGA){
         ESP_ERROR_CHECK(freslest_video_begin()?ESP_OK:ESP_FAIL);return;
     }
     for (int x = 0; x < LCD_FIT_W; ++x)
@@ -173,6 +196,26 @@ void spi_lcd_init(void)
     cmd(0x01, NULL, 0);
     vTaskDelay(pdMS_TO_TICKS(150));
 
+#if FRESLEST_LCD_MODEL == 9341
+    // ILI9341 controller-specific power/timing setup (16-bit SPI pixels).
+    cmd(0xef, (uint8_t[]){0x03,0x80,0x02}, 3);
+    cmd(0xcf, (uint8_t[]){0x00,0xc1,0x30}, 3);
+    cmd(0xed, (uint8_t[]){0x64,0x03,0x12,0x81}, 4);
+    cmd(0xe8, (uint8_t[]){0x85,0x00,0x78}, 3);
+    cmd(0xcb, (uint8_t[]){0x39,0x2c,0x00,0x34,0x02}, 5);
+    cmd(0xf7, (uint8_t[]){0x20}, 1);
+    cmd(0xea, (uint8_t[]){0x00,0x00}, 2);
+    cmd(0xc0, (uint8_t[]){0x23}, 1);
+    cmd(0xc1, (uint8_t[]){0x10}, 1);
+    cmd(0xc5, (uint8_t[]){0x3e,0x28}, 2);
+    cmd(0xc7, (uint8_t[]){0x86}, 1);
+    cmd(0x36, (uint8_t[]){LCD_MADCTL}, 1);
+    cmd(0x3a, (uint8_t[]){0x55}, 1);
+    cmd(0xb1, (uint8_t[]){0x00,0x13}, 2);
+    cmd(0xb6, (uint8_t[]){0x08,0xc2,0x27}, 3);
+    cmd(0xf2, (uint8_t[]){0x00}, 1);
+    cmd(0x26, (uint8_t[]){0x01}, 1);
+#else
     const uint8_t pg[] = {
         0x00,0x03,0x09,0x08,0x16,
         0x0a,0x3f,0x78,0x4c,0x09,
@@ -204,6 +247,7 @@ void spi_lcd_init(void)
     cmd(0xe9, (uint8_t[]){0x00}, 1);
     cmd(0xf7, (uint8_t[]){0xa9,0x51,0x2c,0x82}, 4);
 
+#endif
     cmd(LCD_INVERT ? 0x21 : 0x20, NULL, 0);
 
     cmd(0x11, NULL, 0);
@@ -215,33 +259,33 @@ void spi_lcd_init(void)
     // Brief RGB bars verify the physical display before the engine starts.
     uint8_t *line = dma_buf[0];
 
-    window(0, 0, 480, 320);
+    window(0, 0, LCD_PANEL_W, LCD_PANEL_H);
 
-    for (int x = 0; x < 480; x++) {
-        line[x * 3 + 0] = (x < 160) ? 0xfc : 0;
-        line[x * 3 + 1] = (x >= 160 && x < 320) ? 0xfc : 0;
-        line[x * 3 + 2] = (x >= 320) ? 0xfc : 0;
+    for (int x = 0; x < LCD_PANEL_W; x++) {
+        uint32_t rgb = x < LCD_PANEL_W / 3 ? 0x0000ff :
+                       x < LCD_PANEL_W * 2 / 3 ? 0x00ff00 : 0xff0000;
+        lcd_pixel(line + x * LCD_BYTES_PER_PIXEL, rgb);
     }
 
-    for (int y = 0; y < 320; y++) {
-        tx(1, line, 480 * 3);
+    for (int y = 0; y < LCD_PANEL_H; y++) {
+        tx(1, line, LCD_LINE_BYTES);
     }
 
     gpio_set_level(LCD_BL, LCD_BL_ON);
     vTaskDelay(pdMS_TO_TICKS(700));
 
-    memset(line, 0, 480 * 3);
+    memset(line, 0, LCD_LINE_BYTES);
 
-    window(0, 0, 480, 320);
+    window(0, 0, LCD_PANEL_W, LCD_PANEL_H);
 
-    for (int y = 0; y < 320; y++) {
-        tx(1, line, 480 * 3);
+    for (int y = 0; y < LCD_PANEL_H; y++) {
+        tx(1, line, LCD_LINE_BYTES);
     }
 
     ESP_LOGI(
         "LCD",
-        "ILI9488 ready: Doom %dx%d -> LCD %dx%d, SPI %d Hz, queued DMA",
-        LCD_SRC_W, LCD_SRC_H, LCD_PANEL_W, LCD_PANEL_H, LCD_SPI_HZ
+        "ILI%d ready: Doom %dx%d -> LCD %dx%d, SPI %d Hz, queued DMA",
+        FRESLEST_LCD_MODEL, LCD_SRC_W, LCD_SRC_H, LCD_PANEL_W, LCD_PANEL_H, LCD_SPI_HZ
     );
 }
 
@@ -252,14 +296,15 @@ void spi_lcd_wait_finish(void)
 
 void spi_lcd_draw_indexed(const uint8_t *frame)
 {
-    if(freslest_video_output()==FRESLEST_DISPLAY_COMPOSITE){freslest_video_indexed(frame,480,320,pal_rgb,false,0,0);return;}
+    if(freslest_video_output()==FRESLEST_DISPLAY_VGA){freslest_video_indexed(frame,480,320,pal_rgb,false,0,0);return;}
     window(0, 0, LCD_PANEL_W, LCD_PANEL_H);
     for (int y = 0; y < LCD_PANEL_H; y += LCD_BATCH_LINES) {
-        for (int p = 0; p < LCD_PANEL_W * LCD_BATCH_LINES; ++p) {
-            uint32_t color = pal_rgb[frame[y * LCD_PANEL_W + p]];
-            dma_buf[0][p * 3] = color;
-            dma_buf[0][p * 3 + 1] = color >> 8;
-            dma_buf[0][p * 3 + 2] = color >> 16;
+        for (int yy = 0; yy < LCD_BATCH_LINES; ++yy) {
+            int sy = freslest_lcd_source_y(y + yy);
+            for (int x = 0; x < LCD_PANEL_W; ++x) {
+                uint32_t color = pal_rgb[frame[sy * 480 + freslest_lcd_source_x(x)]];
+                lcd_pixel(dma_buf[0] + (yy * LCD_PANEL_W + x) * LCD_BYTES_PER_PIXEL, color);
+            }
         }
         tx(1, dma_buf[0], LCD_DMA_BYTES);
     }
@@ -268,7 +313,7 @@ void spi_lcd_draw_indexed(const uint8_t *frame)
 
 void spi_lcd_send(uint16_t *scr)
 {
-    if(freslest_video_output()==FRESLEST_DISPLAY_COMPOSITE){
+    if(freslest_video_output()==FRESLEST_DISPLAY_VGA){
         int x,y;bool cursor=usbDoomPointer(&x,&y);
         freslest_video_indexed((uint8_t*)scr,320,240,pal_rgb,cursor,x,y);return;
     }
@@ -349,9 +394,7 @@ void spi_lcd_send(uint16_t *scr)
                 uint32_t rgb = pal_rgb[p];
                 if(cursor){unsigned c=freslest_cursor_pixel((fullscreen?scaled_x[x]:x)-cursor_x,src_y-cursor_y);
                     if(c)rgb=c==1?0:c==2?0xffffff:0xffa000;}
-                out[o + 0] = (uint8_t)rgb;
-                out[o + 1] = (uint8_t)(rgb >> 8);
-                out[o + 2] = (uint8_t)(rgb >> 16);
+                lcd_pixel(out + o, rgb);
             }
         }
         memset(&dma_trans[idx], 0, sizeof(spi_transaction_t));

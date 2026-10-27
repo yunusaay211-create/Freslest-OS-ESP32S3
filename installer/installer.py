@@ -14,25 +14,12 @@ from translations import LANGUAGES, translate
 
 ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[1]))
 FW = ROOT / 'firmware'
-ITEMS = [
-    (0x000000, 'bootloader.bin',0x8000),
-    (0x008000, 'partition-table.bin',0x1000),
-    (0x010000, 'ota_data_initial.bin',0x2000),
-    (0x020000, 'freslest_doom_s3.bin',0xE0000),
-    (0x100000, 'freslest_os_s3.bin',0x1B0000),
-    (0x460000, 'doom_flash.wad',0x950000),
-    (0xDB0000, 'littlefs.bin',0x50000),
-]
+from payload import DISPLAY_MODELS, ITEMS
+from payload import validated_payload as _validated_payload
 
-def validated_payload(language='tr'):
-    manifest=json.loads((FW/'SHA256.json').read_text(encoding='utf-8'))
-    result=[]
-    for address,name,limit in ITEMS:
-        path=FW/name;data=path.read_bytes();digest=hashlib.sha256(data).hexdigest()
-        if not data or len(data)>limit or digest!=manifest.get('firmware/'+name):
-            raise RuntimeError(translate('invalid_file',language,name=name))
-        result.append((address,path,len(data),digest))
-    return result
+
+def validated_payload(language='tr', display='ili9488'):
+    return _validated_payload(FW, language, display)
 
 def write_diagnostics(output_path):
     """Export a support report without opening ports or creating a GUI."""
@@ -74,6 +61,7 @@ class Installer(tk.Tk):
         self.configure(bg='#121724')
         self.port = tk.StringVar()
         self.baud = tk.StringVar(value='460800')
+        self.display = tk.StringVar(value='ili9488')
         self.busy = False
         self.events=queue.Queue()
         self.make_style()
@@ -108,7 +96,20 @@ class Installer(tk.Tk):
         self.label(self.t('welcome')).pack(anchor='w',padx=34,pady=18)
         self.label(self.t('steps'),13).pack(anchor='w',padx=34,pady=8)
         self.label(self.t('backup'),11,'#ffca80').pack(anchor='w',padx=34,pady=(12,22))
-        ttk.Button(self,text=self.t('continue'),command=self.ports).pack(anchor='e',padx=35)
+        ttk.Button(self,text=self.t('continue'),command=self.displays).pack(anchor='e',padx=35)
+    def displays(self):
+        self.wipe()
+        self.label(self.t('displays_heading'),21,'#70b1ff',True).pack(anchor='w',padx=32,pady=(24,12))
+        self.label(self.t('display_help')).pack(anchor='w',padx=32,pady=12)
+        for model,title in DISPLAY_MODELS.items():
+            tk.Radiobutton(self,text=title,variable=self.display,value=model,
+                           bg='#121724',fg='#dce6fa',activebackground='#121724',
+                           activeforeground='white',selectcolor='#283247',
+                           font=('Segoe UI',14),anchor='w').pack(fill='x',padx=38,pady=12)
+        self.label(self.t('display_hint'),11,'#ffca80').pack(anchor='w',padx=32,pady=15)
+        buttons=tk.Frame(self,bg='#121724');buttons.pack(side='bottom',fill='x',padx=32,pady=26)
+        ttk.Button(buttons,text=self.t('back'),command=self.wizard).pack(side='left')
+        ttk.Button(buttons,text=self.t('continue'),command=self.ports).pack(side='right')
     def ports(self):
         self.wipe();self.label(self.t('ports_heading'),21,'#70b1ff',True).pack(anchor='w',padx=32,pady=(24,9))
         self.label(self.t('connect_help')).pack(anchor='w',padx=32,pady=8)
@@ -123,7 +124,7 @@ class Installer(tk.Tk):
         self.label(self.t('port_hint')).pack(anchor='w',padx=32)
         self.label(self.t('overwrite'),11,'#ffca80').pack(anchor='w',padx=32,pady=(20,4))
         buttons=tk.Frame(self,bg='#121724');buttons.pack(side='bottom',fill='x',padx=32,pady=26)
-        ttk.Button(buttons,text=self.t('back'),command=self.wizard).pack(side='left')
+        ttk.Button(buttons,text=self.t('back'),command=self.displays).pack(side='left')
         ttk.Button(buttons,text=self.t('continue'),command=self.confirm).pack(side='right')
     def refresh_ports(self,auto_select=True):
         ports=list(list_ports.comports())
@@ -133,7 +134,7 @@ class Installer(tk.Tk):
         port=self.port.get().strip().upper()
         if not port.startswith('COM') or not port[3:].isdigit():
             messagebox.showerror(self.t('port_title'),self.t('invalid_port'));return
-        if not messagebox.askyesno(self.t('confirm_title'),self.t('confirm',port=port)):return
+        if not messagebox.askyesno(self.t('confirm_title'),self.t('confirm',port=port,display=DISPLAY_MODELS[self.display.get()])):return
         self.flash(port)
     def flash(self,port):
         self.busy=True
@@ -142,12 +143,13 @@ class Installer(tk.Tk):
         self.log=tk.Text(self,height=17,bg='#080d18',fg='#d5e6fa',insertbackground='white',font=('Consolas',9),state='disabled')
         self.log.pack(fill='both',expand=True,padx=32,pady=10)
         self.finish=ttk.Button(self,text=self.t('close'),command=self.close,state='disabled');self.finish.pack(side='right',padx=32,pady=(0,16))
-        threading.Thread(target=self.worker,args=(port,int(self.baud.get())),daemon=True).start()
-    def worker(self,port,baud=460800):
+        # Read Tk state on the GUI thread; freeze the selection for this flash.
+        threading.Thread(target=self.worker,args=(port,int(self.baud.get()),self.display.get()),daemon=True).start()
+    def worker(self,port,baud=460800,display='ili9488'):
         try:
             args=['--chip','esp32s3','--port',port,'--baud',str(baud),'--before','default_reset','--after','hard_reset',
                   'write_flash','--flash_mode','dio','--flash_freq','80m','--flash_size','16MB']
-            for addr,path,_,_ in validated_payload(self.__dict__.get('language_code','tr')):
+            for addr,path,_,_ in validated_payload(self.__dict__.get('language_code','tr'),display):
                 args.extend([hex(addr),str(path)])
                 self.events.put(self.t('verified',name=path.name))
             self.events.put(self.t('connecting',port=port))
