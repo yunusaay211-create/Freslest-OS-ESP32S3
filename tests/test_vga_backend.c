@@ -35,17 +35,15 @@ int main(void){
  freslest_video_rgb565(swap,2,2,true,false,0,0);assert(host_selected[0]==0xe0&&host_selected[639]==0x1c&&host_selected[479*640]==3);
  uint8_t indexed[]={1,2,3,4};uint32_t pal[256]={0};pal[1]=0x0000ff;pal[2]=0x00ff00;pal[3]=0xff0000;pal[4]=0xffffff;
  freslest_video_indexed(indexed,2,2,pal,false,0,0);assert(host_selected[0]==0xe0&&host_selected[639]==0x1c&&host_selected[479*640]==3&&host_selected[640*480-1]==255);
- // RGB332 must preserve the average hue of dark Doom palette colors.
- // Truncation alone turns neutral dark grays brown/yellow by zeroing blue.
+ // Uniform palette colors must remain solid. The former Bayer pattern
+ // introduced colored dots even into a completely flat source image.
  const uint8_t grayIndex[]={5};
- for(unsigned level=16;level<=192;level+=16){
-  pal[5]=level|(level<<8)|(level<<16);freslest_video_indexed(grayIndex,1,1,pal,false,0,0);
-  unsigned red=0,green=0,blue=0;
-  for(unsigned y=0;y<4;y++)for(unsigned x=0;x<4;x++){
-   uint8_t c=host_selected[y*640+x];red+=c>>5;green+=(c>>2)&7;blue+=c&3;
-  }
-  int rr=red*255/(16*7),gg=green*255/(16*7),bb=blue*255/(16*3);
-  assert(abs(rr-(int)level)<=3&&abs(gg-(int)level)<=3&&abs(bb-(int)level)<=3);
+ const unsigned levels[]={32,64,128,192,255};
+ const uint8_t codes[]={0x24,0x49,0x92,0xdb,0xff};
+ for(unsigned n=0;n<5;n++){
+  unsigned level=levels[n];pal[5]=level|(level<<8)|(level<<16);
+  freslest_video_indexed(grayIndex,1,1,pal,false,0,0);
+  for(unsigned y=0;y<8;y++)for(unsigned x=0;x<8;x++)assert(host_selected[y*640+x]==codes[n]);
  }
  pal[5]=0x0000ff;freslest_video_indexed(grayIndex,1,1,pal,false,0,0);assert(host_selected[0]==0xe0);
  pal[5]=0x00ff00;freslest_video_indexed(grayIndex,1,1,pal,false,0,0);assert(host_selected[0]==0x1c);
@@ -56,13 +54,9 @@ int main(void){
  freslest_video_doom_palette(rgb);freslest_video_doom(doom,false,0,0);
  assert(host_selected[0]==0xe0&&host_selected[639]==0x1c&&host_selected[479*640]==3&&host_selected[640*480-1]==255);
  memset(doom,5,sizeof(doom));
- for(unsigned level=16;level<=192;level+=16){
-  rgb[15]=rgb[16]=rgb[17]=level;freslest_video_doom_palette(rgb);freslest_video_doom(doom,false,0,0);
-  unsigned red=0,green=0,blue=0;
-  for(int y=0;y<8;y+=2)for(int x=0;x<8;x+=2){uint8_t c=host_selected[y*640+x];red+=c>>5;green+=(c>>2)&7;blue+=c&3;}
-  assert(abs((int)(red*255/(16*7))-(int)level)<=3);
-  assert(abs((int)(green*255/(16*7))-(int)level)<=3);
-  assert(abs((int)(blue*255/(16*3))-(int)level)<=3);
+ for(unsigned n=0;n<5;n++){
+  rgb[15]=rgb[16]=rgb[17]=levels[n];freslest_video_doom_palette(rgb);freslest_video_doom(doom,false,0,0);
+  for(unsigned y=0;y<8;y++)for(unsigned x=0;x<8;x++)assert(host_selected[y*640+x]==codes[n]);
  }
  // A genuine red damage palette stays red, then a later green palette replaces it.
  rgb[15]=255;rgb[16]=rgb[17]=0;freslest_video_doom_palette(rgb);freslest_video_doom(doom,false,0,0);assert(host_selected[0]==0xe0);

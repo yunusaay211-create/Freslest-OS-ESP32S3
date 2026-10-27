@@ -3,6 +3,7 @@
 #include "freslest_video.h"
 #include "vga_pixels.h"
 #include <string.h>
+#include <stdio.h>
 #include "driver/gpio.h"
 #include "esp_attr.h"
 #include "esp_cache.h"
@@ -78,6 +79,7 @@ bool freslest_video_begin(void){
  if(esp_lcd_rgb_panel_register_event_callbacks(panel,&callbacks,NULL)!=ESP_OK)goto fail;
  if(esp_lcd_panel_reset(panel)!=ESP_OK||esp_lcd_panel_init(panel)!=ESP_OK)goto fail;
  started_us=esp_timer_get_time();first_frame_ready=false;started=true;
+ puts("FRESLEST_VGA:SOLID332_C3");
  ESP_LOGW("video","VGA V1.0 RGB332 640x480, target PCLK 25175000 Hz, double PSRAM frames + internal bounce; frame ownership");return true;
 fail:
  if(panel){esp_lcd_panel_del(panel);panel=NULL;}fb[0]=fb[1]=NULL;pending=false;
