@@ -15,8 +15,13 @@ bool freslest_video_begin(void);
 bool freslest_video_healthy(void);
 bool freslest_video_starting(void);
 void freslest_video_diagnostics(void);
+unsigned freslest_video_fit(void);
+bool freslest_video_save_fit(unsigned percent);
+// Dedicated Doom protocol: original PLAYPAL RGB triplets and 320x240 indices.
+void freslest_video_doom_palette(const uint8_t *rgb888);
+void freslest_video_doom(const uint8_t *indices,bool cursor,int x,int y);
 // Same RGB565 source framebuffer as the LCD; input storage is never modified.
-void freslest_video_rgb565(const uint16_t *src,int width,int height,bool swapped,
+bool freslest_video_rgb565(const uint16_t *src,int width,int height,bool swapped,
                           bool cursor,int x,int y);
 // Doom palette: 0x00BBGGRR.
 void freslest_video_indexed(const uint8_t *src,int width,int height,

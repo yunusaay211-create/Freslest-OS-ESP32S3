@@ -3,6 +3,7 @@
 #include "vga_pixels.h"
 #include "freslest_cursor.h"
 #include <stddef.h>
+#include <string.h>
 // Indexed Doom colors use ordered rounding so two-bit blue does not vanish
 // from dark neutral colors. Keep RGB565 OS conversion and the wiring unchanged.
 typedef struct {uint8_t base,r,g,b;} Palette332;
@@ -12,7 +13,12 @@ static uint8_t quantize(uint8_t value,unsigned levels,uint8_t *count){
  return scaled/255;
 }
 static uint8_t from565(uint16_t c){return ((c>>8)&0xe0)|((c>>6)&0x1c)|((c>>3)&3);}
-bool vga_convert(uint8_t *dest,const void *source,int w,int h,const uint32_t *pal,bool swap,bool cursor,int cx,int cy){
+vga_viewport_t vga_viewport(unsigned percent){
+ if(percent<80||percent>100||percent%5)percent=90;
+ int w=VGA_WIDTH*percent/100,h=VGA_HEIGHT*percent/100;
+ return (vga_viewport_t){(VGA_WIDTH-w)/2,(VGA_HEIGHT-h)/2,w,h};
+}
+bool vga_convert_fit(uint8_t *dest,const void *source,int w,int h,const uint32_t *pal,bool swap,bool cursor,int cx,int cy,unsigned percent){
  if(!dest||!source||w<1||h<1||w>480||h>360)return false;
  // OS/Doom each have one video producer. Keep the coordinate scratch out of
  // the small OS main-task stack; no DMA consumer reads this lookup table.
@@ -24,10 +30,16 @@ bool vga_convert(uint8_t *dest,const void *source,int w,int h,const uint32_t *pa
   unsigned r=quantize(rgb,7,&p->r),g=quantize(rgb>>8,7,&p->g),b=quantize(rgb>>16,3,&p->b);
   p->base=(r<<5)|(g<<2)|b;
  }
- for(int x=0;x<VGA_WIDTH;x++)columns[x]=x*w/VGA_WIDTH;
- for(int y=0;y<VGA_HEIGHT;y++){
-  int sy=y*h/VGA_HEIGHT;uint8_t *out=dest+(size_t)y*VGA_WIDTH;
-  for(int x=0;x<VGA_WIDTH;x++){
+ vga_viewport_t view=vga_viewport(percent);
+ // Clear only safe-area borders; the active rectangle is fully overwritten.
+ memset(dest,0,(size_t)view.y*VGA_WIDTH);
+ memset(dest+(size_t)(view.y+view.h)*VGA_WIDTH,0,(size_t)view.y*VGA_WIDTH);
+ for(int x=0;x<view.w;x++)columns[x]=x*w/view.w;
+ for(int y=0;y<view.h;y++){
+  int sy=y*h/view.h;uint8_t *row=dest+(size_t)(y+view.y)*VGA_WIDTH;
+  memset(row,0,view.x);memset(row+view.x+view.w,0,view.x);
+  uint8_t *out=row+view.x;
+  for(int x=0;x<view.w;x++){
    int sx=columns[x];size_t i=(size_t)sy*w+sx;uint8_t c;
    if(pal){
     const Palette332 *p=&colors[((const uint8_t*)source)[i]];
@@ -42,4 +54,8 @@ bool vga_convert(uint8_t *dest,const void *source,int w,int h,const uint32_t *pa
   }
  }
  return true;
+}
+
+bool vga_convert(uint8_t *dest,const void *src,int w,int h,const uint32_t *pal,bool swap,bool cursor,int x,int y){
+ return vga_convert_fit(dest,src,w,h,pal,swap,cursor,x,y,100);
 }

@@ -12,3 +12,5 @@ void spi_lcd_set_palette(const int16_t *palette);
 void spi_lcd_draw_indexed(const uint8_t *frame);
 
 #endif
+
+void spi_lcd_set_palette_rgb888(const uint8_t *palette);

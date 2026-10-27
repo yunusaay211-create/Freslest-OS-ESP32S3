@@ -14,6 +14,8 @@ freslest_display_t freslest_video_boot_output(void){return vga?FRESLEST_DISPLAY_
 freslest_display_t freslest_video_output(void){return freslest_video_boot_output();}
 bool freslest_video_begin(void){return true;}
 void freslest_video_indexed(const uint8_t* s,int w,int h,const uint32_t* p,bool c,int x,int y){assert(s&&p&&w==320&&h==240);(void)c;(void)x;(void)y;++vgaCalls;}
+void freslest_video_doom_palette(const uint8_t *p){assert(p);}
+void freslest_video_doom(const uint8_t *s,bool c,int x,int y){assert(s);(void)c;(void)x;(void)y;++vgaCalls;}
 bool usbDoomPointer(int* x,int* y){*x=cursorX;*y=cursorY;return cursorVisible;}
 #include "../components/prboom-esp32-compat/spi_lcd.c"
 static unsigned command,pixelFormat,addressMode;

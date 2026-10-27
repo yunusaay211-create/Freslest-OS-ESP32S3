@@ -155,6 +155,12 @@ void I_SetPalette (int pal)
 	int pplump = W_GetNumForName("PLAYPAL");
 	const byte * palette = W_CacheLumpNum(pplump);
 	palette+=pal*(3*256);
+    if(freslest_video_output()==FRESLEST_DISPLAY_VGA){
+        spi_lcd_set_palette_rgb888(palette);
+        lprintf(LO_INFO,"DOOM VGA PLAYPAL=%d RGB888 index4=%u,%u,%u\n",pal,palette[12],palette[13],palette[14]);
+        W_UnlockLumpNum(pplump);
+        return;
+    }
 	for (i=0; i<256 ; i++) {
 		v=((palette[0]>>3)<<11)+((palette[1]>>2)<<5)+(palette[2]>>3);
 		lcdpal[i]=(v>>8)+(v<<8);

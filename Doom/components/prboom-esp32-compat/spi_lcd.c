@@ -86,6 +86,11 @@ void spi_lcd_set_palette(const int16_t *palette)
     }
 }
 
+void spi_lcd_set_palette_rgb888(const uint8_t *palette){
+    // Copy the full original PLAYPAL while its WAD lump is still locked.
+    freslest_video_doom_palette(palette);
+}
+
 static void tx(int dc, const void *data, size_t n)
 {
     if (!n) return;
@@ -315,7 +320,7 @@ void spi_lcd_send(uint16_t *scr)
 {
     if(freslest_video_output()==FRESLEST_DISPLAY_VGA){
         int x,y;bool cursor=usbDoomPointer(&x,&y);
-        freslest_video_indexed((uint8_t*)scr,320,240,pal_rgb,cursor,x,y);return;
+        freslest_video_doom((const uint8_t*)scr,cursor,x,y);return;
     }
     static int last_fullscreen = -1;
     static int old_cursor,old_cursor_y;

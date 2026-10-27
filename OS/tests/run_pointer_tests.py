@@ -15,7 +15,7 @@ pre=r'''
 void gfxMirrorTick(){}
 static bool composite;static unsigned compositePresents;
 freslest_display_t freslest_video_output(){return composite?FRESLEST_DISPLAY_VGA:FRESLEST_DISPLAY_LCD;}
-void freslest_video_rgb565(const uint16_t* p,int w,int h,bool swapped,bool cursor,int x,int y){assert(p&&w==480&&h==320);(void)swapped;(void)cursor;(void)x;(void)y;compositePresents++;}
+bool freslest_video_rgb565(const uint16_t* p,int w,int h,bool swapped,bool cursor,int x,int y){assert(p&&w==480&&h==320);(void)swapped;(void)cursor;(void)x;(void)y;compositePresents++;return true;}
 struct Pointer{int x=240,y=160;bool visible=false;}usbPointer;
 static uint16_t buffer[480*320],shadow[480*320],lcd[480*320];static uint16_t* presented=shadow;
 static bool firstPresent=true,oldPointer=false;static int oldX=0,oldY=0;

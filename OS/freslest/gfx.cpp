@@ -187,9 +187,10 @@ void gfxPresent(){
   // A static UI must not contend with the continuously scanning PSRAM DMA
   // by rewriting the entire 640x480 RGB332 frame on every UI tick.
   if(firstPresent||!presented||moved||memcmp(pixels,presented,bytes)!=0){
-   if(presented)memcpy(presented,pixels,bytes);
-   freslest_video_rgb565(pixels,frame.width(),frame.height(),true,usbPointer.visible,usbPointer.x,usbPointer.y);
-   firstPresent=false;oldPointer=usbPointer.visible;oldX=usbPointer.x;oldY=usbPointer.y;
+   if(freslest_video_rgb565(pixels,frame.width(),frame.height(),true,usbPointer.visible,usbPointer.x,usbPointer.y)){
+    if(presented)memcpy(presented,pixels,bytes);
+    firstPresent=false;oldPointer=usbPointer.visible;oldX=usbPointer.x;oldY=usbPointer.y;
+   }
   }
   return;
  }

@@ -322,47 +322,61 @@ void setBtExit() {
 
 // ===== Display output =====
 static int displayChoice=0;
-static bool displayConfirm=false,displaySaveError=false;
+static bool displayConfirm=false,displaySaveError=false,displayProfileHint=false;
+#if FRESLEST_LCD_MODEL == 9341
+static constexpr int loadedLcd=1;
+#else
+static constexpr int loadedLcd=0;
+#endif
 static void drawDisplayPage(){
  tft.fillScreen(TH().bg);drawHeader("Settings: Display");clearBody();
  drawFooter(displayConfirm?"OK Restart + apply":"UP/DOWN Select  OK Apply","BACK Cancel");
- const char* names[]={
-#if FRESLEST_LCD_MODEL == 9341
- "ILI9341 LCD (320x240)",
-#else
- "ILI9488 LCD (480x320)",
-#endif
- "VGA RGB332 (640x480)",usbInputViewerMode()?"USB PC Viewer: ON":"USB PC Viewer: OFF"};
+ char fitLabel[32];snprintf(fitLabel,sizeof(fitLabel),"VGA size: %u%%",freslest_video_fit());
+ const char* names[]={"ILI9488 LCD (480x320)","ILI9341 LCD (320x240)",
+  "VGA RGB332 (640x480)",usbInputViewerMode()?"USB PC Viewer: ON":"USB PC Viewer: OFF",fitLabel};
  settingTextSize(2);
- for(int i=0;i<3;i++){
+ for(int i=0;i<5;i++){
   int y=58+i*31;settingFillRoundRect(20,y,440,28,8,i==displayChoice?TH().selbg:TH().panel);
   tft.setTextColor(TH().text,i==displayChoice?TH().selbg:TH().panel);settingCursor(34,y+9);
   tft.print(i==displayChoice?"> ":"  ");tft.print(names[i]);
+  if(i==loadedLcd)tft.print(" [loaded]");
  }
  settingTextSize(1);tft.setTextColor(TH().dim,TH().bg);
- settingCursor(24,224);tft.print(tft.width()==320?"BACK+RESET: LCD | OK: apply":"BACK+RESET: LCD. VGA: same LCD image, RGB332.");
+ settingCursor(24,224);
+ if(displayProfileHint)tft.print(displayChoice==1?"Installer > Screens > ILI9341":"Installer > Screens > ILI9488");
+ else tft.print(displayChoice==4?"LEFT/RIGHT: VGA size 80-100%":"BACK+RESET: loaded LCD | OK apply");
  settingFillRoundRect(20,236,440,34,6,TH().panel);settingCursor(32,248);
- tft.print(displayConfirm?"Restart and apply? OK confirms.":"OK Apply / Open selected display settings");
+ tft.print(displayProfileHint?"Install matching OS + Doom profile.":displayConfirm?"Restart and apply? OK confirms.":"OK Apply / Open selected display settings");
  if(displaySaveError){settingCursor(24,279);tft.print("Could not save. Try again; output has not changed.");}
 }
-void setDisplayEnter(){displayChoice=freslest_video_output()==FRESLEST_DISPLAY_VGA?1:0;displayConfirm=false;displaySaveError=false;drawDisplayPage();}
+void setDisplayEnter(){displayChoice=freslest_video_output()==FRESLEST_DISPLAY_VGA?2:loadedLcd;displayConfirm=false;displaySaveError=false;displayProfileHint=false;drawDisplayPage();}
+static void changeVgaFit(int step){
+ int fit=(int)freslest_video_fit()+step;
+ if(fit<80)fit=100;
+ if(fit>100)fit=80;
+ displayConfirm=false;displaySaveError=!freslest_video_save_fit((unsigned)fit);drawDisplayPage();
+}
 void setDisplayLoop(uint32_t now){
  (void)now;
- if(settingHit(20,58,440,93)){
-  displayChoice=(settingPointerY()-58)/31;if(displayChoice>2)displayChoice=2;
-  displayConfirm=false;displaySaveError=false;
+ if(settingHit(20,58,440,155)){
+  displayChoice=(settingPointerY()-58)/31;if(displayChoice>4)displayChoice=4;
+  displayConfirm=false;displaySaveError=false;displayProfileHint=false;
   drawDisplayPage();return;
  }
+ if(displayChoice==4&&(bLeft.pressed()||bRight.pressed())){changeVgaFit(bLeft.pressed()?-5:5);return;}
  if(bUp.pressed()||bDown.pressed()||bLeft.pressed()||bRight.pressed()){
   int step=(bUp.pressed()||bLeft.pressed())?-1:1;
-  displayChoice=(displayChoice+step+3)%3;displayConfirm=false;displaySaveError=false;drawDisplayPage();return;
+  displayChoice=(displayChoice+step+5)%5;displayConfirm=false;displaySaveError=false;displayProfileHint=false;drawDisplayPage();return;
  }
  if(settingHit(20,236,440,34))bOk.pressedEdge=true;
  if(!bOk.pressed())return;
- if(displayChoice<2&&(displayChoice==0?FRESLEST_DISPLAY_LCD:FRESLEST_DISPLAY_VGA)==freslest_video_output()){enterApp(APP_SETTINGS);return;}
+ if(displayChoice==4){changeVgaFit(5);return;}
+ if(displayChoice<2&&displayChoice!=loadedLcd){displayProfileHint=true;displayConfirm=false;drawDisplayPage();return;}
+ freslest_display_t selected=displayChoice==2?FRESLEST_DISPLAY_VGA:FRESLEST_DISPLAY_LCD;
+ if(displayChoice<3&&selected==freslest_video_output()){enterApp(APP_SETTINGS);return;}
  if(!displayConfirm){displayConfirm=true;drawDisplayPage();return;}
- if(displayChoice==2){if(!usbInputSwitchViewer(!usbInputViewerMode())){displaySaveError=true;drawDisplayPage();}return;}
- if(!freslest_video_save_output(displayChoice==0?FRESLEST_DISPLAY_LCD:FRESLEST_DISPLAY_VGA)){displaySaveError=true;drawDisplayPage();return;}
+ if(displayChoice==3){if(!usbInputSwitchViewer(!usbInputViewerMode())){displaySaveError=true;drawDisplayPage();}return;}
+ if(!freslest_video_save_output(selected)){displaySaveError=true;drawDisplayPage();return;}
  audioStop();tft.fillScreen(0);drawHeader("Restarting display...");gfxPresent();delay(300);ESP.restart();
 }
 

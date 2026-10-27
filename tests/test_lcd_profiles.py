@@ -31,9 +31,9 @@ class LcdProfiles(unittest.TestCase):
 #include "freslest_cursor.h"
 #include "freslest_video.h"
 void gfxMirrorTick(){}
-static bool vga=false;static int vgaCalls;
+static bool vga=false,vgaAccept=true;static int vgaCalls;
 freslest_display_t freslest_video_output(){return vga?FRESLEST_DISPLAY_VGA:FRESLEST_DISPLAY_LCD;}
-void freslest_video_rgb565(const uint16_t*,int w,int h,bool,bool,int,int){assert((w==480&&h==320)||(w==320&&h==240));++vgaCalls;}
+bool freslest_video_rgb565(const uint16_t*,int w,int h,bool,bool,int,int){assert((w==480&&h==320)||(w==320&&h==240));++vgaCalls;return vgaAccept;}
 struct {int x=240,y=160;bool visible=false;}usbPointer;
 static uint16_t buffer[480*320],shadow[480*320],lcd[320*240];
 static uint16_t* presented=shadow;
@@ -84,6 +84,8 @@ int main(){
  usbPointer.visible=false;gfxPresent();assert(vgaCalls==5);
  frame.w=320;firstPresent=true;gfxPresent();assert(vgaCalls==6);
  gfxPresent();assert(vgaCalls==6&&before==_tft.rows);
+ buffer[0]^=1;vgaAccept=false;gfxPresent();assert(vgaCalls==7);
+ vgaAccept=true;gfxPresent();assert(vgaCalls==8);gfxPresent();assert(vgaCalls==8);
 
 }
 '''
@@ -96,6 +98,9 @@ int main(){
 int main(){assert(gfxUiWidth()==320&&gfxUiHeight()==240);compactUi=false;assert(gfxUiWidth()==480&&gfxUiHeight()==320);}
 '''
         self.compile_run(code,'c++',9341)
+
+    def test_doom_raw_vga_palette(self):
+        subprocess.run([sys.executable,str(ROOT/'tests/run_doom_vga_tests.py')],check=True)
 
     def test_doom_both_lcd_profiles(self):
         for model in (9341, 9488):
