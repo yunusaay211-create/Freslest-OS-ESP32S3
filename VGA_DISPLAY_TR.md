@@ -1,12 +1,18 @@
 # Freslest LCD RGB565 → VGA RGB332
 
-VGA, LCD için çizilen aynı framebuffer’ı kullanır. Ayrı bir VGA arayüzü yoktur: menüler, uygulamalar, oyunlar ve fare imleci aynı kaynaktan gelir. ILI9341 menüler ve Apps listesindeki uygulamalar için 320×240 tuval kullanır; ILI9488 ve mevcut oyun uyumluluk düzenleri 480×320’dir. Görüntünün tamamı 640×480 VGA alanına ölçeklenir. Doom’un 320×240 indeksli karesi kendi paletiyle aynı RGB332 çıkışına çevrilir.
+VGA, LCD için çizilen aynı framebuffer’ı kullanır. Ayrı bir VGA arayüzü yoktur: menüler, uygulamalar, oyunlar ve fare imleci aynı kaynaktan gelir. ILI9341 menüler ve Apps listesindeki uygulamalar için 320×240 tuval kullanır; ILI9488 ve mevcut oyun uyumluluk düzenleri 480×320’dir. Görüntünün tamamı varsayılan olarak 640×480 sinyalin ortasındaki 576×432 alana ölçeklenir; TV kenar kırpılmasına karşı siyah pay bırakılır. Doom’un 320×240 indeksli karesi özgün PLAYPAL RGB888 paletinden ayrı bir RGB332 çizim yoluyla aktarılır; LCD RGB565 ara dönüşümünü kullanmaz.
 
 Fiziksel çıkış **RGB332 / 8 bit / 256 renk**; kaynak görüntü RGB565’tir. VGA RGB565 veya 65.536 renk çıkışı değildir. Kaynak `Freslest_VGA_RGB332_1_0_Core(1).zip` V1.0 çekirdeği, hedef zamanlama 25.175 MHz PCLK, 640×480 yaklaşık 59.94 Hz. Bu değerler yazılım hedefidir; osiloskop ölçümü değildir.
 
 ## Seçim
 
 Settings → Display → LCD / VGA RGB332 / USB PC Viewer. LCD/VGA değişimi iki aşamalı onaydan sonra yeniden başlatılır. VGA modunda SPI LCD ve GPIO41 backlight PWM başlatılmaz. Eski AV seçimi yeni sürümde LCD’ye döner; VGA kendiliğinden etkinleşmez. BACK basılıyken RESET, LCD’yi seçer.
+
+## TV boyutu ve LCD profili
+
+Settings → Display → VGA size: LEFT/RIGHT ile %80, %85, %90, %95, %100. OK sonraki değeri seçer; ayar hemen kaydedilir. OS ve Doom aynı ayarı okur. Sinyal her zaman 640×480 kalır; boyut ayarı porch veya saat değerlerini değiştirmez.
+
+Display menüsü ILI9488 ve ILI9341’i ayrı satırlarda gösterir. `[loaded]` derlenip yüklenmiş LCD profilidir. Diğer model seçildiğinde installer’daki gerekli ekran profili gösterilir; yalnızca NVS değeri değiştirerek farklı SPI sürücüsü uygulanmış gibi davranılmaz. Model değişimi için installer > Screens adımından eşleşen OS+Doom firmware’ini yükleyin.
 
 ## V1.0 bağlantıları
 
@@ -36,6 +42,6 @@ DFPlayer ses yolu VGA’dan ayrıdır: ESP GPIO18 TX → DFPlayer RX, DFPlayer T
 
 ## Durum ve test sınırı
 
-Bu geçiş deneysel VGA desteğidir. Önceki donanım denemelerinde sinyal gidip gelmesi görülmüştür; kesin giderildiği iddia edilmez. Tek PSRAM VGA framebuffer’ı V1.0 çekirdeğine uygun tutulduğundan hareketli görüntüde tearing görülebilir. Yazılım VSYNC ve gönderilen kareleri izler; monitörün fiziksel bağlantısını veya analog sinyal kalitesini tespit edemez.
+Bu geçiş deneysel VGA desteğidir. Önceki donanım denemelerinde sinyal gidip gelmesi görülmüştür; kesin giderildiği iddia edilmez. Yeni aktarım iki PSRAM kare ve iki dahili on satırlık DMA tamponu kullanır. CPU aktif kareye yazmaz; tamamlanma bildirimi gelmezse yeni kare atlanır ve OS tekrar dener. Koşulsuz her-VBlank DMA sıfırlaması kapatılmıştır. Flash yazımında önbelleğin erişilebilir kalması için OS ve Doom’da PSRAM XIP açıktır. Bu mimari değişikliğinin fiziksel sonucu cihazda doğrulanmalıdır. Yazılım VSYNC ve gönderilen kareleri izler; monitörün fiziksel bağlantısını veya analog sinyal kalitesini tespit edemez.
 
 AV/kompozit motoru, test modu ve TV renk/hizalama menüleri kaldırıldı. USB Viewer bağımsız olarak korunur. Fiziksel ESP32-S3/LCD/VGA testi bu çalışma ortamında yapılamaz.

@@ -12,15 +12,16 @@ Bu güncelleme ILI9341 uygulama ekranlarını düzenler, VGA kaymasına karşı 
 ## AV’den VGA’ya geçiş
 
 - Kompozit AV motoru, AV test modu ve TV renk/hizalama sayfaları kaldırıldı.
-- **Settings → Display** üzerinden LCD veya **VGA RGB332** seçilebilir; değişiklik onay ve yeniden başlatma ile uygulanır. BACK basılıyken RESET, LCD’ye dönüş sağlar.
-- VGA ayrı bir masaüstü çizmez. **LCD için çizilen aynı RGB565 görüntü RGB332’ye dönüştürülür**; menüler, uygulamalar, oyunlar ve fare imleci aynı içerikle VGA’da gösterilir.
+- **Settings → Display** içinde ILI9488, ILI9341, VGA RGB332, USB Viewer ve VGA size satırları bulunur. Yüklü LCD profili `[loaded]` ile gösterilir; diğer LCD modeli için installer’dan eşleşen OS+Doom profili yüklenmelidir. LCD/VGA değişikliği onay ve yeniden başlatma ile uygulanır. BACK basılıyken RESET, LCD’ye dönüş sağlar.
+- VGA ayrı bir masaüstü çizmez. **OS için çizilen aynı RGB565 görüntü RGB332’ye dönüştürülür**; Doom aynı oyun karesini özgün indeksli paletinden RGB332’ye çevirir. Menüler, uygulamalar, oyunlar ve fare imleci aynı içerikle seçilen çıkışta gösterilir.
 - VGA hedefi **640×480, yaklaşık 60 Hz, RGB332/256 renk**. RGB565 kaynak kullanılması, fiziksel VGA çıkışının RGB565 olduğu anlamına gelmez.
 - Önceki AV seçimi otomatik VGA’ya dönüştürülmez; güncelleme sonrasında LCD ile açılır.
 
 ## VGA kayması, Doom renkleri ve ses
 
-- Sabit OS görüntüsü her döngüde yeniden VGA belleğine yazılmaz. PSRAM veri yolu yükü azaltılır; OS ve Doom için VBlank DMA yeniden hizalama etkinleştirilir. Çalışan renk çubuğu çekirdeğinin saat, senkronizasyon ve pin değerleri korunur.
-- Doom’un indeksli VGA paletinde 4×4 sıralı renk yuvarlaması uygulanır. RGB332’nin koyu tonlarda maviyi tamamen kaybetmesi azaltılır; kırmızı/yeşil/mavi uç değerleri korunur. Doom yönü ve LCD paleti değişmez.
+- VGA aktarımı iki PSRAM kare ve iki dahili on satırlık DMA tamponu kullanır. Yeni kare, görüntüleyicinin okumadığı bellekte hazırlanır; kare tamamlanmadan eski tampon yeniden kullanılmaz. Her VBlank’te koşulsuz DMA sıfırlaması kaldırıldı. Flash/NVS/OTA işlemleri sırasında bu yolun çalışabilmesi için PSRAM XIP etkinleştirildi. Saat, senkronizasyon ve pinler korunur.
+- Doom için ayrı RGB332 çizim yolu eklendi. Özgün PLAYPAL RGB888 renkleri LCD’nin RGB565 dönüşümüne uğramadan önbellekli RGB332 tablosuna çevrilir. Sabit 4×4 renk yuvarlaması koyu tonları korur; oyun içi hasar/bonus paletleri ve LCD yönü korunur.
+- TV kenar kırpılması için **Settings → Display → VGA size** eklendi. Varsayılan %90; LEFT/RIGHT ile %80–100 arasında ayarlanır. Görüntünün tamamı siyah kenarlar içinde ortalanır; VGA sinyali 640×480 kalır. Ayar OS ve Doom tarafından ortak kullanılır.
 - Freslest DFPlayer sesinde SD dosya sorgusu düzeltildi. SD kart yeniden takıldığında veya modül yeniden başlama bildirimi verdiğinde kaynak, DAC ve kullanıcının ses düzeyi geri yüklenir. Sessiz ayarı korunur; eski efektler yeniden oynatılmaz.
 - Bu düzeltmeler yazılım testleriyle doğrulanır; bildirilen VGA kayması, kırmızı ton ve aralıklı ses kesilmesinin cihazda tamamen giderildiği henüz doğrulanmadı.
 
@@ -36,6 +37,6 @@ Kurulumdan önce dosya, not ve ROM’larınızı yedekleyin. Ekran modelini kend
 
 ## Derleme doğrulaması
 
-İki LCD için OS/Doom firmware derlemeleri, bölüm/hash kontrolleri, Windows kurucu/Viewer testleri ve EXE açılış testleri geçti: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40525403029
+İki LCD için OS/Doom firmware derlemeleri, bölüm/hash kontrolleri, Windows kurucu/Viewer testleri ve EXE açılış testleri geçti: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40563327596
 
 Bu ortamda fiziksel ESP32-S3/LCD/VGA testi yapılmadı.

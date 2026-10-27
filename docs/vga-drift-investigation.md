@@ -13,3 +13,6 @@ Primary references:
 - https://github.com/espressif/esp-idf/blob/v5.4.4/components/esp_lcd/rgb/esp_lcd_panel_rgb.c (lcd_rgb_panel_try_restart_transmission)
 
 Code uploaded to the previously approved public repository/branch after verifying public OS/Doom configs at04a042a4c95e7451af25e0f47f24458aec00e9b3; initial automatic review rejection was resolved by that authorization/destination check. Firmware candidate source915d1107c54a6ade6ba4395bc9cc3821b254a128; physical confirmation still pending.
+
+
+Superseded candidate after user photos (2026-10-27): active-buffer write reproduced; unconditional VBlank restart can itself jitter. Current design uses double PSRAM frames plus internal bounce buffers and XIP; see docs/superpowers/specs/2026-10-27-vga-frame-ownership-design.md. Earlier physical-success claims must not be inferred from host tests.

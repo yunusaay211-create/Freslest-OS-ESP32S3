@@ -9,3 +9,5 @@ Doom receives its own raw PLAYPAL RGB888-to-RGB332 lookup and 320x240 indexed re
 TV fit adds centered 80/85/90/95/100% safe area, default90%; 640x480 signal remains unchanged. Store fit separately in fl_video so both OS and Doom use it. Display settings offer an explicit size row; LCD and USB pointer coordinates remain source coordinates. Borders black, complete source endpoints visible, no cropping.
 
 Constraints: both LCD models, 16MB A/B layout, existing sound recovery, old AV removal, healthy boot/rollback and USB Viewer retained. Full installer must carry updated Doom; OS update ZIPs cannot replace Doom. Physical timing/TV validation remains outstanding.
+
+Follow-up: user explicitly requests ILI9341 in the change-display menu. Both models are listed and the currently compiled one marked [loaded]. The other selection gives the required installer model; runtime driver replacement is not implemented and no fake setting is saved.

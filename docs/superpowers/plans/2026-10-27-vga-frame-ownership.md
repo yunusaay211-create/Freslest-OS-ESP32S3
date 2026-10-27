@@ -22,16 +22,18 @@
 
 ### Task1: Frame ownership and transport
 - [x] Reproduce active scanout modification with failing backend regression.
-- [ ] Extend actual backend host test with delayed frame events, timeout, swap, setup cleanup and failure ownership.
-- [ ] Implement two frames/bounce configuration and bounded pending-frame handling in shared_components/freslest_video/freslest_video.c; enable XIP and replace unconditional restarts in all four configs.
-- [ ] Run tests/test_vga_transition.py and actual firmware builds.
+- [x] Extend actual backend host test with delayed frame events, timeout, swap, setup cleanup and failure ownership.
+- [x] Implement two frames/bounce configuration and bounded pending-frame handling in shared_components/freslest_video/freslest_video.c; enable XIP and replace unconditional restarts in all four configs.
+- [x] Run tests/test_vga_transition.py and actual firmware builds.
 
 ### Task2: Doom RGB332 palette path
-- [ ] Add test fixtures for raw RGB888 channels, dark neutrals, palette changes and actual Doom VGA call path before implementation.
-- [ ] Add vga_doom palette/renderer, wire I_SetPalette raw palette only in VGA, retain LCD conversion.
-- [ ] Run both LCD profile regressions and stack budget.
+- [x] Add test fixtures for raw RGB888 channels, dark neutrals, palette changes and actual Doom VGA call path before implementation.
+- [x] Add vga_doom palette/renderer, wire I_SetPalette raw palette only in VGA, retain LCD conversion.
+- [x] Run both LCD profile regressions and stack budget.
 
 ### Task3: TV safe area
-- [ ] Test fit borders/endpoints/cursor, NVS bounds/failure and Display size interaction on both LCD sizes.
-- [ ] Implement fit-aware converter, persistent getter/setter and Display size row.
-- [ ] Run Linux suite, Windows suite and EXE smoke CI; verify all payload hashes/partition limits, create OS-only ZIPs and update deliverables/provenance.
+- [x] Test fit borders/endpoints/cursor, NVS bounds/failure and Display size interaction on both LCD sizes.
+- [x] Implement fit-aware converter, persistent getter/setter and Display size row.
+- [x] Run Linux suite, Windows suite and EXE smoke CI; verify all payload hashes/partition limits, create OS-only ZIPs and update deliverables/provenance.
+
+Verified CI40563327596: four real firmware builds, nine Linux regressions,43 Windows tests (nine Linux native skips), nine Viewer tests and native EXE launches passed. All14 segment hashes and all four app checksums/digests verified. Fresh read-only review found no critical/important issue. Physical TV/Doom validation remains pending; neither tint nor rolling is claimed physically cured.
