@@ -37,7 +37,7 @@ Host checks that compile production C/C++ modules with SDK test doubles include 
 ## Hardware requirements
 
 - ESP32-S3 N16R8 development board, **16 MB flash / 8 MB OPI PSRAM**
-- **ILI9488 480 × 320 SPI TFT** (non-touch configuration)
+- **ILI9488 480 × 320 SPI TFT or ILI9341 240x320 SPI TFT** (non-touch configuration)
 - Seven momentary buttons, wired **active-low** (between GPIO and GND)
 - Optional: DFPlayer Mini and microSD, DHT11, composite-video resistor DAC, amplifier, single-cell battery with sensing divider, USB host peripherals
 
@@ -45,7 +45,7 @@ Host checks that compile production C/C++ modules with SDK test doubles include 
 
 These assignments are based on the provided Freslest ESP32-S3 source archive's hardware table. GPIO means a signal on the ESP32-S3, **not a numbered physical header pin**.
 
-### ILI9488 TFT display
+### ILI9488 TFT display or ILI9341 TFT display
 
 | TFT signal | ESP32-S3 | Notes |
 |---|---:|---|
@@ -99,7 +99,7 @@ The DFPlayer handles recorded music/cues while GPIO21 provides live effects. An 
 
 **Never connect a Li-ion battery cell directly to GPIO1**. Use the correctly oriented voltage divider and an appropriate protected battery supply/charging circuit. USB connector roles vary by operating mode.
 
-### composite VGA DAC (8-bit)
+### VGA (8-bit)
 
 | ESP32-S3 Pin | RGB332 Signal | Series Resistor | VGA Pin |
 | :--- | :--- | :--- | :--- |
