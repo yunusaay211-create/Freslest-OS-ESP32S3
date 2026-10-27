@@ -14,7 +14,7 @@ static unsigned rd=0,wr=0;
 static bool initialized=false,ready=false,bootPending=false,testPending=false,stopRequested=false;
 static uint32_t nextTx=0,phaseDeadline=0,priorityUntil=0,lastClick=0,verboseUntil=0,feedbackAt=0;
 static unsigned phase=0,logBudget=40;
-static bool feedbackReported=false;
+static bool feedbackReported=false,waitingForCard=false;
 static AudioDiagnostics diagnostics={};
 static uint8_t rx[10];
 static unsigned rxUsed=0;
@@ -38,10 +38,22 @@ static void send(uint8_t cmd,uint16_t value) {
   if(verbose()) {--logBudget;Serial.printf("DFPLAYER TX: cmd=0x%02X value=%u bytes=%u/10\n",cmd,value,(unsigned)written);}
 }
 static void receive(uint8_t cmd,uint16_t value) {
+  // Recover only on an explicit SD insertion/online notification. Silent RX
+  // wiring must never cause periodic resets or interrupt a healthy cue.
+  if((cmd==0x3f||cmd==0x3a)&&(value&2)&&(ready||waitingForCard)) {
+    rd=wr=0;priorityUntil=0;bootPending=testPending=false;
+    ready=diagnostics.ready=false;waitingForCard=false;
+    phase=1;phaseDeadline=millis()+700; // select SD; do not reset in a loop
+    ++diagnostics.recoveries;
+    Serial.println("DFPLAYER: SD online; restoring source, DAC and user volume");
+  }
+  if(cmd==0x3b&&(value&2)) {
+    rd=wr=0;priorityUntil=0;ready=diagnostics.ready=false;waitingForCard=true;
+  }
   diagnostics.replySeen=true;++diagnostics.rxPackets;
   if(cmd==0x3f||cmd==0x3a) {diagnostics.cardKnown=true;diagnostics.cardPresent=(value&2)!=0;}
   if(cmd==0x3b&&(value&2)) {diagnostics.cardKnown=true;diagnostics.cardPresent=false;}
-  if(cmd==0x48) {diagnostics.cardKnown=true;diagnostics.cardPresent=value>0;diagnostics.fileCount=value;}
+  if(cmd==0x47) {diagnostics.cardKnown=true;diagnostics.cardPresent=value>0;diagnostics.fileCount=value;}
   if(cmd==0x40)diagnostics.lastError=value;
   if(verbose()||(cmd==0x40&&logBudget)) {
     if(logBudget)--logBudget;
@@ -92,7 +104,7 @@ static void startup(uint32_t now) {
     case 1:send(0x09,2);phaseDeadline=now+700;break;
     case 2:send(0x1a,0);phaseDeadline=now+COMMAND_GAP;break;
     case 3:send(0x06,volume());phaseDeadline=now+COMMAND_GAP;break;
-    case 4:send(0x48,0);phaseDeadline=now+COMMAND_GAP;break;
+    case 4:send(0x47,0);phaseDeadline=now+COMMAND_GAP;break;
     case 5:send(0x42,0);phaseDeadline=now+COMMAND_GAP;break;
     default:
       ready=diagnostics.ready=true;feedbackAt=now+2000;
@@ -105,7 +117,7 @@ void audioUpdate(uint32_t now) {
   if(!initialized)return;
   pollRx();
   if(stopRequested&&due(now,nextTx)) {send(0x16,0);stopRequested=false;return;}
-  if(!ready) {startup(now);return;}
+  if(!ready) {if(!waitingForCard)startup(now);return;}
   if(!feedbackReported&&due(now,feedbackAt)) {
     feedbackReported=true;
     if(!diagnostics.replySeen)Serial.println("DFPLAYER: no reply on RX17. Playback is still attempted; check module TX, shared GND and SD if silent.");
@@ -135,16 +147,16 @@ void audioWin() {play(112,1000,true);}
 AudioDiagnostics audioGetDiagnostics() {return diagnostics;}
 void audioPrintDiagnostics() {
   verboseUntil=millis()+30000;logBudget=40;
-  Serial.printf("DFPLAYER DIAG: ready=%d sound=%d volume=%u TX=%lu RX=%lu failures=%lu invalid=%lu SD=%s files=%u error=%u last=/MP3/%04u.mp3\n",
+  Serial.printf("DFPLAYER DIAG: ready=%d sound=%d volume=%u TX=%lu RX=%lu failures=%lu invalid=%lu SD=%s files=%u error=%u recovery=%lu last=/MP3/%04u.mp3\n",
     ready,soundEnabled,volume(),(unsigned long)diagnostics.txPackets,(unsigned long)diagnostics.rxPackets,
     (unsigned long)diagnostics.txFailures,(unsigned long)diagnostics.invalidPackets,
-    diagnostics.cardKnown?(diagnostics.cardPresent?"online":"absent"):"unknown",diagnostics.fileCount,diagnostics.lastError,diagnostics.lastTrack);
-  if(ready) {enqueue(0x48,0);enqueue(0x42,0);}
+    diagnostics.cardKnown?(diagnostics.cardPresent?"online":"absent"):"unknown",diagnostics.fileCount,diagnostics.lastError,(unsigned long)diagnostics.recoveries,diagnostics.lastTrack);
+  if(ready) {enqueue(0x47,0);enqueue(0x42,0);}
 }
 void audioTest() {
   audioPrintDiagnostics();
   if(!soundEnabled||!volume()) {Serial.println("DFPLAYER: test muted; enable Sound and raise Volume first");return;}
   if(!ready) {testPending=true;Serial.println("DFPLAYER: test queued until SD initialization completes");return;}
   play(105,1250,true);
-  enqueue(0x48,0);enqueue(0x42,0);
+  enqueue(0x47,0);enqueue(0x42,0);
 }

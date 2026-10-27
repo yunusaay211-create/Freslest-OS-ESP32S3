@@ -11,6 +11,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipIf(sys.platform == 'win32', 'C/C++ sanitizer tests run in the Linux firmware job')
 class LcdProfiles(unittest.TestCase):
+    def test_os_audio_recovers_card_and_module_restart(self):
+        with tempfile.TemporaryDirectory() as d:
+            exe=Path(d)/'audio'
+            app=ROOT/'OS/freslest/src/freslest'
+            base=ROOT/'OS/tests'
+            subprocess.run(['g++','-std=c++17','-Wall','-Wextra','-Werror','-g','-fsanitize=address,undefined','-fno-pie','-no-pie','-I'+str(base/'stubs'),'-I'+str(app),'-I'+str(ROOT/'OS/components/nofrendo/src'),str(app/'audio_manager.cpp'),str(app/'nes_audio.cpp'),str(base/'mock_audio.cpp'),str(base/'test_mp3.cpp'),'-o',str(exe)],check=True)
+            subprocess.run([str(exe)],check=True,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'})
+
     def test_os_present_scales_full_ui_and_restores_pointer(self):
         source = (ROOT / 'OS/freslest/gfx.cpp').read_text()
         start = source.index('static __attribute__((noinline,noclone)) void gfxCursor(')
