@@ -1,8 +1,8 @@
-# Freslest OS 1.0
+# Freslest OS 1.1
 
 **A graphical, desktop-style embedded environment for the ESP32-S3**, featuring applications, NES emulation, DOOM, USB input, file management, and experimental composite video.
 
-> **Public version:** Freslest OS **1.0**. `OS/CMakeLists.txt` sets `PROJECT_VER` to `1.0`. The packaged OS image also reports `1.0`; its release metadata was updated without rebuilding the compiled OS code. See [DOGRULAMA.txt](DOGRULAMA.txt).
+> **Public version:** Freslest OS **1.1**. `OS/CMakeLists.txt` sets `PROJECT_VER` to `1.1`. The packaged OS image also reports `1.1`; its release metadata was updated without rebuilding the compiled OS code. See [DOGRULAMA.txt](DOGRULAMA.txt).
 
 ## Firmware source code
 
@@ -168,7 +168,7 @@ The source documentation describes two PC connection modes:
 - **USB/UART COM:** viewer connects through the programming/serial port, leaving native USB/OTG for external keyboard, mouse or storage.
 - **Native USB CDC:** enable **Settings > Display > USB PC Viewer**, confirm and restart. Native USB may enumerate as a COM port, but in viewer device mode it is **not** simultaneously a USB-host connector.
 
-Use **Fit** to include top and bottom bars. Large frames over serial can be slow; throughput depends on port and connection mode. Viewer compatibility should be checked against the final Freslest OS 1.0 firmware before publishing.
+Use **Fit** to include top and bottom bars. Large frames over serial can be slow; throughput depends on port and connection mode. Viewer compatibility should be checked against the final Freslest OS 1.1 firmware before publishing.
 
 ## Included applications and features
 
@@ -181,13 +181,13 @@ Use **Fit** to include top and bottom bars. Large frames over serial can be slow
 
 ## Repository layout
 
-`OS/` and `Doom/` are the ESP-IDF projects; `common/` and `shared_components/` contain shared firmware code. `tests/`, `OS/tests/`, `Doom/tests/` and `validation/` contain host checks. `tools/` contains flashing and packaging helpers. Windows sources are in `installer/` and `viewer/`, with their build workflow in `.github/workflows/`. `prepare_firmware.py` reconstructs the preserved payload and applies the verified OS 1.0 metadata stamp for Windows installer builds.
+`OS/` and `Doom/` are the ESP-IDF projects; `common/` and `shared_components/` contain shared firmware code. `tests/`, `OS/tests/`, `Doom/tests/` and `validation/` contain host checks. `tools/` contains flashing and packaging helpers. Windows sources are in `installer/` and `viewer/`, with their build workflow in `.github/workflows/`. `prepare_firmware.py` reconstructs the preserved payload and applies the verified OS 1.1 metadata stamp for Windows installer builds.
 
 ## Important publishing notes
 
 - Include license and attribution for **DOOM port code, libraries and external assets**, respecting each dependency's license. Do not publish copyrighted commercial game ROMs, MP3 files or WAD assets without redistribution rights.
 - Publish SHA-256 sums for installer and firmware; test releases on the target board before saying “one-click ready”.
-- Future OS source builds use version `1.0`; verify the board behavior before describing a release as hardware-tested.
+- Future OS source builds use version `1.1`; verify the board behavior before describing a release as hardware-tested.
 - Hardware diagrams, battery safety and AV DAC resistor values must be checked against the finished board-specific wiring before advertising them as fully verified.
 
 ## License
