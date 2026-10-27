@@ -1,37 +1,37 @@
 {
-  "source_commit": "3a7b02f2a9078c43009a4d2ccd69ce02ef35a3c5",
-  "workflow_run": 40563327596,
-  "firmware_artifact": 12763040089,
-  "firmware_zip_sha256": "4e544031570a275f35b00dea225c63665b575adc9518c20a6bfbf4ab26bfc319",
+  "source_commit": "d766797ffdcaf0e91396bca317390b939ac5513a",
+  "workflow_run": 40569946857,
+  "firmware_artifact": 12764928239,
+  "firmware_zip_sha256": "edf1c8a7738e1117937bf08b2501eadbd10b474f69efd75123b4fba18a632a08",
   "profiles": {
     "ili9488": {
-      "os_bytes": 1756160,
+      "os_bytes": 1756016,
       "os_slot_bytes": 1769472,
-      "doom_bytes": 886800,
+      "doom_bytes": 886624,
       "doom_slot_bytes": 917504,
       "all_seven_hashes_verified": true,
       "sha256": {
-        "firmware/bootloader.bin": "fc1b32e8389ee2ecd7ef6dc7867773d6eb05c7168b8c6fdbb4837833a43fe01f",
+        "firmware/bootloader.bin": "031d6b7f5edccaba1054c696fc1cdcbe77c820c5be5bf11da6bc1a8f4280a1f7",
         "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
         "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
-        "firmware/freslest_doom_s3.bin": "bf214b98df215dde3f272948f88dcb905d10c18be91d71aba721007e535f2a2e",
-        "firmware/freslest_os_s3.bin": "09daf5311d0206500d527d9536ff09543ab97d74da1c6d05e5e9bb7e29394cb7",
+        "firmware/freslest_doom_s3.bin": "5ff90b8ad46de80e77d50dde1346d6c57a059a669254627935de90fbb87a8c4b",
+        "firmware/freslest_os_s3.bin": "0da45010be510f98a6274565a05fdbb4cb45a2a347b189baa9953b9e9d6655e1",
         "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
         "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
       }
     },
     "ili9341": {
-      "os_bytes": 1756832,
+      "os_bytes": 1756688,
       "os_slot_bytes": 1769472,
-      "doom_bytes": 886848,
+      "doom_bytes": 886672,
       "doom_slot_bytes": 917504,
       "all_seven_hashes_verified": true,
       "sha256": {
-        "firmware/bootloader.bin": "fc1b32e8389ee2ecd7ef6dc7867773d6eb05c7168b8c6fdbb4837833a43fe01f",
+        "firmware/bootloader.bin": "031d6b7f5edccaba1054c696fc1cdcbe77c820c5be5bf11da6bc1a8f4280a1f7",
         "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
         "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
-        "firmware/freslest_doom_s3.bin": "677b29f9d25152379606c1df045df59b313aeb6547bf1c80f3c3f82a8706d8da",
-        "firmware/freslest_os_s3.bin": "89dda4ea8add69ce4e9120ab56a49eccc5541b85c1cdd0bb6022bc876e4bfffa",
+        "firmware/freslest_doom_s3.bin": "b8e2119716b773c5f8ede884d84c57642caadfc6285e023e68c230d9637350f4",
+        "firmware/freslest_os_s3.bin": "19381d12c9e558affc09f4cadf9ed5a8c9f5d1e1ff1e93ba388427cd8931a091",
         "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
         "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
       }
@@ -39,10 +39,11 @@
   },
   "physical_hardware_tested": false,
   "windows_status": "success",
-  "windows_artifact": 12762396651,
-  "windows_zip_sha256": "ba476498c23a9349dcf04fc11a933eff981d943675bfe7ee620d8faac7f3ab30",
-  "installer_sha256": "bd8061226758f9f4d20bc81e98d101b8edac2be87cf6dcd47160bf3950096f9c",
-  "installer_bytes": 29473581,
+  "windows_artifact": 12763619738,
+  "windows_zip_sha256": "e80b4b6ee5026f0cbcb73cca6b61b5c4f19c1cba401a07da1b27158c6b934c8a",
+  "installer_name": "Freslest-Installer-Solid332-C3.exe",
+  "installer_sha256": "67db44101e96f03f36b5dd0ec074b5f403417b6b44a9463faca3ff14bb120132",
+  "installer_bytes": 29470826,
   "windows_smoke": [
     {
       "file": "Freslest Installer.exe",
@@ -64,15 +65,13 @@
   "windows_unittest_skipped_native_cases": 9,
   "linux_display_audio_tests": 9,
   "viewer_test_cases": 9,
-  "hardware_verification": "pending",
-  "code_review": "No critical or important findings; frame ownership checked against IDF5.4.4",
   "esptool_all_four_apps_checksum_digest_verified": true,
+  "all_four_apps_solid332_c3_marker_verified": true,
+  "physical_red_tint_verification": "not yet verified on device",
   "changes": [
-    "both ILI9341 and ILI9488 Display rows; other compiled model requires installer",
-    "double PSRAM frames with internal bounce buffers and completion ownership",
-    "XIP for flash/NVS/OTA cache availability; unconditional restart disabled",
-    "dedicated Doom PLAYPAL RGB888 to RGB332 path",
-    "TV safe area 80-100 percent; default90; shared OS/Doom setting",
-    "retry OS frame after a rejected submission"
+    "remove generated spatial dithering from both indexed paths",
+    "match supplied V1.0 core RGB332 packing",
+    "flat-source colors remain flat at every position",
+    "preserve raw Doom palette, double-frame bounce/XIP, TV fit and both LCD menu rows"
   ]
 }

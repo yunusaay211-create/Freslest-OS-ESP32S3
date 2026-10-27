@@ -20,7 +20,7 @@ Bu güncelleme ILI9341 uygulama ekranlarını düzenler, VGA kaymasına karşı 
 ## VGA kayması, Doom renkleri ve ses
 
 - VGA aktarımı iki PSRAM kare ve iki dahili on satırlık DMA tamponu kullanır. Yeni kare, görüntüleyicinin okumadığı bellekte hazırlanır; kare tamamlanmadan eski tampon yeniden kullanılmaz. Her VBlank’te koşulsuz DMA sıfırlaması kaldırıldı. Flash/NVS/OTA işlemleri sırasında bu yolun çalışabilmesi için PSRAM XIP etkinleştirildi. Saat, senkronizasyon ve pinler korunur.
-- Doom için ayrı RGB332 çizim yolu eklendi. Özgün PLAYPAL RGB888 renkleri LCD’nin RGB565 dönüşümüne uğramadan önbellekli RGB332 tablosuna çevrilir. Sabit 4×4 renk yuvarlaması koyu tonları korur; oyun içi hasar/bonus paletleri ve LCD yönü korunur.
+- Doom için ayrı RGB332 çizim yolu eklendi. Özgün PLAYPAL RGB888 renkleri LCD’nin RGB565 dönüşümüne uğramadan önbellekli RGB332 tablosuna çevrilir. Son düzeltmede 4×4 renk noktalaması kaldırıldı; düz renk kaynak alanları düz kalır. Dönüşüm çalışan V1.0 çekirdeğinin doğrudan RGB332 bit paketlemesini kullanır; oyun içi hasar/bonus paletleri ve LCD yönü korunur.
 - TV kenar kırpılması için **Settings → Display → VGA size** eklendi. Varsayılan %90; LEFT/RIGHT ile %80–100 arasında ayarlanır. Görüntünün tamamı siyah kenarlar içinde ortalanır; VGA sinyali 640×480 kalır. Ayar OS ve Doom tarafından ortak kullanılır.
 - Freslest DFPlayer sesinde SD dosya sorgusu düzeltildi. SD kart yeniden takıldığında veya modül yeniden başlama bildirimi verdiğinde kaynak, DAC ve kullanıcının ses düzeyi geri yüklenir. Sessiz ayarı korunur; eski efektler yeniden oynatılmaz.
 - Bu düzeltmeler yazılım testleriyle doğrulanır; bildirilen VGA kayması, kırmızı ton ve aralıklı ses kesilmesinin cihazda tamamen giderildiği henüz doğrulanmadı.
@@ -37,6 +37,6 @@ Kurulumdan önce dosya, not ve ROM’larınızı yedekleyin. Ekran modelini kend
 
 ## Derleme doğrulaması
 
-İki LCD için OS/Doom firmware derlemeleri, bölüm/hash kontrolleri, Windows kurucu/Viewer testleri ve EXE açılış testleri geçti: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40563327596
+İki LCD için OS/Doom firmware derlemeleri, bölüm/hash kontrolleri, Windows kurucu/Viewer testleri ve EXE açılış testleri geçti: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40569946857
 
 Bu ortamda fiziksel ESP32-S3/LCD/VGA testi yapılmadı.

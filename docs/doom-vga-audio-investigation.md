@@ -13,3 +13,6 @@ User localized intermittent loss to OS menus/apps. UART1 GPIO18 TX / GPIO17 RX r
 On explicit SD removal the queue is cleared and playback waits for insertion. On SD insertion/online the nonblocking setup resumes at SD selection, restores DAC/volume and queries the correct SD count, without another reset, stale cue replay, or changing mute settings. No periodic reset or retry storm is introduced for unconnected RX. Diagnostics count recoveries. Host tests inject checksummed online/removal/corrupt frames, check recovery ordering, subsequent cues and mute preservation. This verifies recovery logic, not the electrical cause of the user's intermittent loss; power or wiring still requires device observation if it persists.
 
 Protocol reference (manufacturer library): https://github.com/DFRobot/DFRobotDFPlayerMini/blob/master/DFRobotDFPlayerMini.cpp (parseStack, readFileCounts). Full installer is required to update Doom; OS USB Update ZIP writes only OS slots.
+
+
+C3 follow-up: generated ordered dots were reproduced on flat source colors, and removed. Current packing matches the supplied working core, without spatial or temporal dithering. Earlier gray-average assertions did not verify source uniformity. See docs/2026-10-27-solid-rgb332.md. Physical red-tint cause remains unproven.

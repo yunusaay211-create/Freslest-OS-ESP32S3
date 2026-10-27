@@ -36,7 +36,7 @@ GPIO8 LCD RESET, GPIO41 LCD arka ışık MOSFET’i ve GPIO13 SD-MISO ile ortakt
 
 ## Doom renkleri ve ses
 
-Doom aynı RGB332 devresini kullanır. OS renkleri doğruyken yalnızca Doom kırmızı görünüyorsa bağlantıdaki R/B uçlarını değiştirmeyin. İndeksli Doom paletinde koyu ton doğruluğu için sıralı renk yuvarlaması vardır; tam installer bu Doom firmware’ini de yükler. OS Update ZIP’i Doom’u güncellemez.
+Doom aynı RGB332 devresini kullanır. OS renkleri doğruyken yalnızca Doom kırmızı görünüyorsa bağlantıdaki R/B uçlarını değiştirmeyin. Son düzeltmede eklenmiş 4×4 renk noktalaması kaldırılmıştır; özgün palet doğrudan RGB332 bitlerine çevrilir ve düz renkler düz kalır; tam installer bu Doom firmware’ini de yükler. OS Update ZIP’i Doom’u güncellemez.
 
 DFPlayer ses yolu VGA’dan ayrıdır: ESP GPIO18 TX → DFPlayer RX, DFPlayer TX → ESP GPIO17 RX, ortak GND. SD kart/modül geri geldiğini UART üzerinden bildirirse yazılım kaynak, DAC ve ses ayarını geri kurar. RX hattı bağlı değilse bu bildirim alınamaz. Kesilme sürerse Settings ses testi ve Viewer tanı komutuyla DFPLAYER DIAG satırındaki RX, error ve recovery değerleri kaydedilmelidir.
 
