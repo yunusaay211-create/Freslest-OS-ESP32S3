@@ -1,0 +1,66 @@
+{
+  "source_commit": "8a8ea4f039799fe986e3d7436f8c912338a26491",
+  "workflow_run": 40450817409,
+  "firmware_artifact": 12710153066,
+  "firmware_zip_sha256": "483054349637c31ce88a62434efa243d7609ebdc1911474b2b32e033b63b43b5",
+  "profiles": {
+    "ili9488": {
+      "os_bytes": 1749632,
+      "os_slot_bytes": 1769472,
+      "doom_bytes": 884320,
+      "doom_slot_bytes": 917504,
+      "all_seven_hashes_verified": true,
+      "sha256": {
+        "firmware/bootloader.bin": "7db6063e90e079a2e42ad3ee07fd990b2d79fd545191fbb9da6fb8ed603f66a8",
+        "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
+        "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
+        "firmware/freslest_doom_s3.bin": "916c80f50802af6bf9d70344e4f84bd9e48860874a783d0018056d28bc3b74af",
+        "firmware/freslest_os_s3.bin": "96ae04dc0e6d990c892d451686109471c9c53fd98029af70f352bc0fd4c37521",
+        "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
+        "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
+      }
+    },
+    "ili9341": {
+      "os_bytes": 1750288,
+      "os_slot_bytes": 1769472,
+      "doom_bytes": 884352,
+      "doom_slot_bytes": 917504,
+      "all_seven_hashes_verified": true,
+      "sha256": {
+        "firmware/bootloader.bin": "7db6063e90e079a2e42ad3ee07fd990b2d79fd545191fbb9da6fb8ed603f66a8",
+        "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
+        "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
+        "firmware/freslest_doom_s3.bin": "6e14fccaf1341c8ca04dfb2c35d72787089b1558ebeb7cdf021756cedbd6224c",
+        "firmware/freslest_os_s3.bin": "3fc3f15c3d6e4fdcdf1ce2986539ce213dcefac0da583b8afa9fb079833168a0",
+        "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
+        "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
+      }
+    }
+  },
+  "physical_hardware_tested": false,
+  "windows_status": "success",
+  "windows_artifact": 12710199332,
+  "windows_zip_sha256": "87ae72ad14f7074bbb645878495b6493fd71b78509816a72af3bf11ddcc755f1",
+  "installer_sha256": "aa575e17c9bda65e1d9b3affa7f1303ee05352f79bb84bf0f990e6c47629e5df",
+  "installer_bytes": 29460309,
+  "windows_smoke": [
+    {
+      "file": "Freslest Installer.exe",
+      "visible_title": "Freslest Installer | OS 1.0",
+      "native_windows_launch": true
+    },
+    {
+      "file": "Freslest Installer.exe",
+      "visible_title": "Freslest Installer | OS 1.0 | English",
+      "native_windows_launch": true
+    },
+    {
+      "file": "Freslest USB Viewer.exe",
+      "visible_title": "Freslest USB Viewer | OS 1.0",
+      "native_windows_launch": true
+    }
+  ],
+  "windows_unittest_cases": 40,
+  "windows_unittest_skipped_native_cases": 6,
+  "viewer_test_cases": 9
+}

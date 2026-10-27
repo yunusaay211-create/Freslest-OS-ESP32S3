@@ -39,7 +39,7 @@ Host checks that compile production C/C++ modules with SDK test doubles include 
 ## Hardware requirements
 
 - ESP32-S3 N16R8 development board, **16 MB flash / 8 MB OPI PSRAM**
-- **ILI9488 480 × 320 SPI TFT** (non-touch configuration)
+- **ILI9488 480 × 320 or ILI9341 320 × 240 SPI TFT** (non-touch configuration)
 - Seven momentary buttons, wired **active-low** (between GPIO and GND)
 - Optional: DFPlayer Mini and microSD, DHT11, VGA RGB332 resistor DAC, amplifier, single-cell battery with sensing divider, USB host peripherals
 
@@ -120,15 +120,9 @@ The separate **Freslest USB Viewer.exe** launches directly into the viewer inter
 
 ### Developer/manual flashing
 
-The provided project includes `flash_all.bat COM5` and expects the programming/UART COM port. Follow its instructions for required esptool/Python version. For an initial install, the original manual script supports:
+Build current profiles with `python tools/build_lcd_profiles.py`, then package/use the verified installer for the selected LCD. The original `flash_all.bat` and baseline `firmware-payload` assets refer to the older release; they do not select the new LCD/VGA profile automatically. Do not treat those baseline OS/Doom images as this update.
 
-```bat
-flash_all.bat COM5 --with-files
-```
-
-**Warning:** `--with-files` replaces the packaged LittleFS image, including user files/ROMs/notes. Back up important data. The custom partition layout includes separate OS and DOOM images; do not use generic `idf.py flash` to overwrite the wrong slot.
-
-If the port is stuck connecting, use BOOT/RESET download mode as described in the source package. Close other serial monitors or viewers first.
+The partition layout includes separate OS and DOOM images. Back up user files/ROMs/notes before initial installation. If the port is stuck connecting, use BOOT/RESET download mode and close other serial monitors or viewers first.
 
 ## USB Screen Viewer
 

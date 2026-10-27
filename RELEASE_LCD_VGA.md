@@ -23,3 +23,9 @@ VGA, V1.0 direnç DAC çekirdeğinin pinlerini kullanır. GPIO8/41 LCD, GPIO13 i
 **VGA desteği deneyseldir.** Önceki donanım denemelerindeki sinyal kesilmesi sorununun kesin giderildiği iddia edilmez. Hareketli görüntülerde tearing görülebilir. Bağlantı tablosu ve teknik ayrıntılar için `VGA_DISPLAY_TR.md` dosyasına bakın.
 
 Kurulumdan önce dosya, not ve ROM’larınızı yedekleyin. Ekran modelini kendi modülünüze göre seçin.
+
+## Derleme doğrulaması
+
+İki LCD için OS/Doom firmware derlemeleri, bölüm/hash kontrolleri, Windows kurucu/Viewer testleri ve EXE açılış testleri geçti: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40450817409
+
+Bu ortamda fiziksel ESP32-S3/LCD/VGA testi yapılmadı.
