@@ -104,7 +104,7 @@ void gfxBegin()
   frame.setPsram(true);frame.setColorDepth(16);
   if(!frame.createSprite(gfxUiWidth(),gfxUiHeight())){Serial.println("E410: UI framebuffer unavailable");return;}
   frame.setSwapBytes(true);frame.setTextWrap(frame.width()!=320);
-  if(!vga)presented=(uint16_t*)heap_caps_malloc(480*320*2,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
+  presented=(uint16_t*)heap_caps_malloc(480*320*2,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
 
   backlightInit();
 }
@@ -182,7 +182,16 @@ void gfxPresent(){
  gfxMirrorTick();
  auto* pixels=(uint16_t*)frame.getBuffer();if(!pixels)return;
  if(freslest_video_output()==FRESLEST_DISPLAY_VGA){
-  freslest_video_rgb565(pixels,frame.width(),frame.height(),true,usbPointer.visible,usbPointer.x,usbPointer.y);return;
+  const int bytes=frame.width()*frame.height()*2;
+  bool moved=oldPointer!=usbPointer.visible||(usbPointer.visible&&(oldX!=usbPointer.x||oldY!=usbPointer.y));
+  // A static UI must not contend with the continuously scanning PSRAM DMA
+  // by rewriting the entire 640x480 RGB332 frame on every UI tick.
+  if(firstPresent||!presented||moved||memcmp(pixels,presented,bytes)!=0){
+   if(presented)memcpy(presented,pixels,bytes);
+   freslest_video_rgb565(pixels,frame.width(),frame.height(),true,usbPointer.visible,usbPointer.x,usbPointer.y);
+   firstPresent=false;oldPointer=usbPointer.visible;oldX=usbPointer.x;oldY=usbPointer.y;
+  }
+  return;
  }
  const int width=frame.width(),height=frame.height(),rowBytes=width*2;
  bool dirty[320];

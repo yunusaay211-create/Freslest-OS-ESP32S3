@@ -25,7 +25,7 @@ class LcdProfiles(unittest.TestCase):
 void gfxMirrorTick(){}
 static bool vga=false;static int vgaCalls;
 freslest_display_t freslest_video_output(){return vga?FRESLEST_DISPLAY_VGA:FRESLEST_DISPLAY_LCD;}
-void freslest_video_rgb565(const uint16_t*,int w,int h,bool,bool,int,int){assert(w==480&&h==320);++vgaCalls;}
+void freslest_video_rgb565(const uint16_t*,int w,int h,bool,bool,int,int){assert((w==480&&h==320)||(w==320&&h==240));++vgaCalls;}
 struct {int x=240,y=160;bool visible=false;}usbPointer;
 static uint16_t buffer[480*320],shadow[480*320],lcd[320*240];
 static uint16_t* presented=shadow;
@@ -67,7 +67,16 @@ int main(){
  _tft.rows=0;buffer[100*320+123]=0xa55a;gfxPresent();assert(_tft.rows==1&&lcd[100*320+123]==0xa55a);
  usbPointer={319,239,true};gfxPresent();assert(lcd[320*240-1]==0);
  usbPointer.visible=false;gfxPresent();assert(lcd[320*240-1]==buffer[320*240-1]);
- frame.w=480;vga=true;int before=_tft.rows;gfxPresent();assert(vgaCalls==1&&before==_tft.rows);
+ frame.w=480;vga=true;firstPresent=true;int before=_tft.rows;gfxPresent();assert(vgaCalls==1&&before==_tft.rows);
+ // Static menus must not rewrite the whole PSRAM VGA buffer every UI tick.
+ for(int i=0;i<60;i++)gfxPresent();assert(vgaCalls==1&&before==_tft.rows);
+ buffer[0]^=1;gfxPresent();assert(vgaCalls==2);
+ usbPointer={10,10,true};gfxPresent();assert(vgaCalls==3);
+ gfxPresent();assert(vgaCalls==3);usbPointer.x++;gfxPresent();assert(vgaCalls==4);
+ usbPointer.visible=false;gfxPresent();assert(vgaCalls==5);
+ frame.w=320;firstPresent=true;gfxPresent();assert(vgaCalls==6);
+ gfxPresent();assert(vgaCalls==6&&before==_tft.rows);
+
 }
 '''
         self.compile_run(pre + body + test, 'c++', 9341)
