@@ -99,20 +99,40 @@ The DFPlayer handles recorded music/cues while GPIO21 provides live effects. An 
 
 **Never connect a Li-ion battery cell directly to GPIO1**. Use the correctly oriented voltage divider and an appropriate protected battery supply/charging circuit. USB connector roles vary by operating mode.
 
-### Experimental composite AV DAC (8-bit)
+### composite VGA DAC (8-bit)
 
-| DAC bit | ESP32-S3 GPIO |
-|---|---:|
-| D0 | GPIO8 |
-| D1 | GPIO13 |
-| D2 | GPIO14 |
-| D3 | GPIO2 |
-| D4 | GPIO42 |
-| D5 | GPIO40 |
-| D6 | GPIO39 |
-| D7 | GPIO48 |
+| ESP32-S3 Pin | RGB332 Signal | Series Resistor | VGA Pin |
+| :--- | :--- | :--- | :--- |
+| GPIO39 | RED R2 | 510 Ω + 47 Ω | 1 (RED) |
+| GPIO40 | RED R1 | 1 kΩ | 1 (RED) |
+| GPIO42 | RED R0 | 2.2 kΩ | 1 (RED) |
+| GPIO2 | GREEN G2 | 510 Ω + 47 Ω | 2 (GREEN) |
+| GPIO14 | GREEN G1 | 1 kΩ | 2 (GREEN) |
+| GPIO13 | GREEN G0 | 2.2 kΩ | 2 (GREEN) |
+| GPIO8 | BLUE B1 | 680 Ω | 3 (BLUE) |
+| GPIO41 | BLUE B0 | 1.5 kΩ | 3 (BLUE) |
+| GPIO47 | HSYNC | Direct | 13 (HSYNC) |
+| GPIO48 | VSYNC | Direct | 14 (VSYNC) |
+| GND | Ground | Direct | 5, 6, 7, 8, 10 (GND) |
 
-Physical wiring order listed in the project, from **VIDEO OUT**, is `GPIO48 → 39 → 40 → 42 → 2 → 14 → 13 → 8`. **This is a parallel digital DAC**, not a direct composite signal. You must use the correct resistor ladder, sync/analog circuitry and grounded TV connection detailed in the original AV Engine documentation. Do not connect GPIO pins directly to a television's video input.
+The **RGB332 VGA data pin order (D0 → D7)** defined in Freslest OS 1.1 is `GPIO41 → 8 → 13 → 14 → 2 → 42 → 40 → 39`.
+
+**VGA synchronization:** `GPIO47 (HSYNC)` and `GPIO48 (VSYNC)`.
+
+**This is an 8-bit RGB332 parallel digital-to-analog converter (DAC)** supporting 256 colors at 640×480 resolution, approximately 60 Hz.
+
+The RGB signals require the correct resistor network:
+
+- **RED:** GPIO39, GPIO40, GPIO42 → VGA Pin 1
+- **GREEN:** GPIO2, GPIO14, GPIO13 → VGA Pin 2
+- **BLUE:** GPIO8, GPIO41 → VGA Pin 3
+- **HSYNC:** GPIO47 → VGA Pin 13
+- **VSYNC:** GPIO48 → VGA Pin 14
+- **GND:** VGA Pins 5, 6, 7, 8, 10
+
+Use the resistor values and grounding connections specified in the original Freslest RGB332 VGA documentation.
+
+**Do not connect RGB GPIO pins directly to a VGA monitor or television input.** Never connect GPIO pins to VGA Pin 9 (+5V).
 
 **GPIO8 is shared in the documented pin list between TFT RESET and AV DAC D0.** This is a hardware conflict or requires project-specific mode-dependent handling. Do **not** directly attach both endpoints without checking the actual schematic and software behavior. Treat composite wiring as experimental until validated on your board. Some pins may also be unavailable on certain ESP32-S3 module variants.
 
