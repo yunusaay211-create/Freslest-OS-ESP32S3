@@ -1,8 +1,8 @@
 {
-  "source_commit": "d9a78215b3946643526d18892490caf35b012547",
-  "workflow_run": 40656454884,
-  "firmware_artifact": 12802845810,
-  "firmware_zip_sha256": "8773f6c4ca1f04d546fb4f6b2482a1a43e4f412320b5fc68154c084d0cbaf522",
+  "source_commit": "4e8ff3ea79c689d239b3c36288f093e4d773b0f9",
+  "workflow_run": 40662063413,
+  "firmware_artifact": 12804667987,
+  "firmware_zip_sha256": "5128537d5fde5f9aa665b1d773d9628e9c0a4a0e2b0673b09223340e2dd81ffd",
   "profiles": {
     "ili9488": {
       "os_bytes": 1756768,
@@ -11,14 +11,15 @@
       "doom_slot_bytes": 917504,
       "all_seven_hashes_verified": true,
       "sha256": {
-        "firmware/bootloader.bin": "99c42d34d86da3764f40974ed293ca151720a401e1e86eec9b49edc5b96973c0",
+        "firmware/bootloader.bin": "23468b1a13bb5b6b878cf21b506fb464efc518f6e5824df9538648c1ec489c7c",
         "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
         "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
-        "firmware/freslest_doom_s3.bin": "5a74e98f3e62489b62d26201fff14bede43c81793fce00e3e3c410210e2f3207",
-        "firmware/freslest_os_s3.bin": "45953a5bf6e8ee532d87a21e9b4647f1eaa06bc340b097a8d350ef6547643822",
+        "firmware/freslest_doom_s3.bin": "2ded6052a7341a24709b4a91c32cba7af98ead441820ab67b9ef90684663dde7",
+        "firmware/freslest_os_s3.bin": "3f4c4ae50079c6887026ccfbaace9ba18d0d7b8de59ac2fa219c54cde3e5d21e",
         "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
         "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
-      }
+      },
+      "os_version": "1.1"
     },
     "ili9341": {
       "os_bytes": 1757440,
@@ -27,50 +28,45 @@
       "doom_slot_bytes": 917504,
       "all_seven_hashes_verified": true,
       "sha256": {
-        "firmware/bootloader.bin": "99c42d34d86da3764f40974ed293ca151720a401e1e86eec9b49edc5b96973c0",
+        "firmware/bootloader.bin": "23468b1a13bb5b6b878cf21b506fb464efc518f6e5824df9538648c1ec489c7c",
         "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
         "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
-        "firmware/freslest_doom_s3.bin": "16b5025100830941cf5a01238d37ed1cd916b22ee82d7917fd3eb78100de4ffd",
-        "firmware/freslest_os_s3.bin": "8f287700db3be5e47cde459bf20b86b262c9ee9d0eba68c1dd7b2cf17714c0d3",
+        "firmware/freslest_doom_s3.bin": "ad5ffe7c57c8268d1c999ad145b8973b5e9a7c5e8dc2a71f5eda1a25bd20bc7b",
+        "firmware/freslest_os_s3.bin": "82c3952e05611e10e7aaa9b090e7b5d01c11bae777d8c3fa74bc6506c8d2d6cb",
         "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
         "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
-      }
+      },
+      "os_version": "1.1"
     }
   },
   "physical_hardware_tested": false,
   "windows_status": "success",
-  "windows_artifact": 12802206763,
-  "windows_zip_sha256": "c3585381c17a33613af4dbec003f27211c6bd5b486c345e7bd549744ac21d2bf",
-  "installer_sha256": "4a696bb5ebd814e6c5354f9c0a76967c304ae95458211609d068d62f2c167283",
-  "installer_bytes": 29473988,
+  "windows_artifact": 12803864287,
+  "windows_zip_sha256": "8157ac9b5cfd8455e1091380cd28df02c2f57c10effb038bb386f1073c0949b4",
+  "installer_sha256": "5d1d52227fffb051491b53c563db54f8c93ea12437352554af65bb211d4747b9",
+  "installer_bytes": 29474844,
   "windows_smoke": [
     {
       "file": "Freslest Installer.exe",
-      "visible_title": "Freslest Installer | OS 1.0",
+      "visible_title": "Freslest Installer | OS 1.1",
       "native_windows_launch": true
     },
     {
       "file": "Freslest Installer.exe",
-      "visible_title": "Freslest Installer | OS 1.0 | English",
+      "visible_title": "Freslest Installer | OS 1.1 | English",
       "native_windows_launch": true
     },
     {
       "file": "Freslest USB Viewer.exe",
-      "visible_title": "Freslest USB Viewer | OS 1.0",
+      "visible_title": "Freslest USB Viewer | OS 1.1",
       "native_windows_launch": true
     }
   ],
-  "doom_color_changes": "C5 neutral menu palette and GAMMATBL gamma levels 0..4",
-  "regression_tests": {
-    "local_total": 44,
-    "local_passed": 37,
-    "local_desktop_skips": 7,
-    "linux_lcd_cases": 7,
-    "linux_vga_cases": 3,
-    "windows_job_status": "success"
-  },
-  "markers_verified": {
-    "os": "FRESLEST_VGA:RAW332_C4_READY",
-    "doom": "DOOM_COLOR:C5"
+  "release": "1.1",
+  "reported_red_tint": "Still reported after C5; direct VGA color-test photo requested. Release1.1 metadata change is not a tint fix.",
+  "local_tests": {
+    "total": 47,
+    "passed": 39,
+    "desktop_skips": 8
   }
 }
