@@ -34,7 +34,6 @@ static freslest_display_t output;
 static bool boot_read,started,first_frame_ready;
 static esp_lcd_panel_handle_t panel;
 static uint8_t *fb[2];
-static uint16_t wire_words[256];
 static unsigned front;
 static bool pending;
 static uint32_t queued_event;
@@ -113,15 +112,9 @@ bool freslest_video_begin(void){
  // Keep SPI LCD deselected; never attach LCD backlight LEDC to shared GPIO41.
  gpio_config_t bl={.pin_bit_mask=(1ULL<<41)|(1ULL<<10),.mode=GPIO_MODE_OUTPUT};
  gpio_config(&bl);gpio_set_level(41,0);gpio_set_level(10,1);
- esp_lcd_rgb_panel_config_t c={0};c.clk_src=LCD_CLK_SRC_DEFAULT;c.data_width=16;c.bits_per_pixel=16;c.num_fbs=2;c.bounce_buffer_size_px=VGA_WIDTH*10;
+ esp_lcd_rgb_panel_config_t c={0};c.clk_src=LCD_CLK_SRC_DEFAULT;c.data_width=8;c.bits_per_pixel=8;c.num_fbs=2;c.bounce_buffer_size_px=VGA_WIDTH*20;
  c.hsync_gpio_num=47;c.vsync_gpio_num=48;c.pclk_gpio_num=-1;c.de_gpio_num=-1;c.disp_gpio_num=-1;
- // Drive the eight resistor-DAC pins from explicit RGB565 word bits.
- // Unwired RGB565 bits stay disconnected; the physical DAC remains RGB332.
- for(int i=0;i<16;i++)c.data_gpio_nums[i]=-1;
- const int pins[]={41,8,13,14,2,42,40,39};
- const int bits[]={3,4,8,9,10,13,14,15};
- for(int i=0;i<8;i++)c.data_gpio_nums[bits[i]]=pins[i];
- for(unsigned i=0;i<256;i++)wire_words[i]=(uint16_t)(((i&3)<<3)|((i&0x1c)<<6)|((i&0xe0)<<8));
+ const int pins[]={41,8,13,14,2,42,40,39};for(int i=0;i<8;i++)c.data_gpio_nums[i]=pins[i];
  c.timings.pclk_hz=FRESLEST_VGA_PCLK_HZ;c.timings.h_res=VGA_WIDTH;c.timings.v_res=VGA_HEIGHT;
  c.timings.hsync_pulse_width=96;c.timings.hsync_back_porch=48;c.timings.hsync_front_porch=16;
  c.timings.vsync_pulse_width=2;c.timings.vsync_back_porch=33;c.timings.vsync_front_porch=10;
@@ -129,11 +122,11 @@ bool freslest_video_begin(void){
  esp_lcd_rgb_panel_event_callbacks_t callbacks={.on_vsync=on_vsync,.on_frame_buf_complete=on_frame};
  if(esp_lcd_new_rgb_panel(&c,&panel)!=ESP_OK)goto fail;
  if(esp_lcd_rgb_panel_get_frame_buffer(panel,2,(void**)&fb[0],(void**)&fb[1])!=ESP_OK||!fb[0]||!fb[1])goto fail;
- memset(fb[0],0,VGA_WIDTH*VGA_HEIGHT*2);memset(fb[1],0,VGA_WIDTH*VGA_HEIGHT*2);front=0;pending=false;
+ memset(fb[0],0,VGA_WIDTH*VGA_HEIGHT);memset(fb[1],0,VGA_WIDTH*VGA_HEIGHT);front=0;pending=false;
  if(esp_lcd_rgb_panel_register_event_callbacks(panel,&callbacks,NULL)!=ESP_OK)goto fail;
  if(esp_lcd_panel_reset(panel)!=ESP_OK)goto fail;
 #ifdef ESP_PLATFORM
- // Select a literal RGB word stream, independent of a previous LCD mode.
+ // Select a literal RGB332 byte stream, independent of a previous LCD mode.
  lcd_ll_enable_rgb_yuv_convert(&LCD_CAM,false);
  lcd_ll_reverse_dma_data_bit_order(&LCD_CAM,false);
  lcd_ll_swap_dma_data_byte_order(&LCD_CAM,false);
@@ -146,7 +139,7 @@ bool freslest_video_begin(void){
  gpio_config_t keys={.pin_bit_mask=1ULL<<7,.mode=GPIO_MODE_INPUT,.pull_up_en=GPIO_PULLUP_ENABLE};
  gpio_config(&keys);
  if(!gpio_get_level(7))freslest_video_color_test();
- ESP_LOGW("video","VGA V1.0 RGB332 640x480 59.94 Hz, target PCLK %u Hz, 16-bit RGB565 scanout to eight RGB332 DAC pins; double PSRAM frames + internal bounce",(unsigned)FRESLEST_VGA_PCLK_HZ);return true;
+ ESP_LOGW("video","VGA V1.0 RGB332 640x480 59.94 Hz, target PCLK %u Hz, native 8-bit RGB332; double PSRAM frames + 20-line bounce",(unsigned)FRESLEST_VGA_PCLK_HZ);return true;
 fail:
  if(panel){esp_lcd_panel_del(panel);panel=NULL;}fb[0]=fb[1]=NULL;pending=false;
  ESP_LOGE("video","VGA init failed. Hold BACK during reset for LCD.");return false;
@@ -174,10 +167,6 @@ static uint8_t *acquire_frame(void){
  return fb[front^1];
 }
 static bool publish_frame(uint8_t *target){
- // Conversion draws compact RGB332 into the unused scanout allocation.
- // Expand backwards so the wider words never overwrite unread source bytes.
- uint16_t *words=(uint16_t*)target;
- for(size_t i=(size_t)VGA_WIDTH*VGA_HEIGHT;i-->0;)words[i]=wire_words[target[i]];
  if(esp_lcd_panel_draw_bitmap(panel,0,0,VGA_WIDTH,VGA_HEIGHT,target)!=ESP_OK){dropped++;return false;}
  // Sample AFTER the driver's selection. If an IRQ races this read, waiting
  // one extra frame is safe; sampling before draw could release too early.

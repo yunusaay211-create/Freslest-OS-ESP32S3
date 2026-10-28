@@ -9,6 +9,7 @@ class VgaTransition(unittest.TestCase):
    for name in ('sdkconfig','sdkconfig.defaults'):
     config=(ROOT/project/name).read_text()
     self.assertNotIn('CONFIG_LCD_RGB_RESTART_IN_VSYNC=y',config)
+    self.assertIn('CONFIG_LCD_RGB_ISR_IRAM_SAFE=y',config)
     for key in ('SPIRAM_XIP_FROM_PSRAM','SPIRAM_FETCH_INSTRUCTIONS','SPIRAM_RODATA'):
      self.assertIn('CONFIG_'+key+'=y',config)
 

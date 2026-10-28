@@ -26,7 +26,7 @@ static int stored_fit=90;
 static int stored_preset25175;
 static int pending_fit,pending_v2,pending_preset25175;
 static int stored_v2,legacy_output=1,back=1,right=1,nvs_failure,driver_failure,panels,creates,stage;
-static uint64_t pins;static int64_t now_us;static uint8_t host_fb[640*480*2],host_back[640*480*2],host_snapshot[640*480*2];
+static uint64_t pins;static int64_t now_us;static uint8_t host_fb[640*480],host_back[640*480],host_snapshot[640*480];
 static uint8_t *host_active=host_fb,*host_selected=host_fb;static bool host_events=true;static unsigned host_draws;
 static esp_lcd_rgb_panel_config_t saved_config;static esp_lcd_rgb_panel_event_callbacks_t callbacks;
 static esp_err_t nvs_open(const char*n,int m,nvs_handle_t*h){
@@ -78,5 +78,3 @@ static int esp_lcd_panel_draw_bitmap(esp_lcd_panel_handle_t p,int x,int y,int w,
  ++host_draws;if(driver_failure==6)return -1;
  host_selected=(uint8_t*)pixels;return 0;
 }
-
-static inline uint8_t host_pixel(unsigned i){uint16_t v;memcpy(&v,host_selected+i*2,2);return (uint8_t)(((v>>3)&3)|((v>>6)&0x1c)|((v>>8)&0xe0));}
