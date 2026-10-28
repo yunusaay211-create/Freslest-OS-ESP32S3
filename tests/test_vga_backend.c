@@ -81,5 +81,17 @@ int main(void){
  now_us+=500001;assert(!freslest_video_healthy()&&!freslest_video_starting());
  first_frame_ready=false;started_us=now_us;assert(freslest_video_starting());now_us+=10000000;assert(!freslest_video_starting());
  esp_lcd_panel_del(panel);panel=NULL;fb[0]=fb[1]=NULL;started=false;assert(!panels);
- puts("PASS: actual VGA RGB332 config/timing/pins, PSRAM, NVS migration/BACK recovery, setup failure cleanup, RGB565 endian/indexed/cursor conversion, bounded startup and stalled VSYNC health");
+ // Raw color test must bypass source palettes, fit, endian and cursor paths.
+ reset();stored_v2=2;right=0;assert(freslest_video_begin());right=1;
+ const uint8_t bars[]={255,252,31,28,227,224,3,0};
+ for(unsigned n=0;n<8;n++)assert(host_selected[100*640+32+n*72+30]==bars[n]);
+ for(unsigned n=0;n<8;n++)assert(host_selected[340*640+32+n*72+30]==(1u<<n));
+ assert(host_selected[0]==0&&host_selected[479*640+639]==0);
+ assert(now_us>=10000000&&stored_v2==2&&stored_fit==100);
+ assert(freslest_video_rgb565(&white,1,1,false,false,0,0));host_frame();assert(host_selected[100*640+100]==255);
+ back=0;int64_t before=now_us;assert(freslest_video_color_test());assert(now_us-before<1000000);back=1;
+ host_events=false;assert(!freslest_video_color_test());host_events=true;host_frame();
+ esp_lcd_panel_del(panel);panel=NULL;fb[0]=fb[1]=NULL;started=false;assert(!panels);
+ reset();int previous_creates=creates;assert(!freslest_video_color_test()&&creates==previous_creates);
+ puts("PASS: VGA transport, conversion and direct raw test: boot shortcut, all RGB bits, return to normal frames, BACK exit, stalled DMA and LCD guard");
 }

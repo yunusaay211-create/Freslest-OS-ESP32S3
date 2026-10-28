@@ -79,7 +79,11 @@ bool freslest_video_begin(void){
  if(esp_lcd_rgb_panel_register_event_callbacks(panel,&callbacks,NULL)!=ESP_OK)goto fail;
  if(esp_lcd_panel_reset(panel)!=ESP_OK||esp_lcd_panel_init(panel)!=ESP_OK)goto fail;
  started_us=esp_timer_get_time();first_frame_ready=false;started=true;
- puts("FRESLEST_VGA:SOLID332_C3");
+ puts("FRESLEST_VGA:RAW332_C4_READY");
+ // The same diagnostic is available in OS and Doom before any app palette.
+ gpio_config_t keys={.pin_bit_mask=1ULL<<7,.mode=GPIO_MODE_INPUT,.pull_up_en=GPIO_PULLUP_ENABLE};
+ gpio_config(&keys);
+ if(!gpio_get_level(7))freslest_video_color_test();
  ESP_LOGW("video","VGA V1.0 RGB332 640x480, target PCLK 25175000 Hz, double PSRAM frames + internal bounce; frame ownership");return true;
 fail:
  if(panel){esp_lcd_panel_del(panel);panel=NULL;}fb[0]=fb[1]=NULL;pending=false;
@@ -112,6 +116,30 @@ static bool publish_frame(uint8_t *target){
  // Sample AFTER the driver's selection. If an IRQ races this read, waiting
  // one extra frame is safe; sampling before draw could release too early.
  queued_event=frame_events;pending=true;presentations++;return true;
+}
+static void raw_test_pattern(uint8_t *target){
+ memset(target,0,VGA_WIDTH*VGA_HEIGHT);
+ // Literal bus bytes deliberately bypass all color packing and palettes.
+ static const uint8_t bars[]={0xff,0xfc,0x1f,0x1c,0xe3,0xe0,0x03,0x00};
+ for(int y=64;y<160;y++)for(int x=32;x<608;x++)target[y*VGA_WIDTH+x]=bars[(x-32)/72];
+ for(int row=0;row<4;row++)for(int y=176+row*40;y<208+row*40;y++)for(int x=32;x<608;x++){
+  unsigned step=(x-32)/72;
+  target[y*VGA_WIDTH+x]=row==0?step<<5:row==1?step<<2:row==2?step>>1:(step<<5)|(step<<2)|(step>>1);
+ }
+ for(int y=336;y<392;y++)for(int x=32;x<608;x++)target[y*VGA_WIDTH+x]=(uint8_t)(1u<<((x-32)/72));
+ // A small C4 identifier remains independent of the application's fonts.
+ static const uint8_t glyphs[2][5]={{0x3e,0x41,0x41,0x41,0x22},{0x18,0x14,0x12,0x7f,0x10}};
+ for(int g=0;g<2;g++)for(int x=0;x<5;x++)for(int y=0;y<7;y++)if(glyphs[g][x]&(1u<<y))
+  for(int dy=0;dy<3;dy++)for(int dx=0;dx<3;dx++)target[(32+y*3+dy)*VGA_WIDTH+32+g*18+x*3+dx]=255;
+}
+bool freslest_video_color_test(void){
+ if(output!=FRESLEST_DISPLAY_VGA||!started)return false;
+ uint8_t *target=acquire_frame();if(!target)return false;
+ raw_test_pattern(target);if(!publish_frame(target))return false;
+ puts("FRESLEST_VGA:RAW332_C4 white yellow cyan green magenta red blue black; ramps R G B gray; bits D0..D7");
+ int64_t deadline=esp_timer_get_time()+10000000;
+ while(esp_timer_get_time()<deadline&&gpio_get_level(16))vTaskDelay(pdMS_TO_TICKS(20));
+ return true;
 }
 static bool submit(const void *src,int w,int h,const uint32_t *pal,bool swap,bool cursor,int x,int y){
  if(!src||w<1||h<1||w>480||h>360)return false;

@@ -25,6 +25,7 @@ int gfxUiWidth();
 int gfxUiHeight();
 void gfxSetCompactUi(bool enabled);
 void gfxPresent();
+void gfxInvalidate();
 void gfxMirrorTick();
 bool gfxHealthy();
 bool frameReady(uint32_t now);

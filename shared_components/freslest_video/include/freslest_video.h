@@ -12,6 +12,8 @@ freslest_display_t freslest_video_boot_output(void);
 freslest_display_t freslest_video_output(void);
 bool freslest_video_save_output(freslest_display_t output);
 bool freslest_video_begin(void);
+// Direct physical RGB332 test, ten seconds or BACK; no palette or NVS writes.
+bool freslest_video_color_test(void);
 bool freslest_video_healthy(void);
 bool freslest_video_starting(void);
 void freslest_video_diagnostics(void);

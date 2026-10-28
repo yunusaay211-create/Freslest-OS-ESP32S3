@@ -330,7 +330,7 @@ static constexpr int loadedLcd=0;
 #endif
 static void drawDisplayPage(){
  tft.fillScreen(TH().bg);drawHeader("Settings: Display");clearBody();
- drawFooter(displayConfirm?"OK Restart + apply":"UP/DOWN Select  OK Apply","BACK Cancel");
+ drawFooter(displayConfirm?"OK Restart + apply":"UP/DOWN Select  OK Apply",freslest_video_output()==FRESLEST_DISPLAY_VGA?"FIRE Raw color test | BACK Cancel":"BACK Cancel");
  char fitLabel[32];snprintf(fitLabel,sizeof(fitLabel),"VGA size: %u%%",freslest_video_fit());
  const char* names[]={"ILI9488 LCD (480x320)","ILI9341 LCD (320x240)",
   "VGA RGB332 (640x480)",usbInputViewerMode()?"USB PC Viewer: ON":"USB PC Viewer: OFF",fitLabel};
@@ -358,6 +358,9 @@ static void changeVgaFit(int step){
 }
 void setDisplayLoop(uint32_t now){
  (void)now;
+ if(freslest_video_output()==FRESLEST_DISPLAY_VGA&&bFire.pressed()){
+  freslest_video_color_test();gfxInvalidate();drawDisplayPage();return;
+ }
  if(settingHit(20,58,440,155)){
   displayChoice=(settingPointerY()-58)/31;if(displayChoice>4)displayChoice=4;
   displayConfirm=false;displaySaveError=false;displayProfileHint=false;

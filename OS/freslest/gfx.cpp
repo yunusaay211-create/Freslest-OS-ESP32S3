@@ -178,6 +178,7 @@ static __attribute__((noinline,noclone)) void gfxCursor(uint16_t* pixels,uint16_
   if(color)pixel=color==1?0:color==2?0xffff:0x7f05; // raw swap565
  }
 }
+void gfxInvalidate(){firstPresent=true;}
 void gfxPresent(){
  gfxMirrorTick();
  auto* pixels=(uint16_t*)frame.getBuffer();if(!pixels)return;

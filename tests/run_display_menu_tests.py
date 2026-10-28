@@ -8,7 +8,7 @@ pre=r'''
 #include <cstdint>
 #include <cstdio>
 #include <freslest_video.h>
-struct Button{bool edge=false,pressedEdge=false;bool pressed(){return edge||pressedEdge;}}bUp,bDown,bLeft,bRight,bOk;
+struct Button{bool edge=false,pressedEdge=false;bool pressed(){return edge||pressedEdge;}}bUp,bDown,bLeft,bRight,bOk,bFire;
 struct {int x=0,y=0;}usbPointer;
 bool saw9341=false,saw9488=false;
 int hitY=-1,hitX=120,restarts,saves,entered,stops,presents;bool saveOk=true,viewerRole=false;unsigned viewerSwitches=0;
@@ -16,6 +16,9 @@ bool usbInputViewerMode(){return viewerRole;}
 bool usbInputSwitchViewer(bool on){if(!saveOk)return false;viewerRole=on;viewerSwitches++;return true;}
 static freslest_display_t active;
 static unsigned fit=90,fitSaves;
+static unsigned rawTests,invalidations;
+bool freslest_video_color_test(){++rawTests;return true;}
+void gfxInvalidate(){++invalidations;}
 unsigned freslest_video_fit(){return fit;}
 bool freslest_video_save_fit(unsigned value){assert(value>=80&&value<=100&&value%5==0);++fitSaves;if(!saveOk)return false;fit=value;return true;}
 bool usbInputHit(int x,int y,int w,int h){if(hitY>=y&&hitY<y+h&&hitX>=x&&hitX<x+w){usbPointer.y=hitY;usbPointer.x=hitX;hitY=-1;return true;}return false;}
@@ -34,18 +37,20 @@ void audioStop(){stops++;}void gfxPresent(){presents++;}
 void enterApp(int a){assert(a==APP_SETTINGS);entered++;}
 '''
 test=r'''
-void edges(){bUp=bDown=bLeft=bRight=bOk={};hitY=-1;}
+void edges(){bUp=bDown=bLeft=bRight=bOk=bFire={};hitY=-1;}
 void choose(int row){int y=58+row*31+10;hitY=tft.width()==320?36+(y-44)*5/7:y;setDisplayLoop(0);edges();assert(displayChoice==row);}
 void ok(){bOk.edge=true;setDisplayLoop(0);edges();}
 int main(){
  const int loaded=tft.width()==320?1:0;
  active=FRESLEST_DISPLAY_LCD;setDisplayEnter();assert(saw9341&&saw9488);
  assert(displayChoice==loaded&&!displayConfirm);
+ bFire.edge=true;setDisplayLoop(0);edges();assert(!rawTests&&!invalidations);
  choose(1-loaded);ok();assert(!restarts&&!saves&&!viewerSwitches); // different compiled panel is never falsely applied
  choose(2);ok();assert(displayConfirm&&!saves&&!restarts);
  saveOk=false;ok();assert(displaySaveError&&saves==1&&!restarts&&!stops);
  saveOk=true;ok();assert(restarts==1&&saves==2&&stops==1&&presents==1);
  active=FRESLEST_DISPLAY_VGA;setDisplayEnter();assert(displayChoice==2);ok();assert(entered==1&&saves==2);
+ bFire.edge=true;setDisplayLoop(0);edges();assert(rawTests==1&&invalidations==1&&saves==2&&!displayConfirm);
  choose(loaded);ok();assert(displayConfirm);ok();assert(restarts==2&&saves==3);
  setDisplayEnter();choose(3);ok();assert(displayConfirm&&!viewerSwitches);
  saveOk=false;ok();assert(displaySaveError&&!viewerSwitches);
