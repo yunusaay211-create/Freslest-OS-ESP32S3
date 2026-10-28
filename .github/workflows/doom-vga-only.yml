@@ -18,8 +18,8 @@ jobs:
       - name: Ensure OS and shared runtime are unchanged
         shell: bash
         run: |
-          git fetch --no-tags --depth=1 origin 4126b0427d08e13d1df8ad00187e29efa3924a3b
-          git diff --exit-code 4126b0427d08e13d1df8ad00187e29efa3924a3b HEAD -- OS shared_components common installer build_windows.py prepare_firmware.py firmware_release.py requirements-build.txt
+          git -c safe.directory="$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin 4126b0427d08e13d1df8ad00187e29efa3924a3b
+          git -c safe.directory="$GITHUB_WORKSPACE" diff --exit-code 4126b0427d08e13d1df8ad00187e29efa3924a3b HEAD -- OS shared_components common installer build_windows.py prepare_firmware.py firmware_release.py requirements-build.txt
       - name: Test Doom presentation and update write boundaries
         run: python -m unittest discover -s doom_updater -p 'test_*.py' -v
       - name: Build only Doom VGA
@@ -59,3 +59,4 @@ jobs:
           path: dist/*
           compression-level: 0
           if-no-files-found: error
+
