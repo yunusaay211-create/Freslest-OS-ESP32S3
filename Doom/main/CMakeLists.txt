@@ -6,7 +6,7 @@ idf_component_register(
          "${PLATFORM}/i_main.c" "${PLATFORM}/i_system.c"
          "${PLATFORM}/i_video.c" "${PLATFORM}/i_sound.c"
          "${PLATFORM}/i_network.c" "${PLATFORM}/freslest_save.c" "${PLATFORM}/gamepad.c"
-         "${PLATFORM}/spi_lcd.c" "${PLATFORM}/freslest_settings.c"
+         "${PLATFORM}/doom_vga_frame.c" "${PLATFORM}/spi_lcd.c" "${PLATFORM}/freslest_settings.c"
          "${PLATFORM}/os_launcher.c" "${PLATFORM}/usb_doom.c"
     INCLUDE_DIRS "." "compat" "../components/prboom/include"
          "../components/prboom-wad-tables/include" "${PLATFORM}/include"

@@ -21,6 +21,7 @@
 #include "board_config.h"
 #include "spi_lcd.h"
 #include <freslest_video.h>
+#include "doom_vga_present.h"
 #include <freslest_cursor.h>
 #include "usb_doom.h"
 
@@ -89,6 +90,7 @@ void spi_lcd_set_palette(const int16_t *palette)
 void spi_lcd_set_palette_rgb888(const uint8_t *palette){
     // Copy the full original PLAYPAL while its WAD lump is still locked.
     freslest_video_doom_palette(palette);
+    doom_vga_palette_changed();
 }
 
 static void tx(int dc, const void *data, size_t n)
@@ -130,11 +132,10 @@ static void window(int x, int y, int w, int h)
 
 void spi_lcd_init(void)
 {
-    // Keep the profile identifier in the binary even with INFO logging disabled.
-    puts(FRESLEST_LCD_TAG);
     if(freslest_video_boot_output()==FRESLEST_DISPLAY_VGA){
         ESP_ERROR_CHECK(freslest_video_begin()?ESP_OK:ESP_FAIL);return;
     }
+    puts(FRESLEST_LCD_TAG); // LCD fallback only; VGA startup identifies itself.
     for (int x = 0; x < LCD_FIT_W; ++x)
         scaled_x[x] = (uint16_t)((x * LCD_SRC_W) / LCD_FIT_W);
     for (int y = 0; y < LCD_FIT_H; ++y)
@@ -320,7 +321,7 @@ void spi_lcd_send(uint16_t *scr)
 {
     if(freslest_video_output()==FRESLEST_DISPLAY_VGA){
         int x,y;bool cursor=usbDoomPointer(&x,&y);
-        freslest_video_doom((const uint8_t*)scr,cursor,x,y);return;
+        doom_vga_send_frame((const uint8_t*)scr,cursor,x,y);return;
     }
     static int last_fullscreen = -1;
     static int old_cursor,old_cursor_y;

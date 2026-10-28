@@ -1,0 +1,61 @@
+name: Doom VGA only
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Doom/**'
+      - 'doom_updater/**'
+      - '.github/workflows/doom-vga-only.yml'
+permissions:
+  contents: read
+jobs:
+  doom-firmware:
+    runs-on: ubuntu-latest
+    container: espressif/idf:v5.4.4
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure OS and shared runtime are unchanged
+        shell: bash
+        run: |
+          git fetch --no-tags --depth=1 origin 4126b0427d08e13d1df8ad00187e29efa3924a3b
+          git diff --exit-code 4126b0427d08e13d1df8ad00187e29efa3924a3b HEAD -- OS shared_components common installer build_windows.py prepare_firmware.py firmware_release.py requirements-build.txt
+      - name: Test Doom presentation and update write boundaries
+        run: python -m unittest discover -s doom_updater -p 'test_*.py' -v
+      - name: Build only Doom VGA
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          python doom_updater/build_firmware.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Doom-VGA-firmware-only
+          path: doom_updater/payload/*
+          if-no-files-found: error
+  doom-windows:
+    needs: doom-firmware
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+      - run: python -m pip install -r requirements-build.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: Doom-VGA-firmware-only
+          path: doom_updater/payload
+      - name: Test Doom-only updater
+        run: python -m unittest discover -s doom_updater -p 'test_*.py' -v
+      - name: Build Doom-only EXE
+        run: python doom_updater/build_windows.py
+      - name: Launch updater without opening a flash connection
+        run: python doom_updater/smoke_windows.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Freslest-Doom-VGA-Only-Windows
+          path: dist/*
+          compression-level: 0
+          if-no-files-found: error
