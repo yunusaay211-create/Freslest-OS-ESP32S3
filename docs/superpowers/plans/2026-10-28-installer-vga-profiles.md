@@ -32,9 +32,9 @@ Files: installer/payload.py, installer/installer.py, installer/translations.py, 
 
 Interfaces: DISPLAY_MODELS keys ili9488,ili9341,vga; VGA payload identity includes matching VGA marker and FRESLEST_LCD:ILI9341. No fallback for missingVGA. Reject VGA-tagged firmware inLCDprofiles.
 
-- [ ] Add failing payload, wrong-profile and realwidget selection tests.
-- [ ] Add profile rows, identity validation and translated timing/recovery hints.
-- [ ] Run headless installer tests; native GUI verification occurs inWindowsCI.
+- [x] Add failing payload, wrong-profile and realwidget selection tests.
+- [x] Add profile rows, identity validation and translated timing/recovery hints.
+- [x] Run headless installer tests; native GUI verification occurs inWindowsCI.
 
 ### Task2: VGA boot/timing presets
 
@@ -42,9 +42,9 @@ Files: shared_components/freslest_video/CMakeLists.txt, freslest_video.c, tests/
 
 Interfaces: compile definitions FRESLEST_VGA_PCLK_HZ and FRESLEST_VGA_PRESET_ID(0,252). First activation stores output_v2 and preset252 seenflag in fl_video; subsequent output choices respected. VGA switching from LCD profiles also uses25.2MHz.
 
-- [ ] Add failing firstboot/persistence/BACK/clock tests for252.
-- [ ] Implement validated CMake options, literal profile tags, and bounded NVS preset handling.
-- [ ] Run all VGA regressions with sanitizers.
+- [x] Add failing firstboot/persistence/BACK/clock tests for252.
+- [x] Implement validated CMake options, literal profile tags, and bounded NVS preset handling.
+- [x] Run all VGA regressions with sanitizers.
 
 ### Task3: Source build, package validation and delivery
 
@@ -52,8 +52,8 @@ Files: tools/build_lcd_profiles.py, .github/workflows/windows-exes.yml, tests/te
 
 Interfaces: iterate(profile,LCDmodel,VGAprofile)=(ili9488,9488,lcd),(ili9341,9341,lcd),(vga,9341,vga). Stage each before reconfiguring. Validate tag,OS1.1,size andhash of all21segments. Upload all three directories.
 
-- [ ] Update fake compiler fixtures and staging assertions; watch tests fail for two-profile builder.
-- [ ] Implement three-profile builds and workflow artifact paths; complete tests for the VGA profile.
-- [ ] Run full headless suite and review integrated diff.
-- [ ] Push working branch without merge/release publication; build all6apps and nativeWindowsEXE.
-- [ ] Verify OS1.1, LCD/VGA tags, checksums, all segment/artifact hashes, partition bounds, Windows launches and GUI selection; save and deliver installer.
+- [x] Update fake compiler fixtures and staging assertions; watch tests fail for two-profile builder.
+- [x] Implement three-profile builds and workflow artifact paths; complete tests for the VGA profile.
+- [x] Run full headless suite and review integrated diff.
+- [x] Push working branch without merge/release publication; build all6apps and nativeWindowsEXE.
+- [x] Verify OS1.1, LCD/VGA tags, checksums, all segment/artifact hashes, partition bounds, Windows launches and GUI selection; save and deliver installer.
