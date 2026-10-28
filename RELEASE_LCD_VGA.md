@@ -1,8 +1,8 @@
 # Freslest OS — LCD & VGA Update
 
-## VGA renk aktarımı
+## VGA titreme regresyonu
 
-OS ve Doom ortak VGA motoru, mevcut sekiz RGB332 bağlantısını 16 bit LCD_CAM sözcüklerine açıkça eşler. Donanım renk dönüştürme, bit/byte ters çevirme ve swizzle kapatılır. Fiziksel çıkış RGB332 kalır; pinler ve 640×480 / 25.175 MHz ayarı korunur. Yeni tanı ekranı eklenmedi. Ayrıntı: `docs/2026-10-28-vga-word-scanout.md`.
+Son 16 bit sözcük aktarımı geri alındı. OS ve Doom yeniden doğrudan 8 bit RGB332 kullanır. PSRAM tarama yükü ve kare belleği yarıya iner; genişletme geçişi kaldırılır. DMA bounce tamponu 10 satırdan 20 satıra çıkarıldı. Her iki projede RGB/GDMA kesmesinin flash kritik işlemlerinde çalışmasını koruyan IRAM-safe ayarı etkinleştirildi. Pinler, 640×480 / 25.175 MHz ve mevcut kare sahipliği korunur. Yeni test ekranı eklenmedi. Ayrıntı: `docs/2026-10-28-vga-flicker-regression.md`.
 
 ## VGA eski zamanlamaya dönüş — 25.175 MHz
 
@@ -42,7 +42,7 @@ Ayrıntılar: [C5 Doom incelemesi ve düzeltmeleri](docs/2026-10-28-doom-menu-ga
 
 ## VGA kayması, Doom renkleri ve ses
 
-- VGA aktarımı iki PSRAM kare ve iki dahili on satırlık DMA tamponu kullanır. Yeni kare, görüntüleyicinin okumadığı bellekte hazırlanır; kare tamamlanmadan eski tampon yeniden kullanılmaz. Her VBlank’te koşulsuz DMA sıfırlaması kaldırıldı. Flash/NVS/OTA işlemleri sırasında bu yolun çalışabilmesi için PSRAM XIP etkinleştirildi. Saat, senkronizasyon ve pinler korunur.
+- VGA aktarımı iki PSRAM kare ve iki dahili yirmi satırlık DMA tamponu kullanır. Yeni kare, görüntüleyicinin okumadığı bellekte hazırlanır; kare tamamlanmadan eski tampon yeniden kullanılmaz. Her VBlank’te koşulsuz DMA sıfırlaması kaldırıldı. Flash/NVS/OTA işlemleri sırasında bu yolun çalışabilmesi için PSRAM XIP etkinleştirildi. Saat, senkronizasyon ve pinler korunur.
 - Doom için ayrı RGB332 çizim yolu eklendi. Özgün PLAYPAL RGB888 renkleri LCD’nin RGB565 dönüşümüne uğramadan önbellekli RGB332 tablosuna çevrilir. Son düzeltmede 4×4 renk noktalaması kaldırıldı; düz renk kaynak alanları düz kalır. Dönüşüm çalışan V1.0 çekirdeğinin doğrudan RGB332 bit paketlemesini kullanır; oyun içi hasar/bonus paletleri ve LCD yönü korunur.
 - TV kenar kırpılması için **Settings → Display → VGA size** eklendi. Varsayılan %90; LEFT/RIGHT ile %80–100 arasında ayarlanır. Görüntünün tamamı siyah kenarlar içinde ortalanır; VGA sinyali 640×480 kalır. Ayar OS ve Doom tarafından ortak kullanılır.
 - Freslest DFPlayer sesinde SD dosya sorgusu düzeltildi. SD kart yeniden takıldığında veya modül yeniden başlama bildirimi verdiğinde kaynak, DAC ve kullanıcının ses düzeyi geri yüklenir. Sessiz ayarı korunur; eski efektler yeniden oynatılmaz.
@@ -60,10 +60,10 @@ Kurulumdan önce dosya, not ve ROM’larınızı yedekleyin. Ekran modelini kend
 
 ## Derleme doğrulaması
 
-Üç ekran profili için altı OS/Doom firmware derlemesi, bölüm/hash kontrolleri, Windows kurucu/Viewer testleri ve EXE açılış testleri geçti: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40703427066
+Üç ekran profili için altı OS/Doom firmware derlemesi, bölüm/hash kontrolleri, Windows kurucu/Viewer testleri ve EXE açılış testleri geçti: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40712563843
 
 Bu ortamda fiziksel ESP32-S3/LCD/VGA testi yapılmadı.
 
 Kullanıcının isteğiyle 25.2 MHz değişikliği geri alındı. Önceki kaynakta olduğu gibi 640×480 etkin alan ve 25.175 MHz hedef PCLK kullanılır; toplam 800×525 ile yaklaşık 59.94 Hz. VGA installer seçeneği ve 1.1 düzeltmeleri korunur. C4 fotoğrafı alındı; fiziksel renk sorunu henüz çözülmüş sayılmaz.
 
-Son doğrulanmış paket: **Freslest-Installer-1.1-VGA-Color.exe**, 35.246.540 bayt. OS ve Doom için eski **640×480 / 25.175 MHz** zamanlaması geri alındı. Firmware ve Windows derleme/test çalışması **40703427066** başarılı; TR/EN installer ve Viewer açılışları doğrulandı. Ayrıntı: `docs/2026-10-28-vga-timing-rollback.md`.
+Son doğrulanmış paket: **Freslest-Installer-1.1-VGA-DMA.exe**, 35.247.677 bayt. OS ve Doom için eski **640×480 / 25.175 MHz** zamanlaması geri alındı. Firmware ve Windows derleme/test çalışması **40712563843** başarılı; TR/EN installer ve Viewer açılışları doğrulandı. Ayrıntı: `docs/2026-10-28-vga-timing-rollback.md`.

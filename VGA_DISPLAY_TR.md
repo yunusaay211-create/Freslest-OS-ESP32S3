@@ -44,8 +44,8 @@ DFPlayer ses yolu VGA’dan ayrıdır: ESP GPIO18 TX → DFPlayer RX, DFPlayer T
 
 ## Durum ve test sınırı
 
-Bu geçiş deneysel VGA desteğidir. Önceki donanım denemelerinde sinyal gidip gelmesi görülmüştür; kesin giderildiği iddia edilmez. Yeni aktarım iki PSRAM kare ve iki dahili on satırlık DMA tamponu kullanır. CPU aktif kareye yazmaz; tamamlanma bildirimi gelmezse yeni kare atlanır ve OS tekrar dener. Koşulsuz her-VBlank DMA sıfırlaması kapatılmıştır. Flash yazımında önbelleğin erişilebilir kalması için OS ve Doom’da PSRAM XIP açıktır. Bu mimari değişikliğinin fiziksel sonucu cihazda doğrulanmalıdır. Yazılım VSYNC ve gönderilen kareleri izler; monitörün fiziksel bağlantısını veya analog sinyal kalitesini tespit edemez.
+Bu geçiş deneysel VGA desteğidir. Önceki donanım denemelerinde sinyal gidip gelmesi görülmüştür; kesin giderildiği iddia edilmez. Yeni aktarım iki PSRAM kare ve iki dahili yirmi satırlık DMA tamponu kullanır. CPU aktif kareye yazmaz; tamamlanma bildirimi gelmezse yeni kare atlanır ve OS tekrar dener. Koşulsuz her-VBlank DMA sıfırlaması kapatılmıştır. Flash yazımında önbelleğin erişilebilir kalması için OS ve Doom’da PSRAM XIP açıktır. Bu mimari değişikliğinin fiziksel sonucu cihazda doğrulanmalıdır. Yazılım VSYNC ve gönderilen kareleri izler; monitörün fiziksel bağlantısını veya analog sinyal kalitesini tespit edemez.
 
 AV/kompozit motoru, test modu ve TV renk/hizalama menüleri kaldırıldı. USB Viewer bağımsız olarak korunur. Fiziksel ESP32-S3/LCD/VGA testi bu çalışma ortamında yapılamaz.
 
-Aktarım uygulaması: LCD_CAM artık 16 bit sözcükler kullanır. Yalnızca RGB565 sözcüğündeki B=3,4; G=8,9,10; R=13,14,15 bitleri mevcut sekiz DAC pinine bağlanır. Fiziksel renk sayısı ve bağlantı RGB332 olarak kalır. Diğer veri hatları bağlanmaz.
+Son 16 bit sözcük aktarımı geri alındı: LCD_CAM doğrudan 8 bit RGB332 kullanır. İki PSRAM kare toplam 614.400 bayt, iki 20 satırlık dahili bounce tamponu toplam 25.600 bayttır. RGB/GDMA kesmesinin IRAM-safe seçeneği her iki firmware projesinde açıktır.
