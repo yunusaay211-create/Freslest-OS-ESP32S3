@@ -14,7 +14,7 @@ class PackagedReleaseVersionTests(unittest.TestCase):
     for _,name,_ in ITEMS:
      data=bytearray(80)
      if name=='freslest_os_s3.bin':data[0x30:0x50]=b'1.1'+bytes(29)
-     if name in ('freslest_os_s3.bin','freslest_doom_s3.bin'):data+={'ili9488':b'FRESLEST_LCD:ILI9488','ili9341':b'FRESLEST_LCD:ILI9341','vga':b'FRESLEST_LCD:ILI9341 FRESLEST_VIDEO:VGA252_25200000'}[model]
+     if name in ('freslest_os_s3.bin','freslest_doom_s3.bin'):data+={'ili9488':b'FRESLEST_LCD:ILI9488','ili9341':b'FRESLEST_LCD:ILI9341','vga':b'FRESLEST_LCD:ILI9341 FRESLEST_VIDEO:VGA25175_25175000'}[model]
      (p/name).write_bytes(data);manifest['firmware/'+name]=hashlib.sha256(data).hexdigest()
     (p/'SHA256.json').write_text(json.dumps(manifest))
    build_windows.verify_display_firmware(root)

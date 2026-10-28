@@ -1,10 +1,10 @@
 # Freslest OS — LCD & VGA Update
 
-## VGA installer profili — 25.2 MHz
+## VGA eski zamanlamaya dönüş — 25.175 MHz
 
-- Installer ekran listesine **VGA RGB332 — 25.2 MHz (640×480 / 60 Hz)** eklendi. Üç profil kendi doğrulanmış OS+Doom dosyalarını yükler.
+- Installer ekran listesine **VGA RGB332 — 25.175 MHz (640×480 / 59.94 Hz)** eklendi. Üç profil kendi doğrulanmış OS+Doom dosyalarını yükler.
 - VGA profilinin ilk etkinleşmesi VGA çıkışını seçer; daha sonraki LCD/VGA tercihleri korunur. BACK+RESET, ILI9341 LCD kurtarmasını seçer.
-- Tüm yeni VGA çıkışları 25.2 MHz hedef PCLK kullanır. 800×525 toplam zamanlamayla hedef 60 Hz’dir; pinler ve porch değerleri korunur. Fiziksel ölçüm yapılmamıştır.
+- Tüm yeni VGA çıkışları 25.175 MHz hedef PCLK kullanır. 800×525 toplam zamanlamayla hedef 59.94 Hz’dir; pinler ve porch değerleri korunur. Fiziksel ölçüm yapılmamıştır.
 
 ## 1.1 sürüm bilgisi
 
@@ -33,7 +33,7 @@ Ayrıntılar: [C5 Doom incelemesi ve düzeltmeleri](docs/2026-10-28-doom-menu-ga
 - Kompozit AV motoru, AV test modu ve TV renk/hizalama sayfaları kaldırıldı.
 - **Settings → Display** içinde ILI9488, ILI9341, VGA RGB332, USB Viewer ve VGA size satırları bulunur. Yüklü LCD profili `[loaded]` ile gösterilir; diğer LCD modeli için installer’dan eşleşen OS+Doom profili yüklenmelidir. LCD/VGA değişikliği onay ve yeniden başlatma ile uygulanır. BACK basılıyken RESET, LCD’ye dönüş sağlar.
 - VGA ayrı bir masaüstü çizmez. **OS için çizilen aynı RGB565 görüntü RGB332’ye dönüştürülür**; Doom aynı oyun karesini özgün indeksli paletinden RGB332’ye çevirir. Menüler, uygulamalar, oyunlar ve fare imleci aynı içerikle seçilen çıkışta gösterilir.
-- VGA hedefi **640×480, yaklaşık 60 Hz, RGB332/256 renk**. RGB565 kaynak kullanılması, fiziksel VGA çıkışının RGB565 olduğu anlamına gelmez.
+- VGA hedefi **640×480, yaklaşık 59.94 Hz, RGB332/256 renk**. RGB565 kaynak kullanılması, fiziksel VGA çıkışının RGB565 olduğu anlamına gelmez.
 - Önceki AV seçimi otomatik VGA’ya dönüştürülmez; güncelleme sonrasında LCD ile açılır.
 
 ## VGA kayması, Doom renkleri ve ses
@@ -59,3 +59,5 @@ Kurulumdan önce dosya, not ve ROM’larınızı yedekleyin. Ekran modelini kend
 İki LCD için OS/Doom firmware derlemeleri, bölüm/hash kontrolleri, Windows kurucu/Viewer testleri ve EXE açılış testleri geçti: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40569946857
 
 Bu ortamda fiziksel ESP32-S3/LCD/VGA testi yapılmadı.
+
+Kullanıcının isteğiyle 25.2 MHz değişikliği geri alındı. Önceki kaynakta olduğu gibi 640×480 etkin alan ve 25.175 MHz hedef PCLK kullanılır; toplam 800×525 ile yaklaşık 59.94 Hz. VGA installer seçeneği ve 1.1 düzeltmeleri korunur. C4 fotoğrafı alındı; fiziksel renk sorunu henüz çözülmüş sayılmaz.

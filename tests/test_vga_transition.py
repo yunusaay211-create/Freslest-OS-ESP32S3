@@ -23,7 +23,7 @@ class VgaTransition(unittest.TestCase):
    self.assertLessEqual(int(line.split('\t')[1]),256,'Doom VGA converter exhausts its task stack')
 
  def test_vga_presets(self):
-  for preset,clock in ((252,25200000),):
+  for preset,clock in ((25175,25175000),):
    with self.subTest(preset=preset), tempfile.TemporaryDirectory() as d:
     exe=Path(d)/'preset'
     subprocess.run(['gcc','-std=gnu17','-Wall','-Wextra','-Werror','-g','-fsanitize=address,undefined','-fno-pie','-no-pie',f'-DFRESLEST_VGA_PRESET_ID={preset}',f'-DFRESLEST_VGA_PCLK_HZ={clock}','-I'+str(ROOT/'tests/vga_stubs'),'-I'+str(ROOT/'shared_components/freslest_video/include'),str(ROOT/'tests/test_vga_preset.c'),str(ROOT/'shared_components/freslest_video/vga_pixels.c'),str(ROOT/'shared_components/freslest_video/vga_doom.c'),'-o',str(exe)],check=True)

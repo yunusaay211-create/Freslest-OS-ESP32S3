@@ -7,14 +7,14 @@ from translations import translate
 DISPLAY_MODELS = {
     'ili9488': 'ILI9488 — 480×320',
     'ili9341': 'ILI9341 — 320×240',
-    'vga': 'VGA RGB332 — 25.2 MHz (640×480 / 60 Hz)',
+    'vga': 'VGA RGB332 — 25.175 MHz (640×480 / 59.94 Hz)',
 }
 REQUIRED_PROFILE_TAGS = {
     'ili9488': (b'FRESLEST_LCD:ILI9488',),
     'ili9341': (b'FRESLEST_LCD:ILI9341',),
-    'vga': (b'FRESLEST_LCD:ILI9341', b'FRESLEST_VIDEO:VGA252_25200000'),
+    'vga': (b'FRESLEST_LCD:ILI9341', b'FRESLEST_VIDEO:VGA25175_25175000'),
 }
-VGA_TAGS = (REQUIRED_PROFILE_TAGS['vga'][1],)
+VGA_TAGS = (REQUIRED_PROFILE_TAGS['vga'][1], b'FRESLEST_VIDEO:VGA252_25200000')
 
 
 def firmware_matches_profile(data, profile):

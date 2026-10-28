@@ -73,7 +73,7 @@ class DisplayInstallTests(unittest.TestCase):
         directory.mkdir(exist_ok=True)
         manifest = {}
         for _, name, _ in app.ITEMS:
-            tags = {'vga': 'FRESLEST_LCD:ILI9341 FRESLEST_VIDEO:VGA252_25200000'}
+            tags = {'vga': 'FRESLEST_LCD:ILI9341 FRESLEST_VIDEO:VGA25175_25175000'}
             data = (tags.get(model, f'FRESLEST_LCD:{model.upper()}') if 's3.bin' in name else name).encode()
             (directory / name).write_bytes(data)
             manifest['firmware/' + name] = hashlib.sha256(data).hexdigest()
@@ -104,7 +104,7 @@ class DisplayInstallTests(unittest.TestCase):
 
     def test_profile_order_and_titles(self):
         self.assertEqual(list(app.DISPLAY_MODELS), ['ili9488', 'ili9341', 'vga'])
-        self.assertEqual(app.DISPLAY_MODELS['vga'], 'VGA RGB332 — 25.2 MHz (640×480 / 60 Hz)')
+        self.assertEqual(app.DISPLAY_MODELS['vga'], 'VGA RGB332 — 25.175 MHz (640×480 / 59.94 Hz)')
 
     def test_missing_vga_profiles_never_fall_back(self):
         self.payload('ili9488')
@@ -129,7 +129,7 @@ class DisplayInstallTests(unittest.TestCase):
 
     def test_vga_rejects_wrong_clock_tag(self):
         directory = self.payload('vga')
-        self.retag(directory, b'FRESLEST_VIDEO:VGA252_25200000', b'FRESLEST_VIDEO:WRONG_CLOCK')
+        self.retag(directory, b'FRESLEST_VIDEO:VGA25175_25175000', b'FRESLEST_VIDEO:WRONG_CLOCK')
         with self.assertRaisesRegex(RuntimeError, 'VGA'):
             app.validated_payload('en', 'vga')
 

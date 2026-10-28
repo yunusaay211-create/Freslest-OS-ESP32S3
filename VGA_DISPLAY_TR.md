@@ -2,11 +2,11 @@
 
 VGA, LCD için çizilen aynı framebuffer’ı kullanır. Ayrı bir VGA arayüzü yoktur: menüler, uygulamalar, oyunlar ve fare imleci aynı kaynaktan gelir. ILI9341 menüler ve Apps listesindeki uygulamalar için 320×240 tuval kullanır; ILI9488 ve mevcut oyun uyumluluk düzenleri 480×320’dir. Görüntünün tamamı varsayılan olarak 640×480 sinyalin ortasındaki 576×432 alana ölçeklenir; TV kenar kırpılmasına karşı siyah pay bırakılır. Doom’un 320×240 indeksli karesi özgün PLAYPAL RGB888 paletinden ayrı bir RGB332 çizim yoluyla aktarılır; LCD RGB565 ara dönüşümünü kullanmaz.
 
-Fiziksel çıkış **RGB332 / 8 bit / 256 renk**; kaynak görüntü RGB565’tir. VGA RGB565 veya 65.536 renk çıkışı değildir. Bağlantı/bit sırası kaynağı `Freslest_VGA_RGB332_1_0_Core(1).zip` V1.0 çekirdeğidir. Yeni hedef zamanlama **25.2 MHz PCLK, 640×480, 60 Hz** (800×525 toplam piksel). Bu değerler yazılım hedefidir; osiloskop ölçümü değildir.
+Fiziksel çıkış **RGB332 / 8 bit / 256 renk**; kaynak görüntü RGB565’tir. VGA RGB565 veya 65.536 renk çıkışı değildir. Bağlantı/bit sırası kaynağı `Freslest_VGA_RGB332_1_0_Core(1).zip` V1.0 çekirdeğidir. Yeni hedef zamanlama **25.175 MHz PCLK, 640×480, 59.94 Hz** (800×525 toplam piksel). Bu değerler yazılım hedefidir; osiloskop ölçümü değildir.
 
 ## Seçim
 
-Installer **1. Ekranlar** adımında ILI9488, ILI9341 veya **VGA RGB332 — 25.2 MHz** seçilir. VGA profili ayrı OS+Doom dosyalarını yükler; LCD kurtarma sürücüsü ILI9341’dir. Bu profilin ilk etkinleşmesinde eski LCD ayarı olsa bile VGA seçilir. Daha sonra Display menüsündeki tercih hatırlanır. BACK basılı RESET, LCD’ye döner.
+Installer **1. Ekranlar** adımında ILI9488, ILI9341 veya **VGA RGB332 — 25.175 MHz** seçilir. VGA profili ayrı OS+Doom dosyalarını yükler; LCD kurtarma sürücüsü ILI9341’dir. Bu profilin ilk etkinleşmesinde eski LCD ayarı olsa bile VGA seçilir. Daha sonra Display menüsündeki tercih hatırlanır. BACK basılı RESET, LCD’ye döner.
 
 Settings → Display → LCD / VGA RGB332 / USB PC Viewer. LCD/VGA değişimi iki aşamalı onaydan sonra yeniden başlatılır. VGA modunda SPI LCD ve GPIO41 backlight PWM başlatılmaz. LCD installer profillerinde eski AV seçimi LCD’ye döner. VGA installer profili ise ilk etkinleşmede VGA’yı seçer. BACK basılıyken RESET, LCD’yi seçer.
 

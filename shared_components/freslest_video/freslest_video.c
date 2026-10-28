@@ -15,14 +15,14 @@
 #include "freertos/task.h"
 #include "nvs.h"
 #ifndef FRESLEST_VGA_PCLK_HZ
-#define FRESLEST_VGA_PCLK_HZ 25200000
+#define FRESLEST_VGA_PCLK_HZ 25175000
 #endif
 #ifndef FRESLEST_VGA_PRESET_ID
 #define FRESLEST_VGA_PRESET_ID 0
 #endif
-#if FRESLEST_VGA_PRESET_ID == 252
-#define VGA_PRESET_KEY "preset252"
-#define VGA_PRESET_MARKER "FRESLEST_VIDEO:VGA252_25200000"
+#if FRESLEST_VGA_PRESET_ID == 25175
+#define VGA_PRESET_KEY "preset25175"
+#define VGA_PRESET_MARKER "FRESLEST_VIDEO:VGA25175_25175000"
 #elif FRESLEST_VGA_PRESET_ID != 0
 #error Unsupported VGA preset
 #endif
@@ -127,7 +127,7 @@ bool freslest_video_begin(void){
  gpio_config_t keys={.pin_bit_mask=1ULL<<7,.mode=GPIO_MODE_INPUT,.pull_up_en=GPIO_PULLUP_ENABLE};
  gpio_config(&keys);
  if(!gpio_get_level(7))freslest_video_color_test();
- ESP_LOGW("video","VGA V1.0 RGB332 640x480 60 Hz, target PCLK %u Hz, double PSRAM frames + internal bounce; frame ownership",(unsigned)FRESLEST_VGA_PCLK_HZ);return true;
+ ESP_LOGW("video","VGA V1.0 RGB332 640x480 59.94 Hz, target PCLK %u Hz, double PSRAM frames + internal bounce; frame ownership",(unsigned)FRESLEST_VGA_PCLK_HZ);return true;
 fail:
  if(panel){esp_lcd_panel_del(panel);panel=NULL;}fb[0]=fb[1]=NULL;pending=false;
  ESP_LOGE("video","VGA init failed. Hold BACK during reset for LCD.");return false;
@@ -198,7 +198,7 @@ void freslest_video_doom(const uint8_t *indices,bool cursor,int x,int y){
  if(target&&vga_convert_doom(target,indices,cursor,x,y,fit_percent))publish_frame(target);
 }
 void freslest_video_diagnostics(void){
- ESP_LOGW("video","output=%s RGB332 PCLK=25.2MHz 640x480 60Hz started=%u syncs=%lu images=%lu sync-age=%lu us healthy=%u dropped=%lu frames=%lu fit=%u%%; D0..7=41,8,13,14,2,42,40,39 H=47 V=48",
+ ESP_LOGW("video","output=%s RGB332 PCLK=25.175MHz 640x480 59.94Hz started=%u syncs=%lu images=%lu sync-age=%lu us healthy=%u dropped=%lu frames=%lu fit=%u%%; D0..7=41,8,13,14,2,42,40,39 H=47 V=48",
  output==FRESLEST_DISPLAY_LCD?"LCD":"VGA",started,(unsigned long)vsyncs,(unsigned long)presentations,
  (unsigned long)((uint32_t)esp_timer_get_time()-last_vsync_us),freslest_video_healthy(),(unsigned long)dropped,(unsigned long)frame_events,fit_percent);
 }

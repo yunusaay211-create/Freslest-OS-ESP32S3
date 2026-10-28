@@ -35,7 +35,7 @@ class BuilderTests(unittest.TestCase):
                 preset = next((v.split('=')[1] for v in command if v.startswith('-DFRESLEST_VGA_PROFILE=')), 'lcd')
                 configs.append((Path(cwd).name,model,preset))
                 marker = ('FRESLEST_LCD:ILI' + model).encode()
-                if preset == 'vga':marker += b'FRESLEST_VIDEO:VGA252_25200000'
+                if preset == 'vga':marker += b'FRESLEST_VIDEO:VGA25175_25175000'
                 if Path(cwd).name == 'OS':
                     files = ['freslest_os_s3.bin', 'bootloader/bootloader.bin',
                              'partition_table/partition-table.bin', 'ota_data_initial.bin']
@@ -66,7 +66,7 @@ class BuilderTests(unittest.TestCase):
                 self.assertEqual(len(segments), 7)
                 for _, path, _, _ in segments:
                     if path.name in ('freslest_os_s3.bin', 'freslest_doom_s3.bin'):
-                        tag = {'ili9488':b'FRESLEST_LCD:ILI9488','ili9341':b'FRESLEST_LCD:ILI9341','vga':b'FRESLEST_VIDEO:VGA252_25200000'}[model]
+                        tag = {'ili9488':b'FRESLEST_LCD:ILI9488','ili9341':b'FRESLEST_LCD:ILI9341','vga':b'FRESLEST_VIDEO:VGA25175_25175000'}[model]
                         self.assertIn(tag,path.read_bytes())
                         if path.name == 'freslest_os_s3.bin':
                             self.assertEqual(path.read_bytes()[0x30:0x50], b'1.1' + bytes(29))

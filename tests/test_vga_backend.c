@@ -5,7 +5,7 @@ static void reset(void){
  assert(!panels);boot_read=started=first_frame_ready=false;output=FRESLEST_DISPLAY_LCD;stored_v2=0;back=1;vsyncs=presentations=0;now_us=last_vsync_us=0;frame_events=last_frame_us=0;pending=false;front=0;host_active=host_selected=host_fb;host_events=true;memset(host_snapshot,0,sizeof(host_snapshot));memset(&callbacks,0,sizeof(callbacks));driver_failure=nvs_failure=0;
 }
 int main(void){
- reset();stored_preset252=42;assert(freslest_video_boot_output()==FRESLEST_DISPLAY_LCD);assert(!creates&&stored_preset252==42); // legacy output=1 is NOT VGA
+ reset();stored_preset25175=42;assert(freslest_video_boot_output()==FRESLEST_DISPLAY_LCD);assert(!creates&&stored_preset25175==42); // legacy output=1 is NOT VGA
  boot_read=false;stored_v2=1;assert(freslest_video_boot_output()==FRESLEST_DISPLAY_LCD);
  boot_read=false;stored_v2=2;back=0;assert(freslest_video_boot_output()==FRESLEST_DISPLAY_LCD&&stored_v2==0);back=1;
  assert(!freslest_video_save_output((freslest_display_t)1));assert(!freslest_video_save_output((freslest_display_t)99));
@@ -15,7 +15,7 @@ int main(void){
  const int pins_expected[]={41,8,13,14,2,42,40,39};assert(!memcmp(saved_config.data_gpio_nums,pins_expected,sizeof(pins_expected)));
  assert(saved_config.data_width==8&&saved_config.bits_per_pixel==8&&saved_config.flags.fb_in_psram&&saved_config.num_fbs==2&&saved_config.bounce_buffer_size_px>=640*10);
  assert(saved_config.hsync_gpio_num==47&&saved_config.vsync_gpio_num==48&&saved_config.pclk_gpio_num==-1&&saved_config.de_gpio_num==-1);
- assert(saved_config.timings.pclk_hz==25200000&&saved_config.timings.h_res==640&&saved_config.timings.v_res==480);
+ assert(saved_config.timings.pclk_hz==25175000&&saved_config.timings.h_res==640&&saved_config.timings.v_res==480);
  assert(saved_config.timings.hsync_pulse_width==96&&saved_config.timings.hsync_back_porch==48&&saved_config.timings.hsync_front_porch==16);
  assert(saved_config.timings.vsync_pulse_width==2&&saved_config.timings.vsync_back_porch==33&&saved_config.timings.vsync_front_porch==10);
  assert(!saved_config.timings.flags.hsync_idle_low&&!saved_config.timings.flags.vsync_idle_low);
