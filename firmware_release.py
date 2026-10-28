@@ -1,4 +1,4 @@
-"""Stamp the preserved Freslest ESP32-S3 OS application descriptor as release 1.0.
+"""Stamp the preserved Freslest ESP32-S3 OS application descriptor as release 1.1.
 
 This is metadata-only release stamping, not an ESP-IDF source rebuild. Only the
 32-byte esp_app_desc_t.version field, segment XOR checksum and appended SHA256
@@ -30,9 +30,11 @@ import tempfile
 
 
 ORIGINAL_VERSION = '6.16'
-RELEASE_VERSION = '1.0'
+RELEASE_VERSION = '1.1'
+PREVIOUS_VERSION = '1.0'
+PREVIOUS_SHA256 = 'c3815e88e6edce96536e5dedb380e056b80ce9c937f2b4b5468e26f1774455ea'
 ORIGINAL_SHA256 = '04a725fba76a2bbbfc302aa3c8283a6b2ee3b1d1c7e15ab89f5519185d092f70'
-RELEASE_SHA256 = 'c3815e88e6edce96536e5dedb380e056b80ce9c937f2b4b5468e26f1774455ea'
+RELEASE_SHA256 = '74146682eda0be41dcd609e2217f2a526ebe469b9dd75b9e556789f409c76f36'
 IMAGE_NAME = 'freslest_os_s3.bin'
 MANIFEST_KEY = 'firmware/' + IMAGE_NAME
 APP_DESCRIPTOR_OFFSET = 0x20
@@ -161,7 +163,7 @@ def stamp_image(data):
     identity = (info['version'], info['image_sha256'])
     if identity == (RELEASE_VERSION, RELEASE_SHA256):
         return bytes(data)
-    if identity != (ORIGINAL_VERSION, ORIGINAL_SHA256):
+    if identity not in ((ORIGINAL_VERSION, ORIGINAL_SHA256), (PREVIOUS_VERSION, PREVIOUS_SHA256)):
         raise ValueError('Image SHA256 provenance is not a recognized Freslest release input')
     stamped = _with_version(data, info, RELEASE_VERSION)
     result = inspect_image(stamped)
@@ -263,7 +265,7 @@ def stamp_release(firmware_dir=None):
     manifest_hash = manifest.get(MANIFEST_KEY)
     allowed_hashes = {info['image_sha256']}
     if info['image_sha256'] == RELEASE_SHA256:
-        allowed_hashes.add(ORIGINAL_SHA256)  # Recover an interrupted atomic OS replacement.
+        allowed_hashes.update((ORIGINAL_SHA256, PREVIOUS_SHA256))  # Recover an interrupted atomic OS replacement.
     if not isinstance(manifest_hash, str) or manifest_hash not in allowed_hashes:
         raise ValueError('OS firmware SHA256 manifest does not match the recognized image')
     pattern = r'("firmware/freslest_os_s3\.bin"\s*:\s*")([0-9a-f]{64})(")'

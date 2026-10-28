@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-set(PROJECT_VER "1.0")
+set(PROJECT_VER "1.1")
 set(EXTRA_COMPONENT_DIRS "../shared_components")
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(freslest_os_s3)

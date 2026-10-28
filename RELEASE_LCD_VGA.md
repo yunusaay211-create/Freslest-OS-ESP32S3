@@ -1,5 +1,9 @@
 # Freslest OS — LCD & VGA Update
 
+## 1.1 sürüm bilgisi
+
+Installer başlığı, Türkçe/İngilizce kurulum mesajları, Viewer başlığı, derleme raporu ve iki LCD profili için derlenen OS sürüm alanı 1.1 olarak güncellendi. C5 Doom menü/gamma düzeltmeleri ve C4 doğrudan VGA renk testi korunur. Kullanıcının C5 sonrasında bildirdiği aşırı kırmızılık henüz giderildi olarak doğrulanmamıştır; doğrudan renk testi çıktısı beklenmektedir.
+
 Bu güncelleme ILI9341 uygulama ekranlarını düzenler, VGA kaymasına karşı önlemler ekler, Doom VGA renk dönüşümünü iyileştirir ve Freslest ses modülünün yeniden bağlantıdan sonra toparlanmasını sağlar. Kompozit AV kaldırılmıştır.
 
 ## C5 — Doom menü renkleri ve gamma

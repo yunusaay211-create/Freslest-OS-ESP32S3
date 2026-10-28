@@ -94,6 +94,14 @@ class WizardLanguageTests(unittest.TestCase):
         self.assertEqual(self.window.port.get(), 'COM27')
         self.assertEqual(self.window.baud.get(), '115200')
 
+    def test_release_version_is_1_1_in_both_languages(self):
+        for language in ('English', 'Türkçe'):
+            self.choose(language)
+            self.assertIn('OS 1.1', self.window.title())
+            self.assertTrue(any('OS 1.1' in text for text in labels(self.window)))
+            self.assertIn('1.1', self.window.t('confirm', port='COM5', display='ILI9341'))
+            self.assertIn('OS 1.1', self.window.t('success_summary'))
+
     def test_english_validation_and_overwrite_confirmation(self):
         self.choose('English')
         self.window.ports()

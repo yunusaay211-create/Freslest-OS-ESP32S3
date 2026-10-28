@@ -14,7 +14,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 ORIGINAL_SHA256 = '04a725fba76a2bbbfc302aa3c8283a6b2ee3b1d1c7e15ab89f5519185d092f70'
-RELEASE_SHA256 = 'c3815e88e6edce96536e5dedb380e056b80ce9c937f2b4b5468e26f1774455ea'
+RELEASE_SHA256 = '74146682eda0be41dcd609e2217f2a526ebe469b9dd75b9e556789f409c76f36'
 VERSION_OFFSET = 0x30
 CHECKSUM_OFFSET = 0x1AFFBF
 DIGEST_OFFSET = 0x1AFFC0
@@ -53,27 +53,46 @@ def repair_integrity(data):
 
 
 class FirmwareVersionTests(unittest.TestCase):
+    def test_previous_1_0_image_migrates_and_recovers_interrupted_manifest(self):
+        from firmware_release import stamp_image, stamp_release
+        old = bytearray(original_image())
+        old[VERSION_OFFSET:VERSION_OFFSET + 32] = b'1.0' + bytes(29)
+        old = repair_integrity(old)
+        old_hash = 'c3815e88e6edce96536e5dedb380e056b80ce9c937f2b4b5468e26f1774455ea'
+        self.assertEqual(hashlib.sha256(old).hexdigest(), old_hash)
+        self.assertEqual(descriptor_version(stamp_image(old)), '1.1')
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            text = self.make_release(directory).replace(ORIGINAL_SHA256, old_hash)
+            (directory / 'SHA256.json').write_text(text, encoding='utf-8')
+            (directory / 'freslest_os_s3.bin').write_bytes(old)
+            stamp_release(directory)
+            self.assertEqual(descriptor_version((directory / 'freslest_os_s3.bin').read_bytes()), '1.1')
+            (directory / 'SHA256.json').write_text(text, encoding='utf-8')
+            stamp_release(directory)
+            self.assertEqual(json.loads((directory / 'SHA256.json').read_text())['firmware/freslest_os_s3.bin'], RELEASE_SHA256)
+
     def test_preserved_original_reproduces_the_6_16_descriptor(self):
         data = original_image()
         self.assertEqual(hashlib.sha256(data).hexdigest(), ORIGINAL_SHA256)
         self.assertEqual(descriptor_version(data), '6.16')
 
-    def test_shipped_image_reports_release_1_0(self):
+    def test_shipped_image_reports_release_1_1(self):
         data = (ROOT / 'firmware' / 'freslest_os_s3.bin').read_bytes()
-        self.assertEqual(descriptor_version(data), '1.0')
+        self.assertEqual(descriptor_version(data), '1.1')
 
     def test_stamp_changes_only_version_and_required_integrity_bytes(self):
         from firmware_release import stamp_image
         original = original_image()
         stamped = stamp_image(original)
-        self.assertEqual(descriptor_version(stamped), '1.0')
+        self.assertEqual(descriptor_version(stamped), '1.1')
         self.assertEqual(hashlib.sha256(stamped).hexdigest(), RELEASE_SHA256)
         self.assertEqual(len(stamped), len(original))
         self.assertEqual(stamped[:VERSION_OFFSET], original[:VERSION_OFFSET])
         self.assertEqual(stamped[VERSION_OFFSET + 32:CHECKSUM_OFFSET],
                          original[VERSION_OFFSET + 32:CHECKSUM_OFFSET])
         self.assertEqual(stamped[DIGEST_OFFSET + 32:], original[DIGEST_OFFSET + 32:])
-        self.assertEqual(stamped[VERSION_OFFSET:VERSION_OFFSET + 32], b'1.0' + bytes(29))
+        self.assertEqual(stamped[VERSION_OFFSET:VERSION_OFFSET + 32], b'1.1' + bytes(29))
 
     def test_esptool_accepts_all_segments_checksum_and_digest(self):
         from esptool.bin_image import ESP32S3FirmwareImage
@@ -83,7 +102,7 @@ class FirmwareVersionTests(unittest.TestCase):
         self.assertEqual(new.chip_id, 9)
         self.assertEqual(new.checksum, new.calculate_checksum())
         self.assertEqual(new.stored_digest, new.calc_digest)
-        self.assertEqual(new.segments[0].data[16:48], b'1.0' + bytes(29))
+        self.assertEqual(new.segments[0].data[16:48], b'1.1' + bytes(29))
         self.assertEqual(len(new.segments), 7)
         for index, (before, after) in enumerate(zip(old.segments, new.segments)):
             self.assertEqual((before.addr, before.file_offs, len(before.data)),
@@ -163,7 +182,7 @@ class FirmwareVersionTests(unittest.TestCase):
             report = stamp_release(directory)
             image = (directory / 'freslest_os_s3.bin').read_bytes()
             expected_hash = hashlib.sha256(image).hexdigest()
-            self.assertEqual(descriptor_version(image), '1.0')
+            self.assertEqual(descriptor_version(image), '1.1')
             self.assertEqual((directory / 'SHA256.json').read_text(encoding='utf-8'),
                              old_manifest.replace(ORIGINAL_SHA256, expected_hash))
             self.assertEqual((directory / 'freslest_doom_s3.bin').read_bytes(), b'unchanged Doom sentinel')
@@ -224,8 +243,8 @@ class FirmwareVersionTests(unittest.TestCase):
             result = subprocess.run([sys.executable, str(ROOT / 'firmware_release.py'), str(directory)],
                                     text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertIn('1.0', result.stdout)
-            self.assertEqual(descriptor_version((directory / 'freslest_os_s3.bin').read_bytes()), '1.0')
+            self.assertIn('1.1', result.stdout)
+            self.assertEqual(descriptor_version((directory / 'freslest_os_s3.bin').read_bytes()), '1.1')
 
     def test_other_shipped_firmware_files_match_the_original_payload(self):
         payload = ROOT / 'firmware-payload.zip'

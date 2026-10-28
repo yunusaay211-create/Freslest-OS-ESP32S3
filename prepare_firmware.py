@@ -1,4 +1,4 @@
-"""Extract the preserved payload, stamp OS 1.0 and verify all seven files."""
+"""Extract the preserved payload, stamp OS 1.1 and verify all seven files."""
 import hashlib
 import json
 from pathlib import Path
@@ -34,7 +34,7 @@ def prepare():
                  'freslest_doom_s3.bin', 'freslest_os_s3.bin', 'doom_flash.wad', 'littlefs.bin'):
         if hashlib.sha256((firmware / name).read_bytes()).hexdigest() != manifest['firmware/' + name]:
             raise ValueError('Firmware checksum mismatch: ' + name)
-    print('OS 1.0 descriptor stamped; all seven release firmware hashes verified.')
+    print('OS 1.1 descriptor stamped; all seven release firmware hashes verified.')
 
 
 if __name__ == '__main__':

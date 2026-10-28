@@ -1,4 +1,4 @@
-"""Freslest USB Viewer for the OS 1.0 release; Screen 2 wire protocol."""
+"""Freslest USB Viewer for the OS 1.1 release; Screen 2 wire protocol."""
 import queue
 import threading
 import time
@@ -38,14 +38,14 @@ def open_device(port,stop):
                     if size in ((480,320),(480,360)):
                         return c,words[2].decode('ascii'),size
             if len(data)>4096:del data[:-512]
-        raise RuntimeError('Freslest ekran bağlantısı bulunamadı. OS 1.0 firmware ve USB PC Viewer ayarını kontrol et.')
+        raise RuntimeError('Freslest ekran bağlantısı bulunamadı. OS 1.1 firmware ve USB PC Viewer ayarını kontrol et.')
     except BaseException:
         c.close();raise
 
 
 class Viewer:
     def __init__(self,root):
-        self.root=root;root.title('Freslest USB Viewer | OS 1.0');root.minsize(640,460);root.geometry('960x680')
+        self.root=root;root.title('Freslest USB Viewer | OS 1.1');root.minsize(640,460);root.geometry('960x680')
         self.events=queue.Queue();self.stop=threading.Event();self.thread=None
         self.frame_lock=threading.Lock();self.pending_frame=None
         self._revision=0;self._render_signature=None;self._viewport=None

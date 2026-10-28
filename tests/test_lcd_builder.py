@@ -40,7 +40,11 @@ class BuilderTests(unittest.TestCase):
                 for name in files:
                     file = output / name
                     file.parent.mkdir(parents=True, exist_ok=True)
-                    file.write_bytes(marker)
+                    # Staging validates the app descriptor as well as its LCD tag.
+                    data = bytearray(80) if name == 'freslest_os_s3.bin' else bytearray()
+                    if data:
+                        data[0x30:0x50] = b'1.1' + bytes(29)
+                    file.write_bytes(data + marker)
 
             old_path = list(sys.path)
             try:
@@ -57,7 +61,9 @@ class BuilderTests(unittest.TestCase):
                 self.assertEqual(len(segments), 7)
                 for _, path, _, _ in segments:
                     if path.name in ('freslest_os_s3.bin', 'freslest_doom_s3.bin'):
-                        self.assertEqual(path.read_bytes(), ('FRESLEST_LCD:' + model.upper()).encode())
+                        self.assertTrue(path.read_bytes().endswith(('FRESLEST_LCD:' + model.upper()).encode()))
+                        if path.name == 'freslest_os_s3.bin':
+                            self.assertEqual(path.read_bytes()[0x30:0x50], b'1.1' + bytes(29))
 
 
 if __name__ == '__main__':

@@ -7,8 +7,22 @@ import platform
 import subprocess
 import sys
 from prepare_firmware import prepare
+from firmware_release import RELEASE_VERSION
 
 ROOT = Path(__file__).resolve().parent
+
+
+def verify_display_firmware(firmware_root):
+    sys.path.insert(0, str(ROOT / 'installer'))
+    from payload import DISPLAY_MODELS, validated_payload
+    for model in DISPLAY_MODELS:
+        directory = Path(firmware_root) / model
+        if not (directory / 'SHA256.json').is_file():
+            raise RuntimeError('Build both display profiles first: python tools/build_lcd_profiles.py')
+        validated_payload(firmware_root, 'en', model)
+        image = (directory / 'freslest_os_s3.bin').read_bytes()
+        if image[0x30:0x50].split(b'\0', 1)[0] != RELEASE_VERSION.encode('ascii'):
+            raise RuntimeError(f'{model}: bundled OS must report {RELEASE_VERSION}; rebuild the display profiles')
 
 
 def main():
@@ -19,12 +33,7 @@ def main():
     os.chdir(ROOT)
     prepare()
     # A dropdown alone is insufficient: package both actual source-built variants.
-    sys.path.insert(0, str(ROOT / 'installer'))
-    from installer import DISPLAY_MODELS, validated_payload
-    for model in DISPLAY_MODELS:
-        if not (ROOT / 'firmware' / model / 'SHA256.json').is_file():
-            raise SystemExit('Build both display profiles first: python tools/build_lcd_profiles.py')
-        validated_payload('en', model)
+    verify_display_firmware(ROOT / 'firmware')
     common = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onefile', '--windowed', '--noupx']
     subprocess.run(common + ['--name', 'Freslest Installer', '--collect-all', 'esptool',
                             '--collect-all', 'serial', '--add-data', 'firmware;firmware',
@@ -43,7 +52,7 @@ def main():
             raise RuntimeError('Executable is not a Windows GUI application: ' + name)
         hashes[name] = hashlib.sha256(data).hexdigest()
     (ROOT / 'dist/SHA256SUMS.txt').write_text(''.join(f'{sha}  {name}\n' for name, sha in hashes.items()), encoding='utf-8')
-    report = {'release': 'Freslest OS 1.0', 'build_os': platform.platform(),
+    report = {'release': 'Freslest OS 1.1', 'build_os': platform.platform(),
               'python': sys.version, 'sha256': hashes,
               'hardware_flash_test': False, 'hardware_viewer_test': False}
     (ROOT / 'dist/BUILD_REPORT.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
