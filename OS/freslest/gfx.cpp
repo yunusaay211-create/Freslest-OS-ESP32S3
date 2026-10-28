@@ -75,8 +75,9 @@ static int oldX=0,oldY=0;
 
 static uint32_t _lastFrame = 0;
 static bool compactUi=FRESLEST_LCD_MODEL==9341;
-int gfxUiWidth(){return compactUi?320:480;}
-int gfxUiHeight(){return compactUi?240:320;}
+// VGA keeps the original OS canvas, independently of the LCD recovery model.
+int gfxUiWidth(){return compactUi&&freslest_video_output()!=FRESLEST_DISPLAY_VGA?320:480;}
+int gfxUiHeight(){return compactUi&&freslest_video_output()!=FRESLEST_DISPLAY_VGA?240:320;}
 void gfxSetCompactUi(bool enabled){
 #if FRESLEST_LCD_MODEL == 9341
  int ow=frame.width(),oh=frame.height();compactUi=enabled;

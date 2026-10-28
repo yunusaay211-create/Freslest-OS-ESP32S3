@@ -91,11 +91,11 @@ int main(){
 '''
         self.compile_run(pre + body + test, 'c++', 9341)
 
-    def test_vga_uses_the_same_lcd_canvas(self):
+    def test_vga_restores_original_480x320_os_canvas(self):
         source=(ROOT/'OS/freslest/gfx.cpp').read_text()
         dims=source[source.index('int gfxUiWidth()'):source.index('void gfxSetCompactUi(')]
-        code='#include <cassert>\nstatic bool compactUi=true;\n'+dims+r'''
-int main(){assert(gfxUiWidth()==320&&gfxUiHeight()==240);compactUi=false;assert(gfxUiWidth()==480&&gfxUiHeight()==320);}
+        code='#include <cassert>\n#include \"freslest_video.h\"\nstatic bool compactUi=true,vga=false;\nfreslest_display_t freslest_video_output(){return vga?FRESLEST_DISPLAY_VGA:FRESLEST_DISPLAY_LCD;}\n'+dims+r'''
+int main(){assert(gfxUiWidth()==320&&gfxUiHeight()==240);vga=true;assert(gfxUiWidth()==480&&gfxUiHeight()==320);vga=false;compactUi=false;assert(gfxUiWidth()==480&&gfxUiHeight()==320);}
 '''
         self.compile_run(code,'c++',9341)
 
@@ -108,7 +108,10 @@ int main(){assert(gfxUiWidth()==320&&gfxUiHeight()==240);compactUi=false;assert(
     def test_doom_both_lcd_profiles(self):
         for model in (9341, 9488):
             with self.subTest(model=model):
-                self.compile_run((ROOT / 'Doom/tests/test_lcd_profiles.c').read_text(), 'c', model)
+                source=(ROOT / 'Doom/tests/test_lcd_profiles.c').read_text()
+                # The private presenter is independently exercised by doom_updater/test_runtime.py.
+                source=source.replace('bool usbDoomPointer(', 'void doom_vga_palette_changed(void){}\nvoid doom_vga_send_frame(const uint8_t *s,bool c,int x,int y){freslest_video_doom(s,c,x,y);}\nbool usbDoomPointer(')
+                self.compile_run(source, 'c', model)
 
     def test_native_navigation_and_settings_geometry(self):
         subprocess.run([sys.executable, str(ROOT / 'OS/tests/run_ui_tests.py')], check=True)
@@ -125,7 +128,7 @@ int main(){assert(gfxUiWidth()==320&&gfxUiHeight()==240);compactUi=false;assert(
             src.write_text(code)
             exe = Path(temp) / 'lcd'
             includes = [ROOT/'OS/freslest', ROOT/'shared_components/freslest_video/include',
-                        ROOT/'Doom/tests', ROOT/'Doom/tests/stubs', ROOT/'Doom/main',
+                        ROOT/'Doom/tests', ROOT/'Doom/tests/stubs', ROOT/'Doom/main', ROOT/'Doom/components/freslest_video/include',
                         ROOT/'Doom/components/prboom-esp32-compat/include']
             subprocess.run(['g++' if language == 'c++' else 'gcc',
                             '-std=c++17' if language == 'c++' else '-std=gnu17',
