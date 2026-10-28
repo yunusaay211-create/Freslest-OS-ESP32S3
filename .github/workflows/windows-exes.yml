@@ -34,7 +34,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p test_lcd_profiles.py -v
           python -m unittest discover -s tests -p test_vga_transition.py -v
-      - name: Build ILI9488 and ILI9341 OS and Doom firmware
+      - name: Build ILI9488, ILI9341 and VGA OS and Doom firmware
         shell: bash
         run: |
           . "$IDF_PATH/export.sh"
@@ -53,6 +53,7 @@ jobs:
           path: |
             firmware/ili9488/*
             firmware/ili9341/*
+            firmware/vga/*
           if-no-files-found: error
   build-and-launch:
     needs: display-firmware

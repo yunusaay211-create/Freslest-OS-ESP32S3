@@ -18,7 +18,7 @@ def verify_display_firmware(firmware_root):
     for model in DISPLAY_MODELS:
         directory = Path(firmware_root) / model
         if not (directory / 'SHA256.json').is_file():
-            raise RuntimeError('Build both display profiles first: python tools/build_lcd_profiles.py')
+            raise RuntimeError('Build all display profiles first: python tools/build_lcd_profiles.py')
         validated_payload(firmware_root, 'en', model)
         image = (directory / 'freslest_os_s3.bin').read_bytes()
         if image[0x30:0x50].split(b'\0', 1)[0] != RELEASE_VERSION.encode('ascii'):
@@ -32,7 +32,7 @@ def main():
         raise SystemExit('Use 64-bit Python 3.11.')
     os.chdir(ROOT)
     prepare()
-    # A dropdown alone is insufficient: package both actual source-built variants.
+    # A dropdown alone is insufficient: package all actual source-built variants.
     verify_display_firmware(ROOT / 'firmware')
     common = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onefile', '--windowed', '--noupx']
     subprocess.run(common + ['--name', 'Freslest Installer', '--collect-all', 'esptool',

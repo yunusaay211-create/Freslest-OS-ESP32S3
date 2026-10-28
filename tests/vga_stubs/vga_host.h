@@ -23,14 +23,34 @@ typedef struct {int dummy;} esp_lcd_rgb_panel_event_data_t;
 typedef struct {bool (*on_vsync)(esp_lcd_panel_handle_t,const esp_lcd_rgb_panel_event_data_t*,void*);bool (*on_frame_buf_complete)(esp_lcd_panel_handle_t,const esp_lcd_rgb_panel_event_data_t*,void*);} esp_lcd_rgb_panel_event_callbacks_t;
 typedef struct {int clk_src,data_width,bits_per_pixel,num_fbs;size_t bounce_buffer_size_px;int hsync_gpio_num,vsync_gpio_num,pclk_gpio_num,de_gpio_num,disp_gpio_num;int data_gpio_nums[16];struct {int pclk_hz,h_res,v_res,hsync_pulse_width,hsync_back_porch,hsync_front_porch,vsync_pulse_width,vsync_back_porch,vsync_front_porch;struct {int hsync_idle_low,vsync_idle_low;}flags;}timings;struct {int fb_in_psram;}flags;} esp_lcd_rgb_panel_config_t;
 static int stored_fit=90;
+static int stored_preset252;
+static int pending_fit,pending_v2,pending_preset252;
 static int stored_v2,legacy_output=1,back=1,right=1,nvs_failure,driver_failure,panels,creates,stage;
 static uint64_t pins;static int64_t now_us;static uint8_t host_fb[640*480],host_back[640*480],host_snapshot[640*480];
 static uint8_t *host_active=host_fb,*host_selected=host_fb;static bool host_events=true;static unsigned host_draws;
 static esp_lcd_rgb_panel_config_t saved_config;static esp_lcd_rgb_panel_event_callbacks_t callbacks;
-static esp_err_t nvs_open(const char*n,int m,nvs_handle_t*h){assert(!strcmp(n,"fl_video"));(void)m;*h=1;return nvs_failure==1?-1:0;}
-static esp_err_t nvs_get_u8(nvs_handle_t h,const char*k,uint8_t*v){(void)h;*v=!strcmp(k,"fit_pct")?stored_fit:!strcmp(k,"output_v2")?stored_v2:legacy_output;return 0;}
-static esp_err_t nvs_set_u8(nvs_handle_t h,const char*k,uint8_t v){(void)h;assert(!strcmp(k,"output_v2")||!strcmp(k,"fit_pct"));if(nvs_failure==2)return -1;if(!strcmp(k,"fit_pct"))stored_fit=v;else stored_v2=v;return 0;}
-static esp_err_t nvs_commit(nvs_handle_t h){(void)h;return nvs_failure==3?-1:0;}
+static esp_err_t nvs_open(const char*n,int m,nvs_handle_t*h){
+ assert(!strcmp(n,"fl_video"));(void)m;*h=1;
+ pending_fit=stored_fit;pending_v2=stored_v2;pending_preset252=stored_preset252;
+ return nvs_failure==1?-1:0;
+}
+static esp_err_t nvs_get_u8(nvs_handle_t h,const char*k,uint8_t*v){
+ (void)h;
+ if(!strcmp(k,"preset252")){if(!stored_preset252)return ESP_FAIL;*v=stored_preset252;}
+ else *v=!strcmp(k,"fit_pct")?stored_fit:!strcmp(k,"output_v2")?stored_v2:legacy_output;
+ return ESP_OK;
+}
+static esp_err_t nvs_set_u8(nvs_handle_t h,const char*k,uint8_t v){
+ (void)h;if(nvs_failure==2)return ESP_FAIL;
+ if(!strcmp(k,"fit_pct"))pending_fit=v;
+ else if(!strcmp(k,"output_v2"))pending_v2=v;
+ else {assert(!strcmp(k,"preset252"));if(nvs_failure==4)return ESP_FAIL;pending_preset252=v;}
+ return ESP_OK;
+}
+static esp_err_t nvs_commit(nvs_handle_t h){
+ (void)h;if(nvs_failure==3)return ESP_FAIL;
+ stored_fit=pending_fit;stored_v2=pending_v2;stored_preset252=pending_preset252;return ESP_OK;
+}
 static void nvs_close(nvs_handle_t h){(void)h;}
 static int gpio_config(const gpio_config_t*c){pins|=c->pin_bit_mask;return 0;}
 static int gpio_get_level(int p){assert(p==16||p==7);return p==16?back:right;}

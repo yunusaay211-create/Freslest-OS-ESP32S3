@@ -22,6 +22,13 @@ class VgaTransition(unittest.TestCase):
    line=next(x for x in obj.with_suffix('.su').read_text().splitlines() if 'vga_convert_doom' in x)
    self.assertLessEqual(int(line.split('\t')[1]),256,'Doom VGA converter exhausts its task stack')
 
+ def test_vga_presets(self):
+  for preset,clock in ((252,25200000),):
+   with self.subTest(preset=preset), tempfile.TemporaryDirectory() as d:
+    exe=Path(d)/'preset'
+    subprocess.run(['gcc','-std=gnu17','-Wall','-Wextra','-Werror','-g','-fsanitize=address,undefined','-fno-pie','-no-pie',f'-DFRESLEST_VGA_PRESET_ID={preset}',f'-DFRESLEST_VGA_PCLK_HZ={clock}','-I'+str(ROOT/'tests/vga_stubs'),'-I'+str(ROOT/'shared_components/freslest_video/include'),str(ROOT/'tests/test_vga_preset.c'),str(ROOT/'shared_components/freslest_video/vga_pixels.c'),str(ROOT/'shared_components/freslest_video/vga_doom.c'),'-o',str(exe)],check=True)
+    subprocess.run([str(exe)],check=True,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'})
+
  def test_actual_vga_backend(self):
   self.assertTrue((ROOT/'shared_components/freslest_video/vga_pixels.c').is_file(), 'VGA converter is missing; composite backend still active')
   with tempfile.TemporaryDirectory() as d:

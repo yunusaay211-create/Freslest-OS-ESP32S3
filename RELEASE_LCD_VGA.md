@@ -1,5 +1,11 @@
 # Freslest OS — LCD & VGA Update
 
+## VGA installer profili — 25.2 MHz
+
+- Installer ekran listesine **VGA RGB332 — 25.2 MHz (640×480 / 60 Hz)** eklendi. Üç profil kendi doğrulanmış OS+Doom dosyalarını yükler.
+- VGA profilinin ilk etkinleşmesi VGA çıkışını seçer; daha sonraki LCD/VGA tercihleri korunur. BACK+RESET, ILI9341 LCD kurtarmasını seçer.
+- Tüm yeni VGA çıkışları 25.2 MHz hedef PCLK kullanır. 800×525 toplam zamanlamayla hedef 60 Hz’dir; pinler ve porch değerleri korunur. Fiziksel ölçüm yapılmamıştır.
+
 ## 1.1 sürüm bilgisi
 
 Installer başlığı, Türkçe/İngilizce kurulum mesajları, Viewer başlığı, derleme raporu ve iki LCD profili için derlenen OS sürüm alanı 1.1 olarak güncellendi. C5 Doom menü/gamma düzeltmeleri ve C4 doğrudan VGA renk testi korunur. Kullanıcının C5 sonrasında bildirdiği aşırı kırmızılık henüz giderildi olarak doğrulanmamıştır; doğrudan renk testi çıktısı beklenmektedir.

@@ -26,12 +26,16 @@ class BuilderTests(unittest.TestCase):
             for name in ('doom_flash.wad', 'littlefs.bin'):
                 (root / 'firmware' / name).write_bytes(b'preserved data')
             outputs = []
+            configs = []
 
             def fake_compiler(command, cwd, **kwargs):
                 output = Path(command[command.index('-B') + 1])
                 outputs.append(output)
                 model = next(value.split('=')[1] for value in command if value.startswith('-DFRESLEST_LCD_MODEL='))
+                preset = next((v.split('=')[1] for v in command if v.startswith('-DFRESLEST_VGA_PROFILE=')), 'lcd')
+                configs.append((Path(cwd).name,model,preset))
                 marker = ('FRESLEST_LCD:ILI' + model).encode()
+                if preset == 'vga':marker += b'FRESLEST_VIDEO:VGA252_25200000'
                 if Path(cwd).name == 'OS':
                     files = ['freslest_os_s3.bin', 'bootloader/bootloader.bin',
                              'partition_table/partition-table.bin', 'ota_data_initial.bin']
@@ -54,14 +58,16 @@ class BuilderTests(unittest.TestCase):
                     builder.build()
             finally:
                 sys.path[:] = old_path
-            self.assertEqual(len(outputs), 4)
+            self.assertEqual(len(outputs), 6)
+            self.assertEqual(configs, [(app,str(model),preset) for model,preset in ((9488,"lcd"),(9341,"lcd"),(9341,"vga")) for app in ("OS","Doom")])
             self.assertEqual(len(set(outputs)), 2, 'Common OS/Doom dependencies should be compiled once')
-            for model in ('ili9488', 'ili9341'):
+            for model in ('ili9488', 'ili9341', 'vga'):
                 segments = validated_payload(root / 'firmware', 'en', model)
                 self.assertEqual(len(segments), 7)
                 for _, path, _, _ in segments:
                     if path.name in ('freslest_os_s3.bin', 'freslest_doom_s3.bin'):
-                        self.assertTrue(path.read_bytes().endswith(('FRESLEST_LCD:' + model.upper()).encode()))
+                        tag = {'ili9488':b'FRESLEST_LCD:ILI9488','ili9341':b'FRESLEST_LCD:ILI9341','vga':b'FRESLEST_VIDEO:VGA252_25200000'}[model]
+                        self.assertIn(tag,path.read_bytes())
                         if path.name == 'freslest_os_s3.bin':
                             self.assertEqual(path.read_bytes()[0x30:0x50], b'1.1' + bytes(29))
 

@@ -99,14 +99,14 @@ class Installer(tk.Tk):
         ttk.Button(self,text=self.t('continue'),command=self.displays).pack(anchor='e',padx=35)
     def displays(self):
         self.wipe()
-        self.label(self.t('displays_heading'),21,'#70b1ff',True).pack(anchor='w',padx=32,pady=(24,12))
-        self.label(self.t('display_help')).pack(anchor='w',padx=32,pady=12)
+        self.label(self.t('displays_heading'),21,'#70b1ff',True).pack(anchor='w',padx=32,pady=(20,8))
+        self.label(self.t('display_help')).pack(anchor='w',padx=32,pady=8)
         for model,title in DISPLAY_MODELS.items():
             tk.Radiobutton(self,text=title,variable=self.display,value=model,
                            bg='#121724',fg='#dce6fa',activebackground='#121724',
                            activeforeground='white',selectcolor='#283247',
-                           font=('Segoe UI',14),anchor='w').pack(fill='x',padx=38,pady=12)
-        self.label(self.t('display_hint'),11,'#ffca80').pack(anchor='w',padx=32,pady=15)
+                           font=('Segoe UI',13),anchor='w').pack(fill='x',padx=38,pady=5)
+        self.label(self.t('display_hint'),11,'#ffca80').pack(anchor='w',padx=32,pady=10)
         buttons=tk.Frame(self,bg='#121724');buttons.pack(side='bottom',fill='x',padx=32,pady=26)
         ttk.Button(buttons,text=self.t('back'),command=self.wizard).pack(side='left')
         ttk.Button(buttons,text=self.t('continue'),command=self.ports).pack(side='right')

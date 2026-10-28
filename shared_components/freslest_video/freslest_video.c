@@ -14,6 +14,18 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nvs.h"
+#ifndef FRESLEST_VGA_PCLK_HZ
+#define FRESLEST_VGA_PCLK_HZ 25200000
+#endif
+#ifndef FRESLEST_VGA_PRESET_ID
+#define FRESLEST_VGA_PRESET_ID 0
+#endif
+#if FRESLEST_VGA_PRESET_ID == 252
+#define VGA_PRESET_KEY "preset252"
+#define VGA_PRESET_MARKER "FRESLEST_VIDEO:VGA252_25200000"
+#elif FRESLEST_VGA_PRESET_ID != 0
+#error Unsupported VGA preset
+#endif
 static freslest_display_t output;
 static bool boot_read,started,first_frame_ready;
 static esp_lcd_panel_handle_t panel;
@@ -33,15 +45,46 @@ bool freslest_video_save_output(freslest_display_t value){
  if(e==ESP_OK){e=nvs_set_u8(n,"output_v2",value);if(e==ESP_OK)e=nvs_commit(n);nvs_close(n);}
  return e==ESP_OK;
 }
+#if FRESLEST_VGA_PRESET_ID != 0
+static bool save_preset_output(freslest_display_t value){
+ nvs_handle_t n;esp_err_t e=nvs_open("fl_video",NVS_READWRITE,&n);
+ if(e==ESP_OK){
+  e=nvs_set_u8(n,"output_v2",value);
+  if(e==ESP_OK)e=nvs_set_u8(n,VGA_PRESET_KEY,1);
+  if(e==ESP_OK)e=nvs_commit(n);
+  nvs_close(n);
+ }
+ return e==ESP_OK;
+}
+#endif
 freslest_display_t freslest_video_boot_output(void){
  if(boot_read)return output;
  boot_read=true;uint8_t value=0;nvs_handle_t n;
+#if FRESLEST_VGA_PRESET_ID != 0
+ bool preset_seen=false;
+ puts(VGA_PRESET_MARKER);
+#endif
  if(nvs_open("fl_video",NVS_READONLY,&n)==ESP_OK){nvs_get_u8(n,"output_v2",&value);
   uint8_t fit=90;if(nvs_get_u8(n,"fit_pct",&fit)==ESP_OK&&fit>=80&&fit<=100&&fit%5==0)fit_percent=fit;
+#if FRESLEST_VGA_PRESET_ID != 0
+  uint8_t seen=0;preset_seen=nvs_get_u8(n,VGA_PRESET_KEY,&seen)==ESP_OK&&seen==1;
+#endif
   nvs_close(n);}
  gpio_config_t c={.pin_bit_mask=1ULL<<16,.mode=GPIO_MODE_INPUT,.pull_up_en=GPIO_PULLUP_ENABLE};
  gpio_config(&c);vTaskDelay(pdMS_TO_TICKS(5));
- if(!gpio_get_level(16)){value=0;freslest_video_save_output(FRESLEST_DISPLAY_LCD);}
+ bool recovery=!gpio_get_level(16);
+#if FRESLEST_VGA_PRESET_ID != 0
+ if(!preset_seen){
+  // Consume each source-built preset once. BACK has priority on its first boot too.
+  value=recovery?FRESLEST_DISPLAY_LCD:FRESLEST_DISPLAY_VGA;
+  if(!save_preset_output((freslest_display_t)value))
+   ESP_LOGW("video","VGA preset save failed; BACK still forces LCD recovery");
+ }else
+#endif
+ if(recovery){value=FRESLEST_DISPLAY_LCD;
+  if(!freslest_video_save_output(FRESLEST_DISPLAY_LCD))
+   ESP_LOGW("video","LCD recovery output was not persisted");
+ }
  output=value==FRESLEST_DISPLAY_VGA?FRESLEST_DISPLAY_VGA:FRESLEST_DISPLAY_LCD;return output;
 }
 freslest_display_t freslest_video_output(void){return output;}
@@ -68,7 +111,7 @@ bool freslest_video_begin(void){
  esp_lcd_rgb_panel_config_t c={0};c.clk_src=LCD_CLK_SRC_DEFAULT;c.data_width=8;c.bits_per_pixel=8;c.num_fbs=2;c.bounce_buffer_size_px=VGA_WIDTH*10;
  c.hsync_gpio_num=47;c.vsync_gpio_num=48;c.pclk_gpio_num=-1;c.de_gpio_num=-1;c.disp_gpio_num=-1;
  const int pins[]={41,8,13,14,2,42,40,39};for(int i=0;i<8;i++)c.data_gpio_nums[i]=pins[i];
- c.timings.pclk_hz=25175000;c.timings.h_res=VGA_WIDTH;c.timings.v_res=VGA_HEIGHT;
+ c.timings.pclk_hz=FRESLEST_VGA_PCLK_HZ;c.timings.h_res=VGA_WIDTH;c.timings.v_res=VGA_HEIGHT;
  c.timings.hsync_pulse_width=96;c.timings.hsync_back_porch=48;c.timings.hsync_front_porch=16;
  c.timings.vsync_pulse_width=2;c.timings.vsync_back_porch=33;c.timings.vsync_front_porch=10;
  c.timings.flags.hsync_idle_low=0;c.timings.flags.vsync_idle_low=0;c.flags.fb_in_psram=1;
@@ -84,7 +127,7 @@ bool freslest_video_begin(void){
  gpio_config_t keys={.pin_bit_mask=1ULL<<7,.mode=GPIO_MODE_INPUT,.pull_up_en=GPIO_PULLUP_ENABLE};
  gpio_config(&keys);
  if(!gpio_get_level(7))freslest_video_color_test();
- ESP_LOGW("video","VGA V1.0 RGB332 640x480, target PCLK 25175000 Hz, double PSRAM frames + internal bounce; frame ownership");return true;
+ ESP_LOGW("video","VGA V1.0 RGB332 640x480 60 Hz, target PCLK %u Hz, double PSRAM frames + internal bounce; frame ownership",(unsigned)FRESLEST_VGA_PCLK_HZ);return true;
 fail:
  if(panel){esp_lcd_panel_del(panel);panel=NULL;}fb[0]=fb[1]=NULL;pending=false;
  ESP_LOGE("video","VGA init failed. Hold BACK during reset for LCD.");return false;
@@ -155,7 +198,7 @@ void freslest_video_doom(const uint8_t *indices,bool cursor,int x,int y){
  if(target&&vga_convert_doom(target,indices,cursor,x,y,fit_percent))publish_frame(target);
 }
 void freslest_video_diagnostics(void){
- ESP_LOGW("video","output=%s RGB332 started=%u syncs=%lu images=%lu sync-age=%lu us healthy=%u dropped=%lu frames=%lu fit=%u%%; D0..7=41,8,13,14,2,42,40,39 H=47 V=48",
+ ESP_LOGW("video","output=%s RGB332 PCLK=25.2MHz 640x480 60Hz started=%u syncs=%lu images=%lu sync-age=%lu us healthy=%u dropped=%lu frames=%lu fit=%u%%; D0..7=41,8,13,14,2,42,40,39 H=47 V=48",
  output==FRESLEST_DISPLAY_LCD?"LCD":"VGA",started,(unsigned long)vsyncs,(unsigned long)presentations,
  (unsigned long)((uint32_t)esp_timer_get_time()-last_vsync_us),freslest_video_healthy(),(unsigned long)dropped,(unsigned long)frame_events,fit_percent);
 }
