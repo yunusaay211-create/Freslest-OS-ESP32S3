@@ -1,5 +1,9 @@
 # Freslest OS — LCD & VGA Update
 
+## VGA renk aktarımı
+
+OS ve Doom ortak VGA motoru, mevcut sekiz RGB332 bağlantısını 16 bit LCD_CAM sözcüklerine açıkça eşler. Donanım renk dönüştürme, bit/byte ters çevirme ve swizzle kapatılır. Fiziksel çıkış RGB332 kalır; pinler ve 640×480 / 25.175 MHz ayarı korunur. Yeni tanı ekranı eklenmedi. Ayrıntı: `docs/2026-10-28-vga-word-scanout.md`.
+
 ## VGA eski zamanlamaya dönüş — 25.175 MHz
 
 - Installer ekran listesine **VGA RGB332 — 25.175 MHz (640×480 / 59.94 Hz)** eklendi. Üç profil kendi doğrulanmış OS+Doom dosyalarını yükler.
@@ -56,10 +60,10 @@ Kurulumdan önce dosya, not ve ROM’larınızı yedekleyin. Ekran modelini kend
 
 ## Derleme doğrulaması
 
-Üç ekran profili için altı OS/Doom firmware derlemesi, bölüm/hash kontrolleri, Windows kurucu/Viewer testleri ve EXE açılış testleri geçti: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40691429211
+Üç ekran profili için altı OS/Doom firmware derlemesi, bölüm/hash kontrolleri, Windows kurucu/Viewer testleri ve EXE açılış testleri geçti: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40703427066
 
 Bu ortamda fiziksel ESP32-S3/LCD/VGA testi yapılmadı.
 
 Kullanıcının isteğiyle 25.2 MHz değişikliği geri alındı. Önceki kaynakta olduğu gibi 640×480 etkin alan ve 25.175 MHz hedef PCLK kullanılır; toplam 800×525 ile yaklaşık 59.94 Hz. VGA installer seçeneği ve 1.1 düzeltmeleri korunur. C4 fotoğrafı alındı; fiziksel renk sorunu henüz çözülmüş sayılmaz.
 
-Son doğrulanmış paket: **Freslest-Installer-1.1-VGA25175.exe**, 35.245.092 bayt. OS ve Doom için eski **640×480 / 25.175 MHz** zamanlaması geri alındı. Firmware ve Windows derleme/test çalışması **40691429211** başarılı; TR/EN installer ve Viewer açılışları doğrulandı. Ayrıntı: `docs/2026-10-28-vga-timing-rollback.md`.
+Son doğrulanmış paket: **Freslest-Installer-1.1-VGA-Color.exe**, 35.246.540 bayt. OS ve Doom için eski **640×480 / 25.175 MHz** zamanlaması geri alındı. Firmware ve Windows derleme/test çalışması **40703427066** başarılı; TR/EN installer ve Viewer açılışları doğrulandı. Ayrıntı: `docs/2026-10-28-vga-timing-rollback.md`.

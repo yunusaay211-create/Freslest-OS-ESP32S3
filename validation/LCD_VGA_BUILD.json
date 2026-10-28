@@ -1,97 +1,80 @@
 {
-  "source_commit": "9dc10a95d30cc5f945f5711044a236f91cfc2bbb",
-  "workflow_run": 40691429211,
-  "target_pclk_hz": 25175000,
-  "active_resolution": [
+  "commit": "03de018b1ff3993a8fcc7392b13a84f742b71eba",
+  "status": "built",
+  "installer_name": "Freslest-Installer-1.1-VGA-Color.exe",
+  "release": "1.1",
+  "physical_color_correction_verified": false,
+  "run": 40703427066,
+  "firmware_job": 122869048284,
+  "firmware_status": "success",
+  "firmware_id": 12823142163,
+  "firmware_sha256": "1f5698d92a3ee363f7b35a7750a95c4bb56766e3c425c731f51326cbcee4168a",
+  "windows_status": "success",
+  "windows_job": 122873105279,
+  "windows_id": 12823387969,
+  "windows_sha256": "e93fa7cc7561c9c0320e72bec480132956cdb2ad265f86ede55871608ecd6561",
+  "installer_bytes": 35246540,
+  "installer_sha256": "f7992e5a254137ffb650d72c8b11e4b8676244238952b0230e467106cd566421",
+  "profiles": {
+    "ili9488": {
+      "sha256": {
+        "firmware/bootloader.bin": "222f4187df951bc52ac0e50e60c5e1c18f75af7a67e9d65d17e7fd718d304cc6",
+        "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
+        "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
+        "firmware/freslest_doom_s3.bin": "dbeaead92776129103d820fce6ec6edcc00c1210d6e686a1d131a60339295e94",
+        "firmware/freslest_os_s3.bin": "5fd09596d18dd83d3b77563255da69be4594b4f61d369aa42021d6a7d53f1ac7",
+        "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
+        "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
+      },
+      "os_bytes": 1757168,
+      "doom_bytes": 887680
+    },
+    "ili9341": {
+      "sha256": {
+        "firmware/bootloader.bin": "222f4187df951bc52ac0e50e60c5e1c18f75af7a67e9d65d17e7fd718d304cc6",
+        "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
+        "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
+        "firmware/freslest_doom_s3.bin": "f59e1bcc90fa63930124ec1e313e8b7d63af4e3b5a6e0bcb04de392c0f885882",
+        "firmware/freslest_os_s3.bin": "8816ca992985a6bcfd786ed82ad5498324e1a379b4017b4552ccaae2b208f2a8",
+        "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
+        "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
+      },
+      "os_bytes": 1757840,
+      "doom_bytes": 887712
+    },
+    "vga": {
+      "sha256": {
+        "firmware/bootloader.bin": "222f4187df951bc52ac0e50e60c5e1c18f75af7a67e9d65d17e7fd718d304cc6",
+        "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
+        "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
+        "firmware/freslest_doom_s3.bin": "a6773395bebd65c1479d9a97842f3cbde75b629c6b193f8f6d40a21c5ca9306e",
+        "firmware/freslest_os_s3.bin": "649d6bfc8c5311fb363b26e902d131fcc9d7b7a30a3c03ebb89d4194407e62e3",
+        "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
+        "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
+      },
+      "os_bytes": 1758096,
+      "doom_bytes": 887984
+    }
+  },
+  "vga_active_resolution": [
     640,
     480
   ],
-  "total_resolution": [
-    800,
-    525
+  "vga_target_pclk_hz": 25175000,
+  "scanout_data_width": 16,
+  "physical_dac_bits": 8,
+  "rgb332_to_word_bits": [
+    3,
+    4,
+    8,
+    9,
+    10,
+    13,
+    14,
+    15
   ],
-  "target_refresh_hz": 59.94047619047619,
-  "physical_hardware_tested": false,
-  "profiles": {
-    "ili9488": {
-      "images": {
-        "freslest_os_s3": {
-          "bytes": 1756912,
-          "partition_bytes": 1769472,
-          "checksum_digest_verified": true
-        },
-        "freslest_doom_s3": {
-          "bytes": 887424,
-          "partition_bytes": 917504,
-          "checksum_digest_verified": true
-        }
-      },
-      "sha256": {
-        "firmware/bootloader.bin": "a089d1c097938c580b15c66421bdb257446b969e31d5d47beb3631d35596a6b3",
-        "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
-        "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
-        "firmware/freslest_doom_s3.bin": "99fabb332dba566c6865f317c752a666f8e6c25b4c0c3050dfa6ad24238c5428",
-        "firmware/freslest_os_s3.bin": "d1c8ffd9f3bf7bf8b6cb923c81bd61cb96816ea7613c48165e6aa040a01c3658",
-        "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
-        "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
-      },
-      "all_seven_hashes_verified": true
-    },
-    "ili9341": {
-      "images": {
-        "freslest_os_s3": {
-          "bytes": 1757568,
-          "partition_bytes": 1769472,
-          "checksum_digest_verified": true
-        },
-        "freslest_doom_s3": {
-          "bytes": 887456,
-          "partition_bytes": 917504,
-          "checksum_digest_verified": true
-        }
-      },
-      "sha256": {
-        "firmware/bootloader.bin": "a089d1c097938c580b15c66421bdb257446b969e31d5d47beb3631d35596a6b3",
-        "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
-        "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
-        "firmware/freslest_doom_s3.bin": "fd92111d76819f382b18ca2fa963b49c006725336c05a4bd8bca7f14e0019998",
-        "firmware/freslest_os_s3.bin": "701797dbabcd7fa1297e7aac92fc383f22be369e0d5b9b5f0bf2939ccabee6c9",
-        "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
-        "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
-      },
-      "all_seven_hashes_verified": true
-    },
-    "vga": {
-      "images": {
-        "freslest_os_s3": {
-          "bytes": 1757824,
-          "partition_bytes": 1769472,
-          "checksum_digest_verified": true
-        },
-        "freslest_doom_s3": {
-          "bytes": 887712,
-          "partition_bytes": 917504,
-          "checksum_digest_verified": true
-        }
-      },
-      "sha256": {
-        "firmware/bootloader.bin": "a089d1c097938c580b15c66421bdb257446b969e31d5d47beb3631d35596a6b3",
-        "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
-        "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
-        "firmware/freslest_doom_s3.bin": "b6462a2b766387bf3cbb8bfcbbc5c013e25bca9953b4e23fdee33a5af2ab4a58",
-        "firmware/freslest_os_s3.bin": "1fb3a815fa5051b828d140959228fdf05ab3aab7c9224f6ed906948729c442b2",
-        "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
-        "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
-      },
-      "all_seven_hashes_verified": true
-    }
-  },
-  "firmware_artifact": 12818285683,
-  "firmware_zip_sha256": "27de5a5dc1156ffcdf2690342d04cc41e289a7fa633e9613323061d4356d0ae0",
-  "windows_artifact": 12816649540,
-  "windows_zip_sha256": "ae0f9c8d921901add35e9fc64d14d18d83c01548015e19d4e18755cce3a65ebb",
-  "installer_bytes": 35245092,
-  "installer_sha256": "a3de66b36bff622bb3a804d2d6ee9889fcb01e0efcb42d56c406eb0e43efe77a",
+  "psram_scanout_bytes": 1228800,
+  "internal_bounce_bytes": 25600,
   "windows_smoke": [
     {
       "file": "Freslest Installer.exe",
