@@ -40,6 +40,7 @@
 #include "doomdef.h"
 #include "doomtype.h"
 #include "v_video.h"
+#include "GAMMATBL.h"
 #include "r_draw.h"
 #include "d_main.h"
 #include "d_event.h"
@@ -151,13 +152,20 @@ int16_t lcdpal[256];
 
 void I_SetPalette (int pal)
 {
-	int i, r, g, b, v;
+	int i, v;
 	int pplump = W_GetNumForName("PLAYPAL");
 	const byte * palette = W_CacheLumpNum(pplump);
 	palette+=pal*(3*256);
+    // Correct each channel once per palette change, before either physical
+    // output quantizes it. Never modify the memory-mapped WAD palette.
+    static byte corrected_palette[3*256];
+    int gamma = usegamma >= 0 && usegamma <= 4 ? usegamma : 0;
+    const byte *gtable = GAMMATBL_dat + gamma*256;
+    for (i=0; i<3*256; ++i) corrected_palette[i] = gtable[palette[i]];
+    palette = corrected_palette;
     if(freslest_video_output()==FRESLEST_DISPLAY_VGA){
         spi_lcd_set_palette_rgb888(palette);
-        lprintf(LO_INFO,"DOOM VGA PLAYPAL=%d RGB888 index4=%u,%u,%u\n",pal,palette[12],palette[13],palette[14]);
+        lprintf(LO_INFO,"DOOM_COLOR:C5 PLAYPAL=%d gamma=%d RGB888 index4=%u,%u,%u\n",pal,gamma,palette[12],palette[13],palette[14]);
         W_UnlockLumpNum(pplump);
         return;
     }

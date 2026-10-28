@@ -728,10 +728,6 @@ static void ST_doPaletteStuff(void)
       if (palette >= NUMREDPALS)
         palette = NUMREDPALS-1;
 
-      /* cph 2006/08/06 - if in the menu, reduce the red tint - navigating to
-       * load a game can be tricky if the screen is all red */
-      if (menuactive) palette >>=1;
-
       palette += STARTREDPALS;
     }
   else
@@ -747,6 +743,10 @@ static void ST_doPaletteStuff(void)
         palette = RADIATIONPAL;
       else
         palette = 0;
+
+  // Menu pauses can freeze damage/bonus counters. Use the normal palette
+  // while reading the menu; recompute the gameplay effect when it closes.
+  if (menuactive) palette = 0;
 
   if (palette != st_palette) {
     V_SetPalette(st_palette = palette); // CPhipps - use new palette function

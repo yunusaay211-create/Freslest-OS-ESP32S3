@@ -2,6 +2,15 @@
 
 Bu güncelleme ILI9341 uygulama ekranlarını düzenler, VGA kaymasına karşı önlemler ekler, Doom VGA renk dönüşümünü iyileştirir ve Freslest ses modülünün yeniden bağlantıdan sonra toparlanmasını sağlar. Kompozit AV kaldırılmıştır.
 
+## C5 — Doom menü renkleri ve gamma
+
+- Doom menüsü açıkken normal palet kullanılır. Hasar sonrası duraklamada kırmızı palet menüde kalmaz; menü kapanınca oyunun hasar, bonus ve güçlendirme renkleri geri gelir.
+- Doom'un mevcut 0–4 gamma seviyeleri artık hem LCD hem VGA paletine uygulanır. WAD dosyasındaki renkler değiştirilmez.
+- C4 doğrudan VGA renk testi korunur: VGA modunda **Settings → Display → FIRE** veya **RIGHT basılı RESET**. Test 10 saniye sürer, BACK erken çıkarır.
+- C5 değişikliklerini yüklemek için yeni installer ile **OS ve Doom** kurulmalıdır. OS-only Update ZIP, Doom bölümünü güncellemez. TV'deki bütün renk bozukluklarının giderildiği fiziksel cihazda henüz doğrulanmamıştır.
+
+Ayrıntılar: [C5 Doom incelemesi ve düzeltmeleri](docs/2026-10-28-doom-menu-gamma-c5.md).
+
 ## Ekranlar ve kurulum
 
 - Kurulumdaki **1. Ekranlar** adımından **ILI9488 (480×320)** veya **ILI9341 (320×240)** seçilebilir. Kurucu seçilen ekranın OS ve Doom firmware’lerini birlikte kullanır.

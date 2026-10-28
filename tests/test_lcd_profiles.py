@@ -102,6 +102,9 @@ int main(){assert(gfxUiWidth()==320&&gfxUiHeight()==240);compactUi=false;assert(
     def test_doom_raw_vga_palette(self):
         subprocess.run([sys.executable,str(ROOT/'tests/run_doom_vga_tests.py')],check=True)
 
+    def test_doom_menu_neutral_palette(self):
+        subprocess.run([sys.executable,str(ROOT/'tests/run_doom_menu_palette_tests.py')],check=True)
+
     def test_doom_both_lcd_profiles(self):
         for model in (9341, 9488):
             with self.subTest(model=model):
