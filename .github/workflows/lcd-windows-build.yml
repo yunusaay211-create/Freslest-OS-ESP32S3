@@ -1,4 +1,4 @@
-name: LCD Windows installer from verified firmware
+name: VGA 25.2 Windows installer from verified firmware
 on:
   workflow_dispatch:
   push:
@@ -16,7 +16,9 @@ jobs:
         with:
           fetch-depth: 2
       - name: Verify the reused firmware sources are unchanged
-        run: git diff --exit-code 54aaf9f4ae4aee3f2b40439ce5129f356b000a11 HEAD -- OS Doom common shared_components tools/build_lcd_profiles.py
+        run: |
+          git fetch --no-tags --depth=1 origin 60b408e83fb444d35081dd134af9407a576d3f17
+          git diff --exit-code 60b408e83fb444d35081dd134af9407a576d3f17 HEAD -- OS Doom common shared_components tools/build_lcd_profiles.py prepare_firmware.py firmware_release.py
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -31,7 +33,7 @@ jobs:
         with:
           name: lcd-firmware-profiles
           path: firmware
-          run-id: 40377333282
+          run-id: 40664780601
           github-token: ${{ github.token }}
       - name: Check baseline regressions
         run: python tests/prove_regressions.py
@@ -43,7 +45,7 @@ jobs:
         run: python tests/smoke_exes_windows.py
       - uses: actions/upload-artifact@v4
         with:
-          name: Freslest-LCD-Windows-EXEs
+          name: Freslest-1.1-Windows-EXEs
           path: dist/*
           if-no-files-found: error
           compression-level: 0

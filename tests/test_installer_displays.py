@@ -19,7 +19,12 @@ class DisplayWizardTests(unittest.TestCase):
         try:
             self.assertEqual(window.display.get(), 'ili9488')
             window.displays()
-            window.update_idletasks()
+            # Native Windows may not map the new top-level on idle alone.
+            # Measure geometry only after its real event loop has mapped it.
+            window.deiconify()
+            window.geometry('690x560')
+            window.update()
+            self.assertGreaterEqual(window.winfo_height(), 500)
             self.assertIn('1 / 3   DISPLAYS', [str(w.cget('text')) for w in window.winfo_children() if isinstance(w, app.tk.Label)])
             choices = [w for w in window.winfo_children() if isinstance(w, app.tk.Radiobutton)]
             self.assertEqual([w.cget('value') for w in choices], ['ili9488', 'ili9341', 'vga'])
