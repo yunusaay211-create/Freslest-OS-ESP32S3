@@ -1,5 +1,5 @@
 idf_component_register(SRCS "freslest_video.c" "vga_pixels.c" "vga_doom.c"
- INCLUDE_DIRS "include" REQUIRES esp_lcd esp_mm esp_timer esp_driver_gpio nvs_flash)
+ INCLUDE_DIRS "include" REQUIRES esp_lcd esp_mm esp_timer esp_driver_gpio nvs_flash hal soc)
 set_source_files_properties("vga_pixels.c" "vga_doom.c" PROPERTIES COMPILE_OPTIONS -O2)
 
 # LCD builds retain menu-controlled output; all new VGA output uses 25.175 MHz.
