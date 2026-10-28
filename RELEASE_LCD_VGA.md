@@ -8,7 +8,7 @@
 
 ## 1.1 sürüm bilgisi
 
-Installer başlığı, Türkçe/İngilizce kurulum mesajları, Viewer başlığı, derleme raporu ve iki LCD profili için derlenen OS sürüm alanı 1.1 olarak güncellendi. C5 Doom menü/gamma düzeltmeleri ve C4 doğrudan VGA renk testi korunur. Kullanıcının C5 sonrasında bildirdiği aşırı kırmızılık henüz giderildi olarak doğrulanmamıştır; doğrudan renk testi çıktısı beklenmektedir.
+Installer başlığı, Türkçe/İngilizce kurulum mesajları, Viewer başlığı, derleme raporu ve iki LCD profili için derlenen OS sürüm alanı 1.1 olarak güncellendi. C5 Doom menü/gamma düzeltmeleri ve C4 doğrudan VGA renk testi korunur. Kullanıcının C5 sonrasında bildirdiği aşırı kırmızılık henüz giderildi olarak doğrulanmamıştır; C4 doğrudan renk testi fotoğrafı alınmıştır.
 
 Bu güncelleme ILI9341 uygulama ekranlarını düzenler, VGA kaymasına karşı önlemler ekler, Doom VGA renk dönüşümünü iyileştirir ve Freslest ses modülünün yeniden bağlantıdan sonra toparlanmasını sağlar. Kompozit AV kaldırılmıştır.
 
@@ -23,7 +23,7 @@ Ayrıntılar: [C5 Doom incelemesi ve düzeltmeleri](docs/2026-10-28-doom-menu-ga
 
 ## Ekranlar ve kurulum
 
-- Kurulumdaki **1. Ekranlar** adımından **ILI9488 (480×320)** veya **ILI9341 (320×240)** seçilebilir. Kurucu seçilen ekranın OS ve Doom firmware’lerini birlikte kullanır.
+- Kurulumdaki **1. Ekranlar** adımından **ILI9488 (480×320)**, **ILI9341 (320×240)** veya **VGA (640×480 / 25.175 MHz)** seçilebilir. Kurucu seçilen ekranın OS ve Doom firmware’lerini birlikte kullanır.
 - ILI9341 ana menüsü, uygulama/oyun/ayar listeleri ve görev değiştirici 320×240’a uygun düzenlendi. Menü yazıları artık büyük arayüzden küçültülmüyor; başlıklar, alt bilgiler ve fare seçim alanları yeni yerleşime uyarlandı.
 - Calculator, Note, Clock, Paint, Camera, Files, Browser, ekran klavyesi ve Settings, ILI9341’de doğrudan 320×240 tuvale çizilir. Yazılar küçültülmez; giriş/fare alanları ve metin kaydırma yeni yerleşime uyarlandı. Oyunların mevcut uyumluluk düzenleri korunur.
 - Doom’un ILI9341 yön ayarı OS ile eşleştirildi; ters/aynalanmış yazılara neden olan yön biti düzeltildi.
@@ -56,8 +56,10 @@ Kurulumdan önce dosya, not ve ROM’larınızı yedekleyin. Ekran modelini kend
 
 ## Derleme doğrulaması
 
-İki LCD için OS/Doom firmware derlemeleri, bölüm/hash kontrolleri, Windows kurucu/Viewer testleri ve EXE açılış testleri geçti: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40569946857
+Üç ekran profili için altı OS/Doom firmware derlemesi, bölüm/hash kontrolleri, Windows kurucu/Viewer testleri ve EXE açılış testleri geçti: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/40691429211
 
 Bu ortamda fiziksel ESP32-S3/LCD/VGA testi yapılmadı.
 
 Kullanıcının isteğiyle 25.2 MHz değişikliği geri alındı. Önceki kaynakta olduğu gibi 640×480 etkin alan ve 25.175 MHz hedef PCLK kullanılır; toplam 800×525 ile yaklaşık 59.94 Hz. VGA installer seçeneği ve 1.1 düzeltmeleri korunur. C4 fotoğrafı alındı; fiziksel renk sorunu henüz çözülmüş sayılmaz.
+
+Son doğrulanmış paket: **Freslest-Installer-1.1-VGA25175.exe**, 35.245.092 bayt. OS ve Doom için eski **640×480 / 25.175 MHz** zamanlaması geri alındı. Firmware ve Windows derleme/test çalışması **40691429211** başarılı; TR/EN installer ve Viewer açılışları doğrulandı. Ayrıntı: `docs/2026-10-28-vga-timing-rollback.md`.
