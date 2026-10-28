@@ -1,0 +1,44 @@
+{
+  "source_commit": "b328b4f74e957c7ff7dc17c4ede38394f93ce5bf",
+  "base_commit": "f7fa19c7757cd006cd6fddfde89d2c8d56eacab4",
+  "scope": "Restore original OS VGA layout; full installer",
+  "changed_source_files": [
+    "OS/freslest/gfx.cpp",
+    "tests/test_lcd_profiles.py"
+  ],
+  "os_vga_canvas": [
+    480,
+    320
+  ],
+  "ili9341_lcd_compact_canvas": [
+    320,
+    240
+  ],
+  "vga_signal": [
+    640,
+    480
+  ],
+  "target_clock_hz": 25175000,
+  "doom_source_changed": false,
+  "physical_red_tint_fixed": false,
+  "physical_tv_result_verified": false,
+  "workflow_run": 40759919632,
+  "firmware_job": 123068744866,
+  "windows_job": 123073450640,
+  "firmware_artifact": 12847843072,
+  "windows_artifact": 12847799827,
+  "all_six_firmware_builds": "success",
+  "full_windows_suite": "success",
+  "native_windows_launch": "success",
+  "installer": {
+    "file": "Freslest-Installer-1.1-480x320.exe",
+    "bytes": 35247305,
+    "sha256": "6994729adc98e4b5caeb3abb76ce3f0aa1dbf637782d64b16e0c3bd4c8719da3"
+  },
+  "review": "No blockers; no physical Doom color fix claimed",
+  "limitations": [
+    "No physical device access",
+    "Local full suite initially blocked by missing serial/esptool/assets; after preparation 7 Tk tests blocked by no DISPLAY; 49 non-GUI tests passed (1 skipped), and full Windows CI suite succeeded",
+    "Personal Context retrieval of earlier PCB chat unavailable; no unseen wiring assumptions made"
+  ]
+}
