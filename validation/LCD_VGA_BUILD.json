@@ -1,37 +1,37 @@
 {
-  "source_commit": "d766797ffdcaf0e91396bca317390b939ac5513a",
-  "workflow_run": 40569946857,
-  "firmware_artifact": 12764928239,
-  "firmware_zip_sha256": "edf1c8a7738e1117937bf08b2501eadbd10b474f69efd75123b4fba18a632a08",
+  "source_commit": "d9a78215b3946643526d18892490caf35b012547",
+  "workflow_run": 40656454884,
+  "firmware_artifact": 12802845810,
+  "firmware_zip_sha256": "8773f6c4ca1f04d546fb4f6b2482a1a43e4f412320b5fc68154c084d0cbaf522",
   "profiles": {
     "ili9488": {
-      "os_bytes": 1756016,
+      "os_bytes": 1756768,
       "os_slot_bytes": 1769472,
-      "doom_bytes": 886624,
+      "doom_bytes": 887328,
       "doom_slot_bytes": 917504,
       "all_seven_hashes_verified": true,
       "sha256": {
-        "firmware/bootloader.bin": "031d6b7f5edccaba1054c696fc1cdcbe77c820c5be5bf11da6bc1a8f4280a1f7",
+        "firmware/bootloader.bin": "99c42d34d86da3764f40974ed293ca151720a401e1e86eec9b49edc5b96973c0",
         "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
         "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
-        "firmware/freslest_doom_s3.bin": "5ff90b8ad46de80e77d50dde1346d6c57a059a669254627935de90fbb87a8c4b",
-        "firmware/freslest_os_s3.bin": "0da45010be510f98a6274565a05fdbb4cb45a2a347b189baa9953b9e9d6655e1",
+        "firmware/freslest_doom_s3.bin": "5a74e98f3e62489b62d26201fff14bede43c81793fce00e3e3c410210e2f3207",
+        "firmware/freslest_os_s3.bin": "45953a5bf6e8ee532d87a21e9b4647f1eaa06bc340b097a8d350ef6547643822",
         "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
         "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
       }
     },
     "ili9341": {
-      "os_bytes": 1756688,
+      "os_bytes": 1757440,
       "os_slot_bytes": 1769472,
-      "doom_bytes": 886672,
+      "doom_bytes": 887376,
       "doom_slot_bytes": 917504,
       "all_seven_hashes_verified": true,
       "sha256": {
-        "firmware/bootloader.bin": "031d6b7f5edccaba1054c696fc1cdcbe77c820c5be5bf11da6bc1a8f4280a1f7",
+        "firmware/bootloader.bin": "99c42d34d86da3764f40974ed293ca151720a401e1e86eec9b49edc5b96973c0",
         "firmware/partition-table.bin": "a7de8e6ca11e45e5f39c0d468cb7e42d30f9db173ae065b0d6ed3ce3bae87775",
         "firmware/ota_data_initial.bin": "7d2c7ac4888bfd75cd5f56e8d61f69595121183afc81556c876732fd3782c62f",
-        "firmware/freslest_doom_s3.bin": "b8e2119716b773c5f8ede884d84c57642caadfc6285e023e68c230d9637350f4",
-        "firmware/freslest_os_s3.bin": "19381d12c9e558affc09f4cadf9ed5a8c9f5d1e1ff1e93ba388427cd8931a091",
+        "firmware/freslest_doom_s3.bin": "16b5025100830941cf5a01238d37ed1cd916b22ee82d7917fd3eb78100de4ffd",
+        "firmware/freslest_os_s3.bin": "8f287700db3be5e47cde459bf20b86b262c9ee9d0eba68c1dd7b2cf17714c0d3",
         "firmware/doom_flash.wad": "1fa18da619b869402c3079e6116c26adb35a21e5a389d80cda6f664015bf5ab2",
         "firmware/littlefs.bin": "3a140a0999f23347c19ee25f54812ea677a9229e85c8e9cd4168471f76d1993d"
       }
@@ -39,11 +39,10 @@
   },
   "physical_hardware_tested": false,
   "windows_status": "success",
-  "windows_artifact": 12763619738,
-  "windows_zip_sha256": "e80b4b6ee5026f0cbcb73cca6b61b5c4f19c1cba401a07da1b27158c6b934c8a",
-  "installer_name": "Freslest-Installer-Solid332-C3.exe",
-  "installer_sha256": "67db44101e96f03f36b5dd0ec074b5f403417b6b44a9463faca3ff14bb120132",
-  "installer_bytes": 29470826,
+  "windows_artifact": 12802206763,
+  "windows_zip_sha256": "c3585381c17a33613af4dbec003f27211c6bd5b486c345e7bd549744ac21d2bf",
+  "installer_sha256": "4a696bb5ebd814e6c5354f9c0a76967c304ae95458211609d068d62f2c167283",
+  "installer_bytes": 29473988,
   "windows_smoke": [
     {
       "file": "Freslest Installer.exe",
@@ -61,17 +60,17 @@
       "native_windows_launch": true
     }
   ],
-  "windows_unittest_cases": 43,
-  "windows_unittest_skipped_native_cases": 9,
-  "linux_display_audio_tests": 9,
-  "viewer_test_cases": 9,
-  "esptool_all_four_apps_checksum_digest_verified": true,
-  "all_four_apps_solid332_c3_marker_verified": true,
-  "physical_red_tint_verification": "not yet verified on device",
-  "changes": [
-    "remove generated spatial dithering from both indexed paths",
-    "match supplied V1.0 core RGB332 packing",
-    "flat-source colors remain flat at every position",
-    "preserve raw Doom palette, double-frame bounce/XIP, TV fit and both LCD menu rows"
-  ]
+  "doom_color_changes": "C5 neutral menu palette and GAMMATBL gamma levels 0..4",
+  "regression_tests": {
+    "local_total": 44,
+    "local_passed": 37,
+    "local_desktop_skips": 7,
+    "linux_lcd_cases": 7,
+    "linux_vga_cases": 3,
+    "windows_job_status": "success"
+  },
+  "markers_verified": {
+    "os": "FRESLEST_VGA:RAW332_C4_READY",
+    "doom": "DOOM_COLOR:C5"
+  }
 }
