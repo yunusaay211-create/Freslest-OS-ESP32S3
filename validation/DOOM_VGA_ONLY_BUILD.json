@@ -1,0 +1,80 @@
+{
+  "commit": "4d617ce1035da6a90ee7dda375836935c78da0fe",
+  "status": "built",
+  "installer_name": "Freslest-Doom-VGA-Only.exe",
+  "os_modified": false,
+  "shared_runtime_modified": false,
+  "os_compiled": false,
+  "flash_addresses": [
+    131072
+  ],
+  "physical_color_result_verified": false,
+  "first_run": 40756862706,
+  "first_failure": "Container git safe.directory, before any builds",
+  "run": 40757320257,
+  "firmware_status": "success",
+  "firmware_id": 12846492180,
+  "firmware_sha256": "c2b6afa23e7879d224aa18e59b9c87aa49b26f33d52187758f6151b46c4ace80",
+  "firmware_manifest": {
+    "source_commit": "4d617ce1035da6a90ee7dda375836935c78da0fe",
+    "sha256": "7b19f26722a519b35ae6e0b806dbc712b4381ae3372f1dc684f5c0b745395736",
+    "bytes": 888384,
+    "flash_address": 131072,
+    "partition_bytes": 917504,
+    "doom_render": [
+      320,
+      240
+    ],
+    "vga_signal": [
+      640,
+      480
+    ],
+    "target_clock_hz": 25175000,
+    "maximum_submitted_fps": 30,
+    "os_modified": false,
+    "nvs_modified": false
+  },
+  "full_os_workflow": "skipped",
+  "code_review": "no blockers; nominal FPS timing precision noted",
+  "windows_status": "success",
+  "windows_id": 12846212568,
+  "windows_sha256": "89cb24c4e50f9c287fccc4254abfac39646f8834ccd257a97d64fc9e14cd072e",
+  "installer_bytes": 12609606,
+  "installer_sha256": "d19cc4eac2361962895682d8f152acb22ef58101ce36a651b9b09971ef4c9835",
+  "windows_smoke": {
+    "native_windows_launch": true,
+    "title": "Freslest Doom VGA | 1.1",
+    "flashing_started": false
+  },
+  "windows_report": {
+    "application": "Freslest Doom VGA",
+    "version": "1.1",
+    "build_os": "Windows-10-10.0.26100-SP0",
+    "sha256": "d19cc4eac2361962895682d8f152acb22ef58101ce36a651b9b09971ef4c9835",
+    "bytes": 12609606,
+    "firmware": {
+      "source_commit": "4d617ce1035da6a90ee7dda375836935c78da0fe",
+      "sha256": "7b19f26722a519b35ae6e0b806dbc712b4381ae3372f1dc684f5c0b745395736",
+      "bytes": 888384,
+      "flash_address": 131072,
+      "partition_bytes": 917504,
+      "doom_render": [
+        320,
+        240
+      ],
+      "vga_signal": [
+        640,
+        480
+      ],
+      "target_clock_hz": 25175000,
+      "maximum_submitted_fps": 30,
+      "os_modified": false,
+      "nvs_modified": false
+    },
+    "write_addresses": [
+      131072
+    ],
+    "os_packaged": false
+  },
+  "fps_timing_note": "Nominal 30 FPS; FreeRTOS tick phase can slightly vary the exact interval."
+}
