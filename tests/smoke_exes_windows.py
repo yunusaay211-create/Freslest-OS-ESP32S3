@@ -18,7 +18,7 @@ checks = []
 diagnostics_path = ROOT / 'dist/INSTALLER_DIAGNOSTICS.json'
 subprocess.run([str(ROOT / 'dist/Freslest Installer.exe'), '--diagnostics', str(diagnostics_path)], check=True, timeout=60)
 diagnostics = json.loads(diagnostics_path.read_text(encoding='utf-8'))
-if not diagnostics['ok'] or not diagnostics['frozen'] or len(diagnostics['firmware']) != 7 or set(diagnostics['installer_languages']) != {'tr', 'en'} or diagnostics['firmware_version'] != '1.1':
+if not diagnostics['ok'] or not diagnostics['frozen'] or len(diagnostics['firmware']) != 7 or set(diagnostics['installer_languages']) != {'tr', 'en'} or diagnostics['firmware_version'] != '1.1' or diagnostics.get('sd_audio_files')!=112:
     raise RuntimeError('The actual frozen installer did not validate its bundled flash components.')
 for name, title, arguments in [('Freslest Installer.exe', 'Freslest Installer | OS 1.1', []),
                     ('Freslest Installer.exe', 'Freslest Installer | OS 1.1 | English', ['--lang', 'en']),

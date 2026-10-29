@@ -7,6 +7,8 @@ import platform
 import subprocess
 import sys
 from prepare_firmware import prepare
+from prepare_audio import prepare as prepare_audio
+from tools.check_windows_archive import check_archive
 from firmware_release import RELEASE_VERSION
 
 ROOT = Path(__file__).resolve().parent
@@ -34,14 +36,17 @@ def main():
     prepare()
     # A dropdown alone is insufficient: package all actual source-built variants.
     verify_display_firmware(ROOT / 'firmware')
+    prepare_audio()
     common = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean', '--onefile', '--windowed', '--noupx']
     subprocess.run(common + ['--name', 'Freslest Installer', '--collect-all', 'esptool',
                             '--collect-all', 'serial', '--add-data', 'firmware;firmware',
+                            '--add-data', 'audio_pack;audio_pack',
                             'installer/installer.py'], check=True)
     subprocess.run(common + ['--name', 'Freslest USB Viewer', '--paths', 'viewer',
                             '--collect-all', 'serial', 'viewer/freslest_viewer.py'], check=True)
     hashes = {}
     for name in ('Freslest Installer.exe', 'Freslest USB Viewer.exe'):
+        check_archive(ROOT/'dist'/name,require_sd_audio=name=='Freslest Installer.exe')
         data = (ROOT / 'dist' / name).read_bytes()
         pe = int.from_bytes(data[60:64], 'little')
         if data[:2] != b'MZ' or data[pe:pe + 4] != b'PE\0\0':

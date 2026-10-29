@@ -11,6 +11,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipIf(sys.platform == 'win32', 'C/C++ sanitizer tests run in the Linux firmware job')
 class LcdProfiles(unittest.TestCase):
+    def test_audio_recovery_and_volume_changes(self):
+        subprocess.run([sys.executable,str(ROOT/'tests/run_audio_recovery_tests.py')],check=True)
+
     def test_os_audio_recovers_card_and_module_restart(self):
         with tempfile.TemporaryDirectory() as d:
             exe=Path(d)/'audio'

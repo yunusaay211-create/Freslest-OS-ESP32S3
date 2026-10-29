@@ -1,6 +1,20 @@
 """Installer interface messages in Turkish and English."""
 LANGUAGES = {'tr': 'Türkçe', 'en': 'English'}
 MESSAGES = {
+    'sd_button': ('SD karta ses yükle','Install SD sounds'),
+    'sd_heading': ('SD KART SESLERİ','SD CARD SOUNDS'),
+    'sd_help': ('DFPlayer’ın SD kartını kart okuyucu ile bilgisayara bağla ve kartın sürücüsünü seç. ESP32 COM bağlantısı gerekmez.','Connect the DFPlayer SD card to your computer with a card reader and select its drive. No ESP32 COM connection is needed.'),
+    'sd_choose': ('SD sürücüsünü seç','Choose SD drive'),
+    'sd_contents': ('112 dosya: Doom müzikleri (0001–0104) ve 8 OS sesi (0105–0112). Dosyalar MP3 klasörüne yüklenir ve doğrulanır.','112 files: Doom music (0001–0104) and 8 OS sounds (0105–0112). Files are installed in the MP3 folder and verified.'),
+    'sd_notice': ('Kart FAT/FAT32 olmalı. Biçimlendirme yapılmaz. Yalnız MP3/0001.mp3–0112.mp3 dosyaları güncellenir; diğer dosyalar korunur.','Use a FAT/FAT32 card. The card is not formatted. Only MP3/0001.mp3–0112.mp3 are updated; other files are preserved.'),
+    'sd_confirm': ('Sesler bu sürücüye yüklensin mi?\n{path}\n\nMP3 klasöründeki aynı numaralı 112 dosyanın üzerine yazılabilir.','Install sounds to this drive?\n{path}\n\nThe 112 matching numbered files in MP3 may be overwritten.'),
+    'sd_copying': ('SESLER KOPYALANIYOR VE DOĞRULANIYOR','COPYING AND VERIFYING SOUNDS'),
+    'sd_complete': ('{verified} ses doğrulandı; {copied} dosya kopyalandı.','Verified {verified} sounds; copied {copied} files.'),
+    'sd_success': ('SD SESLERİ HAZIR','SD SOUNDS READY'),
+    'sd_failure': ('SD SES YÜKLEMESİ TAMAMLANAMADI','SD SOUND INSTALLATION INCOMPLETE'),
+    'sd_next': ('Kartı Windows’tan güvenle çıkar, cihaz kapalıyken DFPlayer’a tak. Ardından OS’de Settings → Sound üzerinden ses testini çalıştır.','Safely eject the card in Windows, insert it into DFPlayer with the device powered off, then run the sound test in OS Settings → Sound.'),
+    'sd_retry_help': ('Kart bağlantısını ve boş alanı kontrol edip yeniden dene. Tamamlanan dosyalar yeniden kopyalanmadan doğrulanır.','Check the card connection and free space, then retry. Completed files will be verified without being copied again.'),
+    'sd_busy': ('Sesler kopyalanırken kartı çıkarma. İşlemin bitmesini bekle.','Do not remove the card while sounds are being copied. Wait for completion.'),
     'welcome': ('Tek tıklamalı Windows yükleyicisine hoş geldin. ESP-IDF veya Python kurman gerekmiyor.',
                 'Welcome to the one-click Windows installer. No ESP-IDF or Python installation is required.'),
     'steps': ('• Adım 1: Ekranlar\n• Adım 2: COM portunu seç\n• Adım 3: Firmware yükle',

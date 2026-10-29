@@ -16,6 +16,8 @@ ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[1]))
 FW = ROOT / 'firmware'
 from payload import DISPLAY_MODELS, ITEMS
 from payload import validated_payload as _validated_payload
+from sd_audio import install_audio, validate_card_volume, validated_audio
+AUDIO = ROOT / 'audio_pack'
 
 
 def validated_payload(language='tr', display='ili9488'):
@@ -42,6 +44,7 @@ def write_diagnostics(output_path):
             raise RuntimeError('ESP32-S3 stub resource is invalid')
         report['firmware']={path.name:{'address':hex(address),'bytes':size,'sha256':digest,'valid':True}
                             for address,path,size,digest in validated_payload()}
+        report['sd_audio_files']=len(validated_audio(AUDIO))
         image=(FW/'freslest_os_s3.bin').read_bytes()
         report['firmware_version']=image[0x30:0x50].split(b'\0',1)[0].decode('ascii')
         if image[0x20:0x24]!=b'\x32\x54\xcd\xab' or report['firmware_version']!='1.1':
@@ -62,6 +65,8 @@ class Installer(tk.Tk):
         self.port = tk.StringVar()
         self.baud = tk.StringVar(value='460800')
         self.display = tk.StringVar(value='ili9488')
+        self.sd_target = tk.StringVar()
+        self.sd_running = False
         self.busy = False
         self.events=queue.Queue()
         self.make_style()
@@ -96,7 +101,53 @@ class Installer(tk.Tk):
         self.label(self.t('welcome')).pack(anchor='w',padx=34,pady=18)
         self.label(self.t('steps'),13).pack(anchor='w',padx=34,pady=8)
         self.label(self.t('backup'),11,'#ffca80').pack(anchor='w',padx=34,pady=(12,22))
-        ttk.Button(self,text=self.t('continue'),command=self.displays).pack(anchor='e',padx=35)
+        actions=tk.Frame(self,bg='#121724');actions.pack(fill='x',padx=35)
+        ttk.Button(actions,text=self.t('sd_button'),command=self.sd_page).pack(side='left')
+        ttk.Button(actions,text=self.t('continue'),command=self.displays).pack(side='right')
+    def sd_page(self):
+        self.wipe()
+        self.label(self.t('sd_heading'),23,'#70b1ff',True).pack(anchor='w',padx=32,pady=(28,14))
+        self.label(self.t('sd_help')).pack(anchor='w',padx=32,pady=10)
+        line=tk.Frame(self,bg='#121724');line.pack(fill='x',padx=32,pady=18)
+        ttk.Entry(line,textvariable=self.sd_target,state='readonly').pack(side='left',fill='x',expand=True)
+        ttk.Button(line,text=self.t('sd_choose'),command=self.choose_sd).pack(side='right',padx=(10,0))
+        self.label(self.t('sd_contents'),12).pack(anchor='w',padx=32,pady=8)
+        self.label(self.t('sd_notice'),11,'#ffca80').pack(anchor='w',padx=32,pady=14)
+        buttons=tk.Frame(self,bg='#121724');buttons.pack(side='bottom',fill='x',padx=32,pady=26)
+        ttk.Button(buttons,text=self.t('back'),command=self.wizard).pack(side='left')
+        ttk.Button(buttons,text=self.t('sd_button'),command=self.confirm_sd).pack(side='right')
+    def choose_sd(self):
+        target=filedialog.askdirectory(title=self.t('sd_choose'),mustexist=True)
+        if target:self.sd_target.set(target)
+    def confirm_sd(self):
+        try:card=validate_card_volume(self.sd_target.get())
+        except (OSError,ValueError) as error:
+            messagebox.showerror(self.t('sd_heading'),str(error));return
+        if not messagebox.askyesno(self.t('sd_heading'),self.t('sd_confirm',path=str(card))):return
+        self.busy=self.sd_running=True
+        self.wipe()
+        self.label(self.t('sd_copying'),21,'#70b1ff',True).pack(anchor='w',padx=32,pady=(28,16))
+        self.progress=ttk.Progressbar(self,mode='determinate',maximum=112)
+        self.progress.pack(fill='x',padx=32,pady=12)
+        self.log=tk.Text(self,height=17,bg='#080d18',fg='#d5e6fa',font=('Consolas',9),state='disabled')
+        self.log.pack(fill='both',expand=True,padx=32,pady=10)
+        self.finish=ttk.Button(self,text=self.t('close'),command=self.close,state='disabled')
+        self.finish.pack(anchor='e',padx=32,pady=16)
+        threading.Thread(target=self.sd_worker,args=(card,),daemon=True).start()
+    def sd_worker(self,card):
+        try:
+            result=install_audio(AUDIO,card,lambda number,total,name:self.events.put(('sd_progress',number,total,name)))
+            self.events.put(('sd_done',True,self.t('sd_complete',copied=result['copied'],verified=result['verified'])))
+        except Exception as error:self.events.put(('sd_done',False,str(error)))
+    def sd_result(self,success,message):
+        self.last_log=self.log.get('1.0','end-1c')
+        self.wipe()
+        self.label(self.t('sd_success' if success else 'sd_failure'),23,'#81dfb0' if success else '#ff9f91',True).pack(anchor='w',padx=32,pady=(30,16))
+        self.label(message).pack(anchor='w',padx=32,pady=12)
+        self.label(self.t('sd_next' if success else 'sd_retry_help')).pack(anchor='w',padx=32,pady=12)
+        buttons=tk.Frame(self,bg='#121724');buttons.pack(side='bottom',fill='x',padx=32,pady=26)
+        ttk.Button(buttons,text=self.t('back'),command=self.wizard if success else self.sd_page).pack(side='left')
+        ttk.Button(buttons,text=self.t('close'),command=self.close).pack(side='right')
     def displays(self):
         self.wipe()
         self.label(self.t('displays_heading'),21,'#70b1ff',True).pack(anchor='w',padx=32,pady=(20,8))
@@ -138,6 +189,7 @@ class Installer(tk.Tk):
         self.flash(port)
     def flash(self,port):
         self.busy=True
+        self.sd_running=False
         self.wipe();self.label(self.t('flash_heading'),19,'#70b1ff',True).pack(anchor='w',padx=32,pady=(24,12))
         self.progress=ttk.Progressbar(self,mode='indeterminate');self.progress.pack(fill='x',padx=32,pady=9);self.progress.start(10)
         self.log=tk.Text(self,height=17,bg='#080d18',fg='#d5e6fa',insertbackground='white',font=('Consolas',9),state='disabled')
@@ -170,7 +222,13 @@ class Installer(tk.Tk):
         try:
             for _ in range(100):
                 v=self.events.get_nowait()
-                if isinstance(v,tuple) and v[0]=='done':
+                if isinstance(v,tuple) and v[0]=='sd_progress':
+                    self.progress.configure(value=v[1],maximum=v[2]);self.write_log(v[3]+'\n')
+                elif isinstance(v,tuple) and v[0]=='sd_done':
+                    self.busy=self.sd_running=False
+                    self.progress.configure(value=112 if v[1] else 0)
+                    self.sd_result(v[1],v[2]);break
+                elif isinstance(v,tuple) and v[0]=='done':
                     self.busy=False
                     self.progress.stop();self.progress.configure(mode='determinate',value=100 if v[1] else 0)
                     self.finish.configure(state='normal')
@@ -199,7 +257,7 @@ class Installer(tk.Tk):
             except OSError as error:messagebox.showerror(self.t('save_error'),str(error))
     def close(self):
         if self.busy:
-            messagebox.showinfo(self.t('busy_title'),self.t('busy'))
+            messagebox.showinfo(self.t('busy_title'),self.t('sd_busy' if self.sd_running else 'busy'))
             return
         self.destroy()
 if __name__=='__main__':

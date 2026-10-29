@@ -27,6 +27,7 @@ class DiagnosticsTests(unittest.TestCase):
             self.assertGreater(data['stub_data_bytes'], 0)
             self.assertTrue(data['stub_entry_in_text'])
             self.assertEqual(len(data['firmware']), 7)
+            self.assertEqual(data['sd_audio_files'],112)
             self.assertTrue(all(item['valid'] for item in data['firmware'].values()))
 
 

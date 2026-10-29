@@ -18,6 +18,8 @@
 #ifdef ESP_PLATFORM
 #include "hal/lcd_ll.h"
 #include "soc/lcd_cam_struct.h"
+#include "soc/gpio_struct.h"
+#include "soc/gpio_sig_map.h"
 #endif
 #ifndef FRESLEST_VGA_PCLK_HZ
 #define FRESLEST_VGA_PCLK_HZ 25175000
@@ -163,6 +165,7 @@ bool freslest_video_color_test(void){
  if(output!=FRESLEST_DISPLAY_VGA||!started)return false;
  uint8_t *target=acquire_frame();if(!target)return false;
  raw_test_pattern(target);if(!publish_frame(target))return false;
+ freslest_video_diagnostics();
  puts("FRESLEST_VGA:RAW332_C4 white yellow cyan green magenta red blue black; ramps R G B gray; bits D0..D7");
  int64_t deadline=esp_timer_get_time()+10000000;
  while(esp_timer_get_time()<deadline&&gpio_get_level(16))vTaskDelay(pdMS_TO_TICKS(20));
@@ -188,4 +191,19 @@ void freslest_video_diagnostics(void){
  ESP_LOGW("video","output=%s RGB332 PCLK=25.175MHz 640x480 59.94Hz started=%u syncs=%lu images=%lu sync-age=%lu us healthy=%u dropped=%lu frames=%lu fit=%u%%; D0..7=41,8,13,14,2,42,40,39 H=47 V=48",
  output==FRESLEST_DISPLAY_LCD?"LCD":"VGA",started,(unsigned long)vsyncs,(unsigned long)presentations,
  (unsigned long)((uint32_t)esp_timer_get_time()-last_vsync_us),freslest_video_healthy(),(unsigned long)dropped,(unsigned long)frame_events,fit_percent);
+#ifdef ESP_PLATFORM
+ if(started){
+  const int pins[]={41,8,13,14,2,42,40,39};
+  uint64_t mask=(1ULL<<47)|(1ULL<<48);
+  for(unsigned bit=0;bit<8;++bit){
+   int pin=pins[bit];mask|=1ULL<<pin;
+   printf("VGA ROUTE: D%u GPIO%d signal=%u expected=%u invert=%u\n",bit,pin,
+     (unsigned)GPIO.func_out_sel_cfg[pin].func_sel,(unsigned)(LCD_DATA_OUT0_IDX+bit),
+     (unsigned)GPIO.func_out_sel_cfg[pin].inv_sel);
+  }
+  printf("VGA REG: lcd_user=0x%08lx rgb_yuv=0x%08lx\n",
+    (unsigned long)LCD_CAM.lcd_user.val,(unsigned long)LCD_CAM.lcd_rgb_yuv.val);
+  gpio_dump_io_configuration(stdout,mask);
+ }
+#endif
 }

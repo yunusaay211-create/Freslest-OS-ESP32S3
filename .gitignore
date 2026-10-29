@@ -13,3 +13,5 @@ host_build/
 *.mp3
 firmware/
 firmware-payload.zip
+audio_pack/
+build-audio/

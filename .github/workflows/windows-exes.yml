@@ -12,6 +12,9 @@ on:
       - 'tests/**'
       - 'firmware-payload.zip'
       - 'firmware-payload/**'
+      - 'audio-payload/**'
+      - 'prepare_audio.py'
+      - 'tools/prepare_sd_audio.py'
       - 'build_windows.py'
       - 'prepare_firmware.py'
       - 'firmware_release.py'
@@ -69,7 +72,9 @@ jobs:
       - name: Install pinned build tools
         run: python -m pip install -r requirements-build.txt
       - name: Prepare and verify firmware release 1.1
-        run: python prepare_firmware.py
+        run: |
+          python prepare_firmware.py
+          python prepare_audio.py
       - uses: actions/download-artifact@v4
         with:
           name: lcd-firmware-profiles
