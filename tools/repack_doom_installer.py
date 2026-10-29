@@ -88,6 +88,8 @@ def repack(base, payload, manifest_path, output):
     digest = hashlib.sha256(binary).hexdigest()
     if not (288 <= len(binary) <= 0xE0000 and binary[0] == 0xE9 and struct.unpack_from('<H', binary, 12)[0] == 9):
         raise ValueError('Doom image is not ESP32-S3 or exceeds its partition')
+    if binary[80:112].split(b'\0')[0] != b'freslest_doom_s3':
+        raise ValueError('Expected the Doom application image')
     for marker in (b'DOOM_VGA:PRIVATE_320x240', b'FRESLEST_VIDEO:VGA25175_25175000',
                    b'DOOM_VGA:NATIVE_RGB332_WORDS', b'DOOM_BOOT reset='):
         if marker not in binary:
@@ -136,10 +138,18 @@ def repack(base, payload, manifest_path, output):
             archive_name = f'firmware\\{profile}\\' + Path(name).name
             if hashlib.sha256(after[archive_name].unpack()).hexdigest() != expected:
                 raise ValueError('Firmware hash mismatch: ' + archive_name)
+    audio_hashes = json.loads(after['audio_pack\\SHA256.json'].unpack())
+    if set(audio_hashes) != {f'MP3/{number:04}.mp3' for number in range(1, 113)}:
+        raise ValueError('SD audio manifest must cover all 112 tracks')
+    for name, expected in audio_hashes.items():
+        archive_name = 'audio_pack\\' + name.replace('/', '\\')
+        if hashlib.sha256(after[archive_name].unpack()).hexdigest() != expected:
+            raise ValueError('SD audio hash mismatch: ' + archive_name)
     return {'output': str(Path(output).resolve()), 'bytes': Path(output).stat().st_size,
             'sha256': hashlib.sha256(Path(output).read_bytes()).hexdigest(),
             'changed_entries': sorted(ALLOWED), 'unchanged_entries': len(entries) - len(ALLOWED),
             'windows_extraction_paths': len(extraction_paths), 'sd_audio_tracks': 112,
+            'sd_audio_hashes_verified': len(audio_hashes),
             'doom': manifest, 'physical_hardware_test': False}
 
 
