@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-// LCD RGB565 framebuffer -> RGB332 VGA. Timing/pins from supplied V1.0 core.
+// Doom-owned RGB332 word transport. Timing/pins from supplied V1.0 core.
 #include "freslest_video.h"
 #include "doom_vga_present.h"
+#include "doom_rgb332.h"
 #include "vga_pixels.h"
 #include <string.h>
 #include <stdio.h>
@@ -36,7 +37,7 @@
 static freslest_display_t output;
 static bool boot_read,started,first_frame_ready;
 static esp_lcd_panel_handle_t panel;
-static uint8_t *fb[2];
+static uint16_t *fb[2];
 static unsigned front;
 static bool pending;
 static uint32_t queued_event;
@@ -86,8 +87,11 @@ bool freslest_video_begin(void){
  // Keep SPI LCD deselected; never attach LCD backlight LEDC to shared GPIO41.
  gpio_config_t bl={.pin_bit_mask=(1ULL<<41)|(1ULL<<10),.mode=GPIO_MODE_OUTPUT};
  gpio_config(&bl);gpio_set_level(41,0);gpio_set_level(10,1);
- esp_lcd_rgb_panel_config_t c={0};c.clk_src=LCD_CLK_SRC_DEFAULT;c.data_width=8;c.bits_per_pixel=8;c.num_fbs=2;c.bounce_buffer_size_px=VGA_WIDTH*20;
+ // One raw RGB332 value per DMA word; the upper eight data lines are unused.
+ // This is a literal digital stream, not an RGB565 conversion.
+ esp_lcd_rgb_panel_config_t c={0};c.clk_src=LCD_CLK_SRC_DEFAULT;c.data_width=16;c.bits_per_pixel=16;c.num_fbs=2;c.bounce_buffer_size_px=VGA_WIDTH*20;
  c.hsync_gpio_num=47;c.vsync_gpio_num=48;c.pclk_gpio_num=-1;c.de_gpio_num=-1;c.disp_gpio_num=-1;
+ for(int i=0;i<16;++i)c.data_gpio_nums[i]=-1;
  const int pins[]={41,8,13,14,2,42,40,39};for(int i=0;i<8;i++)c.data_gpio_nums[i]=pins[i];
  c.timings.pclk_hz=FRESLEST_VGA_PCLK_HZ;c.timings.h_res=VGA_WIDTH;c.timings.v_res=VGA_HEIGHT;
  c.timings.hsync_pulse_width=96;c.timings.hsync_back_porch=48;c.timings.hsync_front_porch=16;
@@ -96,11 +100,11 @@ bool freslest_video_begin(void){
  esp_lcd_rgb_panel_event_callbacks_t callbacks={.on_vsync=on_vsync,.on_frame_buf_complete=on_frame};
  if(esp_lcd_new_rgb_panel(&c,&panel)!=ESP_OK)goto fail;
  if(esp_lcd_rgb_panel_get_frame_buffer(panel,2,(void**)&fb[0],(void**)&fb[1])!=ESP_OK||!fb[0]||!fb[1])goto fail;
- memset(fb[0],0,VGA_WIDTH*VGA_HEIGHT);memset(fb[1],0,VGA_WIDTH*VGA_HEIGHT);front=0;pending=false;
+ memset(fb[0],0,VGA_WIDTH*VGA_HEIGHT*sizeof(*fb[0]));memset(fb[1],0,VGA_WIDTH*VGA_HEIGHT*sizeof(*fb[1]));front=0;pending=false;
  if(esp_lcd_rgb_panel_register_event_callbacks(panel,&callbacks,NULL)!=ESP_OK)goto fail;
  if(esp_lcd_panel_reset(panel)!=ESP_OK)goto fail;
 #ifdef ESP_PLATFORM
- // Select a literal RGB332 byte stream, independent of a previous LCD mode.
+ // Select literal words with RGB332 in D0..D7; no color-format conversion.
  lcd_ll_enable_rgb_yuv_convert(&LCD_CAM,false);
  lcd_ll_reverse_dma_data_bit_order(&LCD_CAM,false);
  lcd_ll_swap_dma_data_byte_order(&LCD_CAM,false);
@@ -109,11 +113,12 @@ bool freslest_video_begin(void){
  if(esp_lcd_panel_init(panel)!=ESP_OK)goto fail;
  started_us=esp_timer_get_time();first_frame_ready=false;started=true;
  puts("FRESLEST_VGA:RAW332_C4_READY");
+ puts("DOOM_VGA:NATIVE_RGB332_WORDS D0..D7 active; upper DMA byte zero; no RGB565 conversion");
  // The same diagnostic is available in OS and Doom before any app palette.
  gpio_config_t keys={.pin_bit_mask=1ULL<<7,.mode=GPIO_MODE_INPUT,.pull_up_en=GPIO_PULLUP_ENABLE};
  gpio_config(&keys);
  if(!gpio_get_level(7))freslest_video_color_test();
- ESP_LOGW("video","DOOM_VGA:PRIVATE_320x240 RGB332 640x480 59.94 Hz, target PCLK %u Hz, native 8-bit RGB332; double PSRAM frames + 20-line bounce",(unsigned)FRESLEST_VGA_PCLK_HZ);return true;
+ ESP_LOGW("video","DOOM_VGA:PRIVATE_320x240 RGB332 640x480 59.94 Hz, target PCLK %u Hz, 8 GPIOs / word DMA; double PSRAM frames + 20-line bounce",(unsigned)FRESLEST_VGA_PCLK_HZ);return true;
 fail:
  if(panel){esp_lcd_panel_del(panel);panel=NULL;}fb[0]=fb[1]=NULL;pending=false;
  ESP_LOGE("video","VGA init failed. Hold BACK during reset for LCD.");return false;
@@ -128,7 +133,7 @@ bool freslest_video_starting(void){
 // on_frame fires after the driver has copied a complete frame to internal
 // bounce buffers and selected its next source. Only then may we reuse the old
 // PSRAM frame. A missing IRQ must never turn a timeout into buffer reuse.
-static uint8_t *acquire_frame(void){
+static uint16_t *acquire_frame(void){
  if(!started)return NULL;
  if(pending){
   int64_t deadline=esp_timer_get_time()+100000;
@@ -140,14 +145,14 @@ static uint8_t *acquire_frame(void){
  }
  return fb[front^1];
 }
-static bool publish_frame(uint8_t *target){
+static bool publish_frame(uint16_t *target){
  if(esp_lcd_panel_draw_bitmap(panel,0,0,VGA_WIDTH,VGA_HEIGHT,target)!=ESP_OK){dropped++;return false;}
  // Sample AFTER the driver's selection. If an IRQ races this read, waiting
  // one extra frame is safe; sampling before draw could release too early.
  queued_event=frame_events;pending=true;presentations++;return true;
 }
-static void raw_test_pattern(uint8_t *target){
- memset(target,0,VGA_WIDTH*VGA_HEIGHT);
+static void raw_test_pattern(uint16_t *target){
+ memset(target,0,VGA_WIDTH*VGA_HEIGHT*sizeof(*target));
  // Literal bus bytes deliberately bypass all color packing and palettes.
  static const uint8_t bars[]={0xff,0xfc,0x1f,0x1c,0xe3,0xe0,0x03,0x00};
  for(int y=64;y<160;y++)for(int x=32;x<608;x++)target[y*VGA_WIDTH+x]=bars[(x-32)/72];
@@ -163,7 +168,7 @@ static void raw_test_pattern(uint8_t *target){
 }
 bool freslest_video_color_test(void){
  if(output!=FRESLEST_DISPLAY_VGA||!started)return false;
- uint8_t *target=acquire_frame();if(!target)return false;
+ uint16_t *target=acquire_frame();if(!target)return false;
  raw_test_pattern(target);if(!publish_frame(target))return false;
  freslest_video_diagnostics();
  puts("FRESLEST_VGA:RAW332_C4 white yellow cyan green magenta red blue black; ramps R G B gray; bits D0..D7");
@@ -173,16 +178,18 @@ bool freslest_video_color_test(void){
 }
 static bool submit(const void *src,int w,int h,const uint32_t *pal,bool swap,bool cursor,int x,int y){
  if(!src||w<1||h<1||w>480||h>360)return false;
- uint8_t *target=acquire_frame();
- return target&&vga_convert_fit(target,src,w,h,pal,swap,cursor,x,y,fit_percent)&&publish_frame(target);
+ uint16_t *target=acquire_frame();
+ if(!target||!vga_convert_fit((uint8_t*)target,src,w,h,pal,swap,cursor,x,y,fit_percent))return false;
+ doom_rgb332_expand(target,VGA_WIDTH*VGA_HEIGHT);
+ return publish_frame(target);
 }
 bool freslest_video_rgb565(const uint16_t *s,int w,int h,bool swap,bool cursor,int x,int y){return submit(s,w,h,NULL,swap,cursor,x,y);}
 void freslest_video_indexed(const uint8_t *s,int w,int h,const uint32_t *pal,bool cursor,int x,int y){if(pal)submit(s,w,h,pal,false,cursor,x,y);}
-void freslest_video_doom_palette(const uint8_t *rgb888){if(rgb888)vga_doom_palette(rgb888);}
+void freslest_video_doom_palette(const uint8_t *rgb888){if(rgb888)doom_rgb332_palette(rgb888);}
 bool doom_vga_try_present(const uint8_t *indices,bool cursor,int x,int y){
  if(!indices)return false;
- uint8_t *target=acquire_frame();
- return target&&vga_convert_doom(target,indices,cursor,x,y,fit_percent)&&publish_frame(target);
+ uint16_t *target=acquire_frame();
+ return target&&doom_rgb332_frame(target,indices,cursor,x,y,fit_percent)&&publish_frame(target);
 }
 void freslest_video_doom(const uint8_t *indices,bool cursor,int x,int y){
  (void)doom_vga_try_present(indices,cursor,x,y);

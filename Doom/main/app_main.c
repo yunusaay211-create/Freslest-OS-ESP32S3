@@ -6,6 +6,7 @@
 #include "esp_heap_caps.h"
 #include "esp_psram.h"
 #include "esp_log.h"
+#include "esp_system.h"
 #include "board_config.h"
 #include "spi_lcd.h"
 #include "freslest_ota.h"
@@ -25,6 +26,10 @@ static void doom_task(void *arg)
 }
 void app_main(void)
 {
+    esp_reset_reason_t reset=esp_reset_reason();
+    ESP_LOGW("DOOM", "DOOM_BOOT reset=%d TASK_WDT=%d INT_WDT=%d PANIC=%d BROWNOUT=%d",
+             (int)reset,reset==ESP_RST_TASK_WDT,reset==ESP_RST_INT_WDT,
+             reset==ESP_RST_PANIC,reset==ESP_RST_BROWNOUT);
     if(!freslest_ota_boot_begin())return;
     /* External 100k pulldown on the amp EN pin gives reset-time silence. */
     freslest_audio_mute_early();

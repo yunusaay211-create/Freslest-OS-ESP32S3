@@ -260,6 +260,8 @@ void I_InitGraphics(void)
     /* Initialize the input system */
     I_InitInputs();
 	gamepadInit();
+    // Capture actual VGA routes after all Doom peripherals have initialized.
+    if(freslest_video_output()==FRESLEST_DISPLAY_VGA)freslest_video_diagnostics();
 
   }
 }

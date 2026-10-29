@@ -26,8 +26,13 @@ static int stored_fit=90;
 static int stored_preset25175;
 static int pending_fit,pending_v2,pending_preset25175;
 static int stored_v2,legacy_output=1,back=1,right=1,nvs_failure,driver_failure,panels,creates,stage;
-static uint64_t pins;static int64_t now_us;static uint8_t host_fb[640*480],host_back[640*480],host_snapshot[640*480];
-static uint8_t *host_active=host_fb,*host_selected=host_fb;static bool host_events=true;static unsigned host_draws;
+#ifdef DOOM_RGB332_WORDS
+typedef uint16_t host_pixel_t;
+#else
+typedef uint8_t host_pixel_t;
+#endif
+static uint64_t pins;static int64_t now_us;static host_pixel_t host_fb[640*480],host_back[640*480],host_snapshot[640*480];
+static host_pixel_t *host_active=host_fb,*host_selected=host_fb;static bool host_events=true;static unsigned host_draws;
 static esp_lcd_rgb_panel_config_t saved_config;static esp_lcd_rgb_panel_event_callbacks_t callbacks;
 static esp_err_t nvs_open(const char*n,int m,nvs_handle_t*h){
  assert(!strcmp(n,"fl_video"));(void)m;*h=1;
@@ -68,7 +73,7 @@ static void host_log(const char*t,const char*f,...){assert(t&&f);}
 static int esp_lcd_new_rgb_panel(const esp_lcd_rgb_panel_config_t*c,esp_lcd_panel_handle_t*p){creates++;saved_config=*c;if(driver_failure==1)return -1;*p=(void*)1;panels++;stage=1;return 0;}
 static int esp_lcd_rgb_panel_get_frame_buffer(esp_lcd_panel_handle_t p,int n,void**a,void**b){assert(p&&n==2&&stage==1);if(driver_failure==2)return -1;*a=host_fb;*b=host_back;stage=2;return 0;}
 static int esp_lcd_rgb_panel_register_event_callbacks(esp_lcd_panel_handle_t p,const esp_lcd_rgb_panel_event_callbacks_t*c,void*ctx){assert(p&&!ctx);callbacks=*c;return driver_failure==3?-1:0;}
-static int esp_lcd_panel_reset(esp_lcd_panel_handle_t p){assert(p&&stage==2);for(unsigned i=0;i<sizeof(host_fb);i++)assert(!host_fb[i]&&!host_back[i]);return driver_failure==4?-1:0;}
+static int esp_lcd_panel_reset(esp_lcd_panel_handle_t p){assert(p&&stage==2);for(unsigned i=0;i<sizeof(host_fb)/sizeof(host_fb[0]);i++)assert(!host_fb[i]&&!host_back[i]);return driver_failure==4?-1:0;}
 static int esp_lcd_panel_init(esp_lcd_panel_handle_t p){assert(p);return driver_failure==5?-1:0;}
 static int esp_lcd_panel_del(esp_lcd_panel_handle_t p){assert(p);panels--;return 0;}
 static int esp_lcd_panel_draw_bitmap(esp_lcd_panel_handle_t p,int x,int y,int w,int h,const void* pixels){
@@ -76,5 +81,5 @@ static int esp_lcd_panel_draw_bitmap(esp_lcd_panel_handle_t p,int x,int y,int w,
  assert(pixels!=host_active); // CPU must only prepare an unowned back buffer.
  assert(!memcmp(host_active,host_snapshot,sizeof(host_snapshot)));
  ++host_draws;if(driver_failure==6)return -1;
- host_selected=(uint8_t*)pixels;return 0;
+ host_selected=(host_pixel_t*)pixels;return 0;
 }

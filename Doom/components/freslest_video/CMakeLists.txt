@@ -1,6 +1,6 @@
-idf_component_register(SRCS "doom_video.c" "../../../shared_components/freslest_video/vga_pixels.c" "../../../shared_components/freslest_video/vga_doom.c"
+idf_component_register(SRCS "doom_video.c" "doom_rgb332.c" "../../../shared_components/freslest_video/vga_pixels.c"
  INCLUDE_DIRS "include" "../../../shared_components/freslest_video/include" REQUIRES esp_lcd esp_mm esp_timer esp_driver_gpio nvs_flash hal soc)
-set_source_files_properties("../../../shared_components/freslest_video/vga_pixels.c" "../../../shared_components/freslest_video/vga_doom.c" PROPERTIES COMPILE_OPTIONS -O2)
+set_source_files_properties("../../../shared_components/freslest_video/vga_pixels.c" "doom_rgb332.c" PROPERTIES COMPILE_OPTIONS -O2)
 
 # LCD builds retain menu-controlled output; all new VGA output uses 25.175 MHz.
 set(FRESLEST_VGA_PROFILE "lcd" CACHE STRING "Video startup profile: lcd or vga")

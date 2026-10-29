@@ -16,7 +16,10 @@ void doom_vga_palette_changed(void){++generation;}
 void doom_vga_send_frame(const uint8_t *pixels,bool cursor,int x,int y){
  if(!pixels)return;
  int64_t now=esp_timer_get_time();
- if(now<next_frame_us)vTaskDelay(pdMS_TO_TICKS((next_frame_us-now+999)/1000));
+ uint32_t wait_ticks=now<next_frame_us?pdMS_TO_TICKS((next_frame_us-now+999)/1000):0;
+ // Slow demo/game frames can continuously miss the deadline. The priority-5
+ // Doom task must still block so core 1's idle task can service its watchdog.
+ vTaskDelay(wait_ticks?wait_ticks:1);
  next_frame_us=esp_timer_get_time()+33333; // at most 30 rendered submissions per second
  if(!allocated){allocated=true;previous=heap_caps_malloc(320*240,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);}
  unsigned fit=freslest_video_fit();
