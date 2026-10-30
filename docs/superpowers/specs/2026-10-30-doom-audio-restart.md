@@ -16,3 +16,10 @@ No production VGA, palette, OS or shared runtime files changed. VGA remains640×
 The orange color issue remains unresolved. Native palette/gamma tests and RGB332 word tests pass, but they do not establish physical pin levels or analog colors. The next required observation is the current firmware's raw C4 pattern: select Doom, press OK, then immediately hold RIGHT(GPIO7) during Doom startup. It appears for10seconds; BACK exits early. This bypasses Doom palettes and distinguishes a palette/game-image issue from the subsequent transport/output path. Serial route diagnostics are already printed after all Doom peripherals initialize.
 
 Do not claim physical color or music behavior confirmed without a device run. Manufacturer protocol reference: https://github.com/DFRobot/DFRobotDFPlayerMini/blob/master/DFRobotDFPlayerMini.cpp
+
+## Built deliverable
+
+ESP-IDF5.4.4 build and all eight native CI tests passed: https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/41093620784
+Firmware source:`ef8d944ab3665ae3b096fc6f5f536346436403e1`;890,832bytes;SHA256:`a4fe45b9d01da490c133df9813e47f76b0c5b51b21ccd7b76be53ebf6000de52`.
+Complete installer:`Freslest-Installer-1.1-Doom-Audio-Fix.exe`;103,976,878bytes;SHA256:`52c0cbd6a5fbfaa07631eff56fe65a90bfe01ba370171e4bca0cf9af67afa073`.
+Compared with the preceding RGB332 installer, only VGA Doom, its checksum manifest and release report changed. All1,237other compressed entries, runtime/PYZ and bootloader prefix are identical. All1,229Windows extraction paths,112audio hashes and all firmware-profile hashes passed validation.
