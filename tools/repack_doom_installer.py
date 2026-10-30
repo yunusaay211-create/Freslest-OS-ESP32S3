@@ -75,7 +75,7 @@ def write_archive(path, prefix, pyver, pylib, entries):
     Path(path).write_bytes(prefix + body + table + cookie)
 
 
-def repack(base, payload, manifest_path, output):
+def repack(base, payload, manifest_path, output, changes=None):
     if Path(base).resolve() == Path(output).resolve():
         raise ValueError('Output must differ from the base installer')
     check_archive(base, require_sd_audio=True)
@@ -101,8 +101,12 @@ def repack(base, payload, manifest_path, output):
     hashes = json.loads(before[HASHES].unpack())
     hashes['firmware/freslest_doom_s3.bin'] = digest
     report = json.loads(before[REPORT].unpack())
-    report['changes'].extend(['Doom-owned RGB332 palette and raw pixel-word DMA',
-                              'Busy Doom demo frames always release the CPU for the idle watchdog'])
+    if changes is None:
+        changes = ['Doom-owned RGB332 palette and raw pixel-word DMA',
+                   'Busy Doom demo frames always release the CPU for the idle watchdog']
+    for change in changes:
+        if change not in report['changes']:
+            report['changes'].append(change)
     report['profiles']['vga']['freslest_doom_s3.bin'].update(bytes=len(binary), sha256=digest)
     report['doom_vga_build'] = manifest
     report['doom_rgb332'] = {'physical_data_bits': 8, 'dma_word_bits': 16,
@@ -159,5 +163,6 @@ if __name__ == '__main__':
     parser.add_argument('--payload', required=True)
     parser.add_argument('--manifest', required=True)
     parser.add_argument('--output', required=True)
+    parser.add_argument('--change', action='append', help='Record this change in the installer report; repeat as needed')
     args = parser.parse_args()
-    print(json.dumps(repack(args.base, args.payload, args.manifest, args.output), indent=2))
+    print(json.dumps(repack(args.base, args.payload, args.manifest, args.output, args.change), indent=2))

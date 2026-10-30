@@ -2,7 +2,7 @@
 from pathlib import Path
 import os, struct, subprocess, tempfile
 root=Path(__file__).resolve().parents[1]
-inc=['-I'+str(root.parent/'shared_components/freslest_video/include'),'-I'+str(root.parent/'shared_components/freslest_hid/include'),'-I'+str(root/'tests/stubs'),'-I'+str(root/'main'),'-I'+str(root/'components/prboom/include'),'-I'+str(root/'components/prboom-esp32-compat/include')]
+inc=['-I'+str(root.parent/'shared_components/freslest_video/include'),'-I'+str(root.parent/'shared_components/freslest_hid/include'),'-I'+str(root/'tests/stubs'),'-I'+str(root/'main'),'-I'+str(root/'components/prboom/include'),'-I'+str(root/'components/prboom-esp32-compat/include'),'-I'+str(root/'components/freslest_video/include')]
 with tempfile.TemporaryDirectory() as tmp:
     tmp=Path(tmp)
     wad=(root/'DOOM.WAD').read_bytes()

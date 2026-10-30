@@ -350,8 +350,15 @@ static int df_write_packet(uint8_t cmd, uint16_t param, int request_ack)
 static void df_card_changed(int present)
 {
     if (df_card_present != present) {
+        int was_removed = df_card_present == 0;
         df_card_present = present;
-        ++df_media_serial;
+        /* A late first online reply only confirms the startup card. Replay
+         * the desired track only after an actual removal/reinsertion. */
+        if (!present || was_removed) {
+            ++df_media_serial;
+            printf("DFPLAYER: SD %s; update current music state\n",
+                   present ? "reinserted" : "removed");
+        }
     }
 }
 
@@ -360,8 +367,10 @@ static void df_receive_packet(const uint8_t *p)
     uint16_t param = ((uint16_t)p[5] << 8) | p[6];
     switch (p[3]) {
     case 0x3A: /* inserted */
-    case 0x3F: /* online sources */
         if (param & 2) df_card_changed(1);
+        break;
+    case 0x3F: /* complete online-source mask, including an absent SD card */
+        df_card_changed((param & 2) != 0);
         break;
     case 0x3B: /* removed */
         if (param & 2) df_card_changed(0);
@@ -373,7 +382,7 @@ static void df_receive_packet(const uint8_t *p)
         df_end_pending = 1;
         break;
     case 0x42:
-        df_status_value = param & 0xFF;
+        df_status_value = param;
         ++df_status_serial;
         break;
     case 0x40:
@@ -421,7 +430,6 @@ typedef struct {
     unsigned phase; /* 0 loop-off, 1 stop, 2 play, 3 settle, 4 query, 5 ready */
     int volume;
     int paused;
-    int retries;
     int64_t started_us;
     int64_t deadline_us;
     uint32_t query_serial;
@@ -450,7 +458,6 @@ static void df_worker_step(int64_t now)
         df_state.media_serial = df_media_serial;
         df_state.phase = 0;
         df_state.paused = 0;
-        df_state.retries = 0;
         df_end_pending = 0;
     }
     if (now < df_next_command_us) return;
@@ -499,11 +506,12 @@ static void df_worker_step(int64_t now)
         return;
     case 4:
         if (df_status_serial != df_state.query_serial) {
-            if (df_status_value == 0 && df_state.retries < 2) {
-                ++df_state.retries;
-                df_state.phase = 1; /* stopped/busy: bounded STOP -> PLAY retry */
-                return;
-            }
+            /* Status has no track/request ID and can report a stale stopped
+             * state. Keep this diagnostic: never interrupt a written PLAY
+             * with speculative STOP -> PLAY. */
+            if ((df_status_value & 0xFF) != 1)
+                printf("DFPLAYER: start status=0x%04x; no automatic replay\n",
+                       df_status_value);
             df_state.phase = 5;
         } else if (now >= df_state.deadline_us) {
             /* Missing RX feedback must not disable an otherwise working module. */
@@ -524,7 +532,7 @@ static void df_worker_step(int64_t now)
     if (df_end_pending) {
         df_end_pending = 0;
         if (r.looping && !r.paused && now - df_state.started_us >= DF_START_SETTLE_US) {
-            df_state.retries = 0;
+            printf("DFPLAYER: SD completion; repeat /MP3/%04u.mp3 in 1s\n", r.track);
             df_state.deadline_us = now + 1000000;
             df_state.phase = 6; /* delayed repeat of the CURRENT desired file */
         }

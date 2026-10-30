@@ -7,6 +7,7 @@ int host_gpio[64],host_ledc_fail;
 uint32_t host_duty,host_freq;
 int freslest_fullscreen=1;
 #include <freslest_video.h>
+#include "doom_vga_present.h"
 static bool vga,cursorVisible;static int cursorX,cursorY,vgaCalls,vgaW,vgaH;
 freslest_display_t freslest_video_boot_output(void){return vga?FRESLEST_DISPLAY_VGA:FRESLEST_DISPLAY_LCD;}
 freslest_display_t freslest_video_output(void){return freslest_video_boot_output();}
@@ -14,6 +15,8 @@ bool freslest_video_begin(void){return true;}
 void freslest_video_indexed(const uint8_t* src,int w,int h,const uint32_t* pal,bool c,int x,int y){assert(src&&pal);(void)c;(void)x;(void)y;vgaCalls++;vgaW=w;vgaH=h;}
 void freslest_video_doom_palette(const uint8_t *p){assert(p);}
 void freslest_video_doom(const uint8_t *s,bool c,int x,int y){assert(s);(void)c;(void)x;(void)y;++vgaCalls;vgaW=320;vgaH=240;}
+void doom_vga_palette_changed(void){}
+void doom_vga_send_frame(const uint8_t *s,bool c,int x,int y){freslest_video_doom(s,c,x,y);}
 bool usbDoomPointer(int* x,int* y){*x=cursorX;*y=cursorY;return cursorVisible;}
 #include "../components/prboom-esp32-compat/spi_lcd.c"
 static unsigned command;

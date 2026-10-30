@@ -14,9 +14,10 @@ def main():
  assert b[80:112].split(b'\0')[0]==b'freslest_doom_s3'
  assert b'DOOM_VGA:PRIVATE_320x240' in b and b'FRESLEST_VIDEO:VGA25175_25175000' in b
  assert b'DOOM_VGA:NATIVE_RGB332_WORDS' in b and b'DOOM_BOOT reset=' in b
+ assert b'no automatic replay' in b
  target=R/'doom_updater/payload';target.mkdir(exist_ok=True)
  (target/'freslest_doom_s3.bin').write_bytes(b)
- m={'source_commit':os.environ.get('GITHUB_SHA','local'),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b),'flash_address':0x20000,'partition_bytes':0xe0000,'doom_render':[320,240],'vga_signal':[640,480],'target_clock_hz':25175000,'maximum_submitted_fps':30,'os_modified':False,'nvs_modified':False}
+ m={'source_commit':os.environ.get('GITHUB_SHA','local'),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b),'flash_address':0x20000,'partition_bytes':0xe0000,'doom_render':[320,240],'vga_signal':[640,480],'target_clock_hz':25175000,'maximum_submitted_fps':30,'os_modified':False,'nvs_modified':False,'audio_status_replay':False,'audio_first_online_confirmation_replay':False,'hardware_color_verified':False}
  (target/'manifest.json').write_text(json.dumps(m,indent=2)+'\n')
  print(json.dumps(m,indent=2))
 if __name__=='__main__':main()

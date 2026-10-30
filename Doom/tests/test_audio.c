@@ -106,8 +106,38 @@ static void test_music(void)
  reply(0x3d,71);run_ms(2600);assert(plays(71)==2);
  puts("PASS: missing status reply, corrupt UART packet recovery");
  reset_music();I_PlaySong(mus_e1m2,1);auto_status=0;run_ms(1000);
- assert(df_state.phase==4);reply(0x42,0);run_ms(280);assert(plays(71)==2);
- puts("PASS: stopped/busy response retries playback");
+ /* A status response has no track/request ID: delayed zero feedback must not
+  * interrupt a successfully written PLAY, even when repeated by the module. */
+ for(unsigned i=0;i<3;++i){reply(0x42,0);run_ms(1000);}
+ printf("Status-only PLAY count: %u (expected 1)\n",plays(71));fflush(stdout);
+ assert(plays(71)==1);
+ reply(0x3d,167);run_ms(2600);assert(plays(71)==2);
+ puts("PASS: status feedback never restarts playback; completion still repeats");
+}
+static void test_late_media_confirmation(void)
+{
+ reset_music();df_card_present=-1;I_PlaySong(mus_e1m1,1);run_ms(1600);assert(plays(70)==1);
+ reply(0x3f,2);run_ms(1600);
+ printf("Late first SD online PLAY count: %u (expected 1)\n",plays(70));fflush(stdout);
+ assert(plays(70)==1);
+ reply(0x3a,2);reply(0x3f,2);reply(0x48,104);run_ms(1600);assert(plays(70)==1);
+ reply(0x3b,2);run_ms(300);I_PlaySong(mus_e1m2,1);run_ms(1000);assert(plays(71)==0);
+ reply(0x3f,2);reply(0x3a,2);run_ms(1600);assert(plays(71)==1&&plays(70)==1);
+ puts("PASS: late/duplicate SD confirmation preserves playback; real reinsertion plays current track once");
+}
+static void test_no_card_startup(void)
+{
+ const unsigned online_masks[]={0,1}; /* no sources, or USB only: no SD card */
+ for(unsigned i=0;i<sizeof(online_masks)/sizeof(online_masks[0]);++i){
+  reset_music();df_card_present=-1;reply(0x3f,online_masks[i]);I_PlaySong(mus_e1m1,1);run_ms(1600);
+  unsigned before_insert=plays(70);
+  reply(0x3a,2);run_ms(1600);
+  printf("No-SD source mask %u: PLAY before insert=%u, after=%u (expected 0, 1)\n",
+         online_masks[i],before_insert,plays(70));fflush(stdout);
+  assert(before_insert==0&&plays(70)==1);
+  reply(0x3a,1);reply(0x48,0);run_ms(1600);assert(df_card_present==1&&plays(70)==1);
+ }
+ puts("PASS: no-SD online mask waits for insertion; USB insert/zero file count preserve SD playback");
 }
 static void test_pwm(void)
 {
@@ -134,7 +164,8 @@ static void test_pwm(void)
 }
 int main(int argc,char **argv)
 {
+ if(argc==2&&!strcmp(argv[1],"--music-only")){test_music();test_late_media_confirmation();test_no_card_startup();return 0;}
  assert(argc==2);FILE *f=fopen(argv[1],"rb");assert(f);fseek(f,0,SEEK_END);sample_length=(int)ftell(f);rewind(f);
  sample=malloc(sample_length);assert(sample);assert(fread(sample,1,sample_length,f)==(size_t)sample_length);fclose(f);
- test_music();test_pwm();free(sample);return 0;
+ test_music();test_late_media_confirmation();test_no_card_startup();test_pwm();free(sample);return 0;
 }
