@@ -18,9 +18,14 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+      - name: Install host verification libraries
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends zlib1g-dev libssl-dev
       - name: Preserve the verified audio, video and menu sources
         shell: bash
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           git -c safe.directory="$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin 8d599ced5d172e76c5dc6c972498eea3182422d1
           git -c safe.directory="$GITHUB_WORKSPACE" diff --exit-code 8d599ced5d172e76c5dc6c972498eea3182422d1 HEAD -- OS shared_components Doom/components Doom/main installer
       - name: Verify update targets, write boundaries, audio and installer preservation
