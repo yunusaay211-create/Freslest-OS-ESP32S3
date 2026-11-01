@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Runs from the confirmed OS and writes only the other OS partition.
+// Runs from the confirmed OS and writes the other OS slot or the Doom slot.
 #include "freslest_update.h"
 #include "freslest_ota.h"
 #include "freslest_update_package.h"
@@ -47,6 +47,7 @@ typedef struct {
 } candidate;
 static candidate packages[MAX_PACKAGES];
 static unsigned count, selected, skipped;
+static enum freslest_update_target active_target = FRESLEST_UPDATE_OS;
 static uint8_t *screen;
 static QueueHandle_t usb_events;
 static msc_host_device_handle_t drive;
@@ -58,6 +59,12 @@ static char previous_version[32];
 static uint8_t last_usb_address;
 static char error_text[100], last_rejection[100];
 static int last_percent = -1;
+
+static bool doom_update(void) {
+  if (count && count <= MAX_PACKAGES && selected < count)
+    return packages[selected].package.target == FRESLEST_UPDATE_DOOM;
+  return active_target == FRESLEST_UPDATE_DOOM;
+}
 
 // Compact 5x7 glyphs authored for this English-only recovery interface.
 static const struct {
@@ -155,6 +162,7 @@ static void base(const char *footer) {
 }
 static void show(void) { freslest_update_draw_indexed(screen); }
 static void draw(void) {
+  const bool doom = doom_update();
   base(restore_confirm ? "BACK Cancel restore        OK Restore"
        : confirm       ? "BACK Cancel update         OK Update"
        : failed        ? "OK Retry                   BACK Cancel"
@@ -168,24 +176,29 @@ static void draw(void) {
     text(24, 178, "Your games, Note and saves are kept.", 1, DIM);
     text(24, 216, "BACK cancels. OK restores.", 2, TEXT);
   } else if (failed) {
-    text(24, 68, "UPDATE STOPPED", 2, RED);
+    text(24, 68, doom ? "DOOM UPDATE STOPPED" : "OS UPDATE STOPPED", 2, RED);
     text(24, 104, error_text, 1, TEXT);
-    text(24, 138, "The running OS slot is still intact.", 1, DIM);
+    text(24, 138, doom ? "The OS and its previous version are kept."
+                       : "The running OS slot is still intact.", 1, DIM);
     text(24, 162, "Reinsert the USB drive, then press OK.", 1, DIM);
-    text(24, 188, "The programming port can also reinstall OS.", 1, DIM);
-  } else if (confirm && count) {
+    text(24, 188, doom ? "The programming port can reinstall Doom."
+                       : "The programming port can also reinstall OS.", 1, DIM);
+  } else if (confirm && count && count <= MAX_PACKAGES && selected < count) {
     text(24, 64, "ARE YOU SURE?", 3, TEXT);
-    snprintf(line, sizeof(line), "VERSION: %s",
+    snprintf(line, sizeof(line), "%s VERSION: %s", doom ? "DOOM" : "OS",
              packages[selected].package.version);
     text(24, 104, line, 2, ACCENT);
-    text(24, 142, "This version may be buggy or damaged.", 1, TEXT);
-    text(24, 164, "Only install a trusted Freslest ZIP.", 1, DIM);
+    text(24, 142, doom ? "Doom has one firmware slot. No rollback."
+                       : "This version may be buggy or damaged.", 1, TEXT);
+    text(24, 164, doom ? "If interrupted, Doom may need reinstalling."
+                       : "Only install a trusted Freslest ZIP.", 1, DIM);
     text(24, 196, "BACK cancels the update.", 2, DIM);
-    text(24, 232, "OK starts updating Freslest OS.", 2, TEXT);
+    text(24, 232, doom ? "OK replaces the Doom firmware."
+                       : "OK starts updating Freslest OS.", 2, TEXT);
   } else if (!mounted) {
     text(24, 68, "INSERT USB DRIVE", 2, TEXT);
-    text(24, 110, "Insert a USB flash drive containing a", 1, TEXT);
-    text(24, 130, "compatible Freslest ZIP into USB / OTG.", 1, TEXT);
+    text(24, 110, "Insert a USB drive containing a compatible", 1, TEXT);
+    text(24, 130, "OS or Doom update ZIP into USB / OTG.", 1, TEXT);
     text(24, 166, "FAT16 / FAT32. Keep the ZIP unextracted.", 1, DIM);
     text(24, 190, "Use an OTG adapter with 5V USB power.", 1, DIM);
     text(24, 214, "Use the other port to power the board.", 1, DIM);
@@ -194,7 +207,7 @@ static void draw(void) {
       text(24, 250, error_text, 1, RED);
   } else if (!count) {
     text(24, 68, "NO COMPATIBLE ZIP", 2, TEXT);
-    text(24, 110, "Copy a Freslest Update ZIP to the USB root.", 1, DIM);
+    text(24, 110, "Copy an OS or Doom update ZIP to USB root.", 1, DIM);
     text(24, 134, "Reinsert the drive or press OK to rescan.", 1, DIM);
     if (last_rejection[0])
       text(24, 170, last_rejection, 1, RED);
@@ -210,7 +223,8 @@ static void draw(void) {
       int y = 78 + row * 47;
       if (i == selected)
         rect(18, y - 5, 444, 43, SELECT);
-      snprintf(line, sizeof(line), "%s%s", i == selected ? "> " : "  ",
+      snprintf(line, sizeof(line), "%s%s %s", i == selected ? "> " : "  ",
+               packages[i].package.target == FRESLEST_UPDATE_DOOM ? "DOOM" : "OS",
                packages[i].package.version);
       text(28, y, line, 2, i == selected ? TEXT : DIM);
       char filename[66];
@@ -230,7 +244,8 @@ static void progress(unsigned percent, const char *phase) {
     return;
   last_percent = (int)percent;
   base("THIS MAY TAKE A LONG TIME");
-  text(24, 76, "UPDATING FRESLEST OS", 2, TEXT);
+  text(24, 76, active_target == FRESLEST_UPDATE_DOOM ? "UPDATING FRESLEST DOOM"
+                                                 : "UPDATING FRESLEST OS", 2, TEXT);
   text(24, 116, phase, 1, DIM);
   rect(24, 152, 432, 32, DIM);
   rect(27, 155, 426, 26, BG);
@@ -245,6 +260,10 @@ static const esp_partition_t *os_partition(void) {
   return freslest_ota_inactive_os();
 }
 static void unmount_drive(void) {
+  // Keep the selected target after disconnect or staging clears the list, so
+  // BACK after a Doom attempt cannot touch the OS journal or boot selection.
+  if (count && count <= MAX_PACKAGES && selected < count)
+    active_target = packages[selected].package.target;
   if (mounted) {
     msc_host_vfs_unregister(mounted);
     mounted = NULL;
@@ -257,10 +276,11 @@ static void unmount_drive(void) {
   confirm = false;
 }
 static void return_to_os(void) {
+  bool doom = doom_update();
   const esp_partition_t *running = esp_ota_get_running_partition(),
                         *boot = esp_ota_get_boot_partition();
   esp_err_t e = running ? ESP_OK : ESP_ERR_NOT_FOUND;
-  if (running && (!boot || boot->address != running->address))
+  if (!doom && running && (!boot || boot->address != running->address))
     e = esp_ota_set_boot_partition(running);
   if (e != ESP_OK) {
     snprintf(error_text, sizeof(error_text), "Cannot select current OS: %s",
@@ -270,9 +290,10 @@ static void return_to_os(void) {
     draw();
     return;
   }
-  freslest_ota_cancel_update();
+  if (!doom)
+    freslest_ota_cancel_update();
   unmount_drive();
-  base("UPDATE CANCELLED");
+  base(doom ? "DOOM UPDATE CANCELLED" : "UPDATE CANCELLED");
   text(24, 112, "RETURNING TO FRESLEST OS", 2, TEXT);
   show();
   vTaskDelay(pdMS_TO_TICKS(500));
@@ -424,12 +445,37 @@ static void check_progress(unsigned percent, void *unused) {
   progress((percent * 25) / 100, "Checking ZIP and firmware");
 }
 static bool install(void) {
+  if (!count || count > MAX_PACKAGES || selected >= count)
+    return snprintf(error_text, sizeof(error_text),
+                    "No update selected. Rescan the USB drive."),
+           false;
+  candidate *choice = &packages[selected];
+  if (choice->package.target != FRESLEST_UPDATE_OS &&
+      choice->package.target != FRESLEST_UPDATE_DOOM)
+    return snprintf(error_text, sizeof(error_text), "Unknown update target."),
+           false;
+  active_target = choice->package.target;
+  const bool doom = active_target == FRESLEST_UPDATE_DOOM;
+  // This also proves that a confirmed OS is running and the full layout is
+  // valid. A pending OS or Doom itself cannot use either writer.
   const esp_partition_t *target = os_partition();
   if (!target)
     return snprintf(error_text, sizeof(error_text),
                     "Unexpected flash layout. Use the PC installer."),
            false;
-  candidate *choice = &packages[selected];
+  if (doom) {
+    target = esp_partition_find_first(ESP_PARTITION_TYPE_APP,
+                                      ESP_PARTITION_SUBTYPE_APP_OTA_2, "doom");
+    if (!target || target->address != 0x20000 ||
+        target->size != FRESLEST_DOOM_SLOT_SIZE)
+      return snprintf(error_text, sizeof(error_text),
+                      "Unexpected Doom slot. Use the PC installer."),
+             false;
+  }
+  if (!choice->package.image_size || choice->package.image_size > target->size)
+    return snprintf(error_text, sizeof(error_text),
+                    "Firmware does not fit the selected slot."),
+           false;
   uint8_t *image = heap_caps_malloc(choice->package.image_size,
                                     MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
   if (!image)
@@ -447,7 +493,8 @@ static bool install(void) {
     freslest_update_package current;
     ok =
         freslest_update_inspect(file, &current, error_text, sizeof(error_text));
-    if (ok && (strcmp(current.version, choice->package.version) ||
+    if (ok && (current.target != choice->package.target ||
+               strcmp(current.version, choice->package.version) ||
                current.image_size != choice->package.image_size ||
                memcmp(current.sha256, choice->package.sha256, 32)))
       ok = false, snprintf(error_text, sizeof(error_text),
@@ -479,18 +526,21 @@ static bool install(void) {
   }
 #endif
   // All compressed data, CRC, SHA256, ESP segments, ESP digest and project
-  // identity have passed before the first flash erase. Stage the entire OS
+  // identity have passed before the first flash erase. Stage the entire image
   // in PSRAM, so unplugging the USB cannot interrupt a flash write.
-  if (freslest_ota_begin_update(target) != ESP_OK) {
+  if (!doom && freslest_ota_begin_update(target) != ESP_OK) {
     heap_caps_free(image);
     snprintf(error_text, sizeof(error_text),
              "Cannot save OTA state. Current OS kept.");
     return false;
   }
-  previous = NULL;
+  if (!doom)
+    previous = NULL;
   uint32_t image_size = choice->package.image_size;
   unmount_drive();
-  progress(26, "Writing the inactive OS slot");
+  const char *write_phase = doom ? "Writing the single Doom slot"
+                                 : "Writing the inactive OS slot";
+  progress(26, write_phase);
   esp_ota_handle_t handle = 0;
   esp_err_t result = esp_ota_begin(target, image_size, &handle);
   ok = result == ESP_OK;
@@ -508,7 +558,7 @@ static bool install(void) {
       ok = false;
     } else
       progress(26 + (unsigned)((uint64_t)(offset + bytes) * 68 / image_size),
-               "Writing the inactive OS slot");
+               write_phase);
     vTaskDelay(1);
   }
   if (ok) {
@@ -549,10 +599,11 @@ static bool install(void) {
   }
   heap_caps_free(image);
   if (!ok) {
-    freslest_ota_cancel_update();
+    if (!doom)
+      freslest_ota_cancel_update();
     return false;
   }
-  if (ok) {
+  if (ok && !doom) {
     progress(99, "Checking boot image");
     esp_err_t e = freslest_ota_select_update(
         target); // IDF validates before selecting the trial image.
@@ -562,7 +613,8 @@ static bool install(void) {
                esp_err_to_name(e));
   }
   if (ok) {
-    progress(100, "Restarting. First boot will be checked.");
+    progress(100, doom ? "Restarting the confirmed OS."
+                       : "Restarting. First boot will be checked.");
     vTaskDelay(pdMS_TO_TICKS(1500));
     esp_restart();
   }
@@ -675,6 +727,7 @@ static void handle_keys(void) {
   }
 }
 void freslest_update_task(void *argument) {
+  puts("FRESLEST_UPDATE:OS_AND_DOOM_V3");
   (void)argument;
   screen = heap_caps_malloc(480 * 320, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
   if (!screen) {

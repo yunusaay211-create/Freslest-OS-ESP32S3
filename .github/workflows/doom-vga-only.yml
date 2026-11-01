@@ -19,7 +19,7 @@ jobs:
         shell: bash
         run: |
           git -c safe.directory="$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin 7746435276511e3b6929072ccc8e080f922a523a
-          git -c safe.directory="$GITHUB_WORKSPACE" diff --exit-code 7746435276511e3b6929072ccc8e080f922a523a HEAD -- OS shared_components common installer build_windows.py prepare_firmware.py firmware_release.py requirements-build.txt
+          git -c safe.directory="$GITHUB_WORKSPACE" diff --exit-code 7746435276511e3b6929072ccc8e080f922a523a HEAD -- OS shared_components common installer build_windows.py prepare_firmware.py firmware_release.py requirements-build.txt ':(exclude)common/usb_update'
       - name: Test Doom presentation and update write boundaries
         run: python -m unittest discover -s doom_updater -p 'test_*.py' -v
       - name: Build only Doom VGA

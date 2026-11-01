@@ -1,4 +1,4 @@
-"""Replace only VGA Doom and its metadata in the existing full Windows installer."""
+"""Replace VGA Doom and, optionally, its OS in the existing full Windows installer."""
 from dataclasses import dataclass
 from pathlib import Path
 import argparse
@@ -13,6 +13,7 @@ COOKIE = struct.Struct('!8sIIII64s')
 TOC = struct.Struct('!iIIIBc')
 MAGIC = b'MEI\x0c\x0b\x0a\x0b\x0e'
 DOOM = 'firmware\\vga\\freslest_doom_s3.bin'
+OS = 'firmware\\vga\\freslest_os_s3.bin'
 HASHES = 'firmware\\vga\\SHA256.json'
 REPORT = 'firmware\\VERSION_REPORT.json'
 ALLOWED = {DOOM, HASHES, REPORT}
@@ -75,13 +76,14 @@ def write_archive(path, prefix, pyver, pylib, entries):
     Path(path).write_bytes(prefix + body + table + cookie)
 
 
-def repack(base, payload, manifest_path, output, changes=None):
+def repack(base, payload, manifest_path, output, changes=None, os_payload=None):
     if Path(base).resolve() == Path(output).resolve():
         raise ValueError('Output must differ from the base installer')
     check_archive(base, require_sd_audio=True)
     prefix, pyver, pylib, entries = read_archive(base)
     before = {entry.name: entry for entry in entries}
-    if not ALLOWED.issubset(before):
+    allowed = ALLOWED | {OS} if os_payload is not None else ALLOWED
+    if not allowed.issubset(before):
         raise ValueError('Base installer lacks the VGA profile')
     binary = Path(payload).read_bytes()
     manifest = json.loads(Path(manifest_path).read_text())
@@ -98,8 +100,14 @@ def repack(base, payload, manifest_path, output, changes=None):
         raise ValueError('Doom build manifest does not match the image')
     if manifest['vga_signal'] != [640, 480] or manifest['target_clock_hz'] != 25175000:
         raise ValueError('VGA mode changed')
+    os_binary = None
+    if os_payload is not None:
+        from make_doom_update_zip import checked_image
+        os_binary = checked_image(os_payload, 'freslest_os_s3', 0x1b0000)
     hashes = json.loads(before[HASHES].unpack())
     hashes['firmware/freslest_doom_s3.bin'] = digest
+    if os_binary is not None:
+        hashes['firmware/freslest_os_s3.bin'] = hashlib.sha256(os_binary).hexdigest()
     report = json.loads(before[REPORT].unpack())
     if changes is None:
         changes = ['Doom-owned RGB332 palette and raw pixel-word DMA',
@@ -111,8 +119,16 @@ def repack(base, payload, manifest_path, output, changes=None):
     report['doom_vga_build'] = manifest
     report['doom_rgb332'] = {'physical_data_bits': 8, 'dma_word_bits': 16,
                              'upper_byte': 0, 'hardware_verified': False}
+    if os_binary is not None:
+        report['profiles']['vga']['freslest_os_s3.bin'].update(
+            bytes=len(os_binary), sha256=hashes['firmware/freslest_os_s3.bin'])
+        report['native_doom_update'] = {
+            'format_version': 3, 'updater_min': 3, 'bootstrap_format_version': 2,
+            'source_commit': manifest['source_commit']}
     updates = {DOOM: binary, HASHES: (json.dumps(hashes, indent=2) + '\n').encode(),
                REPORT: (json.dumps(report, indent=2) + '\n').encode()}
+    if os_binary is not None:
+        updates[OS] = os_binary
     changed = []
     for entry in entries:
         if entry.name in updates:
@@ -131,7 +147,7 @@ def repack(base, payload, manifest_path, output, changes=None):
         raise ValueError('Archive entry set or order changed')
     after = {e.name: e for e in new_entries}
     for name, entry in before.items():
-        if name not in ALLOWED and entry != after[name]:
+        if name not in allowed and entry != after[name]:
             raise ValueError('Protected installer entry changed: ' + name)
     for name, raw in updates.items():
         if after[name].unpack() != raw:
@@ -151,7 +167,7 @@ def repack(base, payload, manifest_path, output, changes=None):
             raise ValueError('SD audio hash mismatch: ' + archive_name)
     return {'output': str(Path(output).resolve()), 'bytes': Path(output).stat().st_size,
             'sha256': hashlib.sha256(Path(output).read_bytes()).hexdigest(),
-            'changed_entries': sorted(ALLOWED), 'unchanged_entries': len(entries) - len(ALLOWED),
+            'changed_entries': sorted(allowed), 'unchanged_entries': len(entries) - len(allowed),
             'windows_extraction_paths': len(extraction_paths), 'sd_audio_tracks': 112,
             'sd_audio_hashes_verified': len(audio_hashes),
             'doom': manifest, 'physical_hardware_test': False}
@@ -161,8 +177,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--base', required=True)
     parser.add_argument('--payload', required=True)
+    parser.add_argument('--os', help='Also replace the VGA OS with a native OS/Doom-update-capable image')
     parser.add_argument('--manifest', required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--change', action='append', help='Record this change in the installer report; repeat as needed')
     args = parser.parse_args()
-    print(json.dumps(repack(args.base, args.payload, args.manifest, args.output, args.change), indent=2))
+    print(json.dumps(repack(args.base, args.payload, args.manifest, args.output, args.change, args.os), indent=2))

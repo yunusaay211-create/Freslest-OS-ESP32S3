@@ -1,6 +1,6 @@
 # Freslest OS 1.0
 
-**LCD/VGA update:** ILI9488 and ILI9341 profiles, native 320×240 menus, and the same LCD RGB565 image converted to physical RGB332 VGA. Composite AV has been removed. See [VGA wiring](VGA_DISPLAY_TR.md) and [release notes](RELEASE_LCD_VGA.md). Firmware and Windows CI results are recorded separately; physical hardware validation remains pending.
+**Current VGA update:** 640×480 at a 25.175 MHz target clock, with the existing 480×320 OS canvas. Doom retains its private RGB332 output. The user reports correct Doom colors after fixing a physical connection. The native USB package adds Doom update support and includes the music restart fix; see [Update format and steps](UPDATE_FORMAT.md). ILI9488 and ILI9341 installer profiles remain available. Composite AV has been removed. See [VGA wiring](VGA_DISPLAY_TR.md) and [display release notes](RELEASE_LCD_VGA.md). Automated verification and physical device results are recorded separately.
 
 **A graphical, desktop-style embedded environment for the ESP32-S3**, featuring applications, NES emulation, DOOM, USB input, file management, and experimental RGB332 VGA.
 

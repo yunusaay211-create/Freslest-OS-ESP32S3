@@ -1,0 +1,53 @@
+name: Native USB Doom update
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'common/usb_update/**'
+      - 'Doom/tests/**'
+      - 'tools/make_doom_update_zip.py'
+      - 'tools/build_native_update.py'
+      - 'tools/repack_doom_installer.py'
+      - '.github/workflows/native-doom-update.yml'
+permissions:
+  contents: read
+jobs:
+  native-update:
+    runs-on: ubuntu-latest
+    container: espressif/idf:v5.4.4
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preserve the verified audio, video and menu sources
+        shell: bash
+        run: |
+          git -c safe.directory="$GITHUB_WORKSPACE" fetch --no-tags --depth=1 origin 8d599ced5d172e76c5dc6c972498eea3182422d1
+          git -c safe.directory="$GITHUB_WORKSPACE" diff --exit-code 8d599ced5d172e76c5dc6c972498eea3182422d1 HEAD -- OS shared_components Doom/components Doom/main installer
+      - name: Verify update targets, write boundaries, audio and installer preservation
+        shell: bash
+        run: |
+          python -m unittest discover -s doom_updater -p 'test_*.py' -v
+          python Doom/tests/run_update_tests.py
+          python Doom/tests/run_update_target_tests.py
+          python Doom/tests/run_doom_bundle_tests.py
+          python Doom/tests/run_native_doom_runtime_tests.py
+          python Doom/tests/run_native_installer_tests.py
+          python Doom/tests/run_idf_rollback_tests.py
+      - name: Build VGA OS and Doom and validate the actual native ZIP
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          python tools/build_native_update.py
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: native-update-build-diagnostics
+          path: |
+            OS/build-vga-native/freslest_os_s3.map
+            OS/build-vga-native/compile_commands.json
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Freslest-Native-Doom-Update-VGA
+          path: native_update/payload/*
+          if-no-files-found: error

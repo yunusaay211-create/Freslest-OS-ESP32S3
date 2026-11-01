@@ -55,13 +55,15 @@ typedef struct {uint64_t pin_bit_mask;int mode,pull_up_en;} gpio_config_t;
 #define GPIO_PULLUP_ENABLE 1
 
 extern uint8_t mock_mode;
-extern bool mock_nvs_fail,mock_heap_fail,mock_bad_running,mock_boot_fail,mock_read_corrupt;
+extern bool mock_nvs_fail,mock_heap_fail,mock_bad_running,mock_boot_fail,mock_read_corrupt,mock_read_fail;
 extern unsigned mock_allocations,mock_erases,mock_writes,mock_unmounts,mock_first_erase_mode;
+extern unsigned mock_nvs_sets,mock_nvs_commits,mock_boot_selections;
 extern int mock_write_failure;
 extern uint8_t *mock_flash;
 extern esp_partition_t mock_parts[6];
-#define mock_os mock_parts[1]
-#define mock_doom mock_parts[0]
+#define mock_os mock_parts[mock_running ^ 1u]
+#define mock_doom mock_parts[2]
+extern const esp_partition_t *mock_destination;
 extern jmp_buf mock_restart;
 extern unsigned mock_running,mock_ota_states[3],mock_events,mock_cut_at;
 extern uint8_t mock_saved[32],mock_staged[32];extern size_t mock_saved_size,mock_staged_size;
@@ -76,8 +78,8 @@ static inline const char *esp_err_to_name(esp_err_t e) {(void)e;return "TEST ERR
 static inline esp_err_t nvs_flash_init(void) {return ESP_OK;}
 static inline esp_err_t nvs_open(const char *name,int access,nvs_handle_t *h) {(void)name;(void)access;*h=1;return ESP_OK;}
 static inline esp_err_t nvs_get_blob(nvs_handle_t h,const char *key,void *v,size_t *n) {(void)h;(void)key;if(!mock_saved_size)return ESP_ERR_NVS_NOT_FOUND;assert(*n>=mock_saved_size);*n=mock_saved_size;memcpy(v,mock_saved,*n);return ESP_OK;}
-static inline esp_err_t nvs_set_blob(nvs_handle_t h,const char *key,const void *v,size_t n) {(void)h;(void)key;if(mock_nvs_fail)return ESP_FAIL;assert(n<=32);memcpy(mock_staged,v,n);mock_staged_size=n;return ESP_OK;}
-static inline esp_err_t nvs_commit(nvs_handle_t h) {(void)h;mock_event();if(mock_nvs_fail)return ESP_FAIL;memcpy(mock_saved,mock_staged,mock_staged_size);mock_saved_size=mock_staged_size;mock_mode=mock_saved[5];mock_event();return ESP_OK;}
+static inline esp_err_t nvs_set_blob(nvs_handle_t h,const char *key,const void *v,size_t n) {(void)h;(void)key;++mock_nvs_sets;if(mock_nvs_fail)return ESP_FAIL;assert(n<=32);memcpy(mock_staged,v,n);mock_staged_size=n;return ESP_OK;}
+static inline esp_err_t nvs_commit(nvs_handle_t h) {(void)h;++mock_nvs_commits;mock_event();if(mock_nvs_fail)return ESP_FAIL;memcpy(mock_saved,mock_staged,mock_staged_size);mock_saved_size=mock_staged_size;mock_mode=mock_saved[5];mock_event();return ESP_OK;}
 static inline void nvs_close(nvs_handle_t h) {(void)h;}
 static inline const esp_partition_t *esp_partition_find_first(int type,int subtype,const char *name) {
  for(unsigned i=0;i<6;i++)if(mock_parts[i].type==(unsigned)type&&(subtype==255||mock_parts[i].subtype==(unsigned)subtype)&&(!name||!strcmp(name,mock_parts[i].label)))return &mock_parts[i];return NULL;
@@ -95,18 +97,18 @@ static inline esp_err_t esp_ota_mark_app_valid_cancel_rollback(void) {mock_event
 esp_err_t esp_ota_mark_app_invalid_rollback_and_reboot(void);
 esp_err_t esp_ota_set_boot_partition(const esp_partition_t *p);
 static inline esp_err_t esp_partition_erase_range(const esp_partition_t *p,uint32_t offset,size_t bytes) {
- assert(p==&mock_os&&offset+bytes<=p->size&&offset%4096==0&&bytes==4096);
- assert(mock_unmounts==2&&mock_mode==2);mock_event();
+ assert((p==&mock_os||p==&mock_doom)&&p==mock_destination&&offset+bytes<=p->size&&offset%4096==0&&bytes==4096);
+ assert(mock_unmounts==2&&(p==&mock_doom||mock_mode==2));mock_event();
  if(!mock_erases)mock_first_erase_mode=mock_mode;
  ++mock_erases;memset(mock_flash+offset,0xff,bytes);mock_event();return ESP_OK;
 }
 static inline esp_err_t esp_partition_write(const esp_partition_t *p,uint32_t offset,const void *data,size_t bytes) {
- assert(p==&mock_os&&offset+bytes<=p->size);
+ assert(p==mock_destination&&offset+bytes<=p->size);
  if(mock_write_failure>=0&&(int)mock_writes>=mock_write_failure)return ESP_FAIL;
  mock_event();++mock_writes;memcpy(mock_flash+offset,data,bytes);mock_event();return ESP_OK;
 }
 static inline esp_err_t esp_partition_read(const esp_partition_t *p,uint32_t offset,void *data,size_t bytes) {
- assert(p==&mock_os&&offset+bytes<=p->size);mock_event();memcpy(data,mock_flash+offset,bytes);mock_event();
+ assert(p==mock_destination&&offset+bytes<=p->size);mock_event();if(mock_read_fail)return ESP_FAIL;memcpy(data,mock_flash+offset,bytes);mock_event();
  if(mock_read_corrupt&&bytes)((uint8_t*)data)[0]^=1;return ESP_OK;
 }
 static inline void *heap_caps_malloc(size_t n,int caps) {(void)caps;if(mock_heap_fail)return NULL;void *p=malloc(n);if(p) {++mock_allocations;mock_heap_block=p;};return p;}
@@ -133,10 +135,10 @@ static inline int gpio_get_level(int pin) {(void)pin;return 1;}
 static inline _Noreturn void esp_restart(void) {longjmp(mock_restart,1);}
 static size_t mock_ota_offset;
 static inline esp_err_t esp_ota_begin(const esp_partition_t *p,size_t n,esp_ota_handle_t *h) {
- if(mock_begin_fail)return ESP_FAIL;assert(p==&mock_os);mock_ota_offset=0;*h=1;
+ if(mock_begin_fail)return ESP_FAIL;assert(p==&mock_os||p==&mock_doom);mock_destination=p;mock_ota_offset=0;*h=1;
  for(size_t at=0;at<((n+4095)&~4095u);at+=4096)esp_partition_erase_range(p,at,4096);return ESP_OK;
 }
-static inline esp_err_t esp_ota_write(esp_ota_handle_t h,const void *p,size_t n) {assert(h==1);esp_err_t e=esp_partition_write(&mock_os,mock_ota_offset,p,n);if(e==ESP_OK)mock_ota_offset+=n;return e;}
+static inline esp_err_t esp_ota_write(esp_ota_handle_t h,const void *p,size_t n) {assert(h==1);esp_err_t e=esp_partition_write(mock_destination,mock_ota_offset,p,n);if(e==ESP_OK)mock_ota_offset+=n;return e;}
 static inline esp_err_t esp_ota_end(esp_ota_handle_t h) {assert(h==1);mock_event();return mock_end_fail?ESP_FAIL:ESP_OK;}
 static inline esp_err_t esp_ota_abort(esp_ota_handle_t h) {(void)h;return ESP_OK;}
 typedef struct {uint32_t sector_count,sector_size;uint16_t idVendor,idProduct;} msc_host_device_info_t;

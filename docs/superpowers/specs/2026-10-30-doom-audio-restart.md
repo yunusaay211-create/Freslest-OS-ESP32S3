@@ -1,4 +1,11 @@
-# Doom audio restarts and unresolved VGA color report
+# Doom audio restarts and VGA follow-up
+
+Follow-up, 2026-11-01: the user corrected an incorrect physical connection and
+reports that Doom colors are now correct. No further palette, GPIO or timing
+change is requested. The raw C4 observation proposed below is historical and
+is no longer a delivery blocker. Music behavior on the physical device still
+requires checking after installing the audio-fixed image. Native USB delivery
+is described in [the current design](2026-11-01-native-doom-update-design.md).
 
 User reports orange Doom colors and music restarting three times after the native RGB332 installer.
 

@@ -83,8 +83,17 @@ static bool entry_at(FILE *f,uint32_t pos,uint32_t end,freslest_zip_entry *v,uin
     memset(v,0,sizeof(*v));
     v->compressed_size=le32(h+20);v->size=le32(h+24);v->local_offset=le32(h+42);
     v->crc=le32(h+16);v->flags=le16(h+8);v->method=le16(h+10);
-    // Long unrelated source paths in the complete project ZIP are skipped.
-    if(names>=sizeof(v->name))return true;
+    // Skip long unrelated source paths, but do not let a long prefix hide an
+    // extra updater manifest from the uniqueness check.
+    if(names>=sizeof(v->name)) {
+        char tail[sizeof(FRESLEST_UPDATE_DOOM_MANIFEST)+1];
+        size_t length=sizeof(tail)-1;
+        if(!read_at(f,pos+46+names-(uint32_t)length,tail,length))return false;
+        tail[length]=0;
+        if(!strcmp(tail,"/" FRESLEST_UPDATE_DOOM_MANIFEST)||
+           !strcmp(tail+length-sizeof(FRESLEST_UPDATE_MANIFEST),"/" FRESLEST_UPDATE_MANIFEST))return false;
+        return true;
+    }
     if(!read_at(f,pos+46,v->name,names)||memchr(v->name,0,names))return false;
     v->name[names]=0;return true;
 }
@@ -160,6 +169,13 @@ static bool string_is(const cJSON *o,const char *key,const char *value) {
     const cJSON *p=unique(o,key);return cJSON_IsString(p)&&!strcmp(p->valuestring,value);
 }
 static int hex(int c) {if(c>='0'&&c<='9')return c-'0';if(c>='a'&&c<='f')return c-'a'+10;if(c>='A'&&c<='F')return c-'A'+10;return -1;}
+static uint32_t target_limit(enum freslest_update_target target) {
+    switch(target) {
+        case FRESLEST_UPDATE_OS:return FRESLEST_OS_SLOT_SIZE;
+        case FRESLEST_UPDATE_DOOM:return FRESLEST_DOOM_SLOT_SIZE;
+        default:return 0;
+    }
+}
 static bool shallow_json(const char *s) {
     unsigned depth=0;bool quoted=false,escaped=false;
     for(;*s;s++) {
@@ -176,13 +192,21 @@ static bool shallow_json(const char *s) {
 bool freslest_update_inspect(FILE *f,freslest_update_package *p,char *e,size_t n) {
     memset(p,0,sizeof(*p));zip_directory d;
     if(!directory(f,&d,e,n))return false;
-    freslest_zip_entry manifest={0},v;unsigned matches=0;uint32_t pos=d.start,next;
+    freslest_zip_entry os_manifest={0},doom_manifest={0},v;
+    unsigned os_matches=0,doom_matches=0;uint32_t pos=d.start,next;
     for(unsigned i=0;i<d.count;i++,pos=next) {
         if(!entry_at(f,pos,d.eocd,&v,&next))return fail(e,n,"Broken ZIP directory");
         const char *base=strrchr(v.name,'/');base=base?base+1:v.name;
-        if(!strcmp(base,FRESLEST_UPDATE_MANIFEST)) {manifest=v;++matches;}
+        if(!strcmp(base,FRESLEST_UPDATE_MANIFEST)) {os_manifest=v;++os_matches;}
+        if(!strcmp(base,FRESLEST_UPDATE_DOOM_MANIFEST)) {doom_manifest=v;++doom_matches;}
     }
-    if(pos!=d.eocd||matches!=1||manifest.size>2048)return fail(e,n,"No unique Freslest manifest");
+    if(pos!=d.eocd||os_matches>1||doom_matches>1||(!os_matches&&!doom_matches))
+        return fail(e,n,"No unique Freslest manifest");
+    // New readers select Doom; old readers still see only the format-2 OS
+    // manifest in a dual package. Never fall back after selecting Doom.
+    p->target=doom_matches?FRESLEST_UPDATE_DOOM:FRESLEST_UPDATE_OS;
+    freslest_zip_entry manifest=doom_matches?doom_manifest:os_manifest;
+    if(manifest.size>2048)return fail(e,n,"Oversized Freslest manifest");
     char json[2049];
     if(!read_entry(f,&manifest,d.start,(uint8_t*)json,2048,NULL,NULL,e,n))return false;
     if(memchr(json,0,manifest.size))return fail(e,n,"Invalid update manifest");
@@ -192,13 +216,18 @@ bool freslest_update_inspect(FILE *f,freslest_update_package *p,char *e,size_t n
     if(!root)return fail(e,n,"Invalid update manifest");
     const cJSON *format=unique(root,"format_version"),*revision=unique(root,"updater_min"),*image=unique(root,"image");
     const cJSON *version=unique(root,"version"),*size=unique(image,"size"),*sha=unique(image,"sha256"),*file=unique(image,"file");
+    bool doom=p->target==FRESLEST_UPDATE_DOOM;
+    const char *image_file=doom?"firmware/freslest_doom_s3.bin":"firmware/freslest_os_s3.bin";
+    bool target_ok=doom?string_is(root,"target","doom"):
+        (!cJSON_GetObjectItemCaseSensitive(root,"target")||string_is(root,"target","os"));
     bool ok=cJSON_IsObject(root)&&string_is(root,"format","freslest-usb-update")&&
         string_is(root,"board",FRESLEST_UPDATE_BOARD)&&string_is(root,"layout",FRESLEST_UPDATE_LAYOUT)&&
-        cJSON_IsNumber(format)&&format->valuedouble==2&&cJSON_IsNumber(revision)&&revision->valuedouble==2&&
+        target_ok&&cJSON_IsNumber(format)&&format->valuedouble==(doom?3:2)&&
+        cJSON_IsNumber(revision)&&revision->valuedouble==(doom?3:2)&&
         cJSON_IsObject(image)&&cJSON_IsString(version)&&strlen(version->valuestring)>0&&strlen(version->valuestring)<sizeof(p->version)&&
-        cJSON_IsNumber(size)&&size->valuedouble>=288&&size->valuedouble<=FRESLEST_OS_SLOT_SIZE&&
+        cJSON_IsNumber(size)&&size->valuedouble>=288&&size->valuedouble<=target_limit(p->target)&&
         cJSON_IsString(sha)&&strlen(sha->valuestring)==64&&cJSON_IsString(file)&&
-        !strcmp(file->valuestring,"firmware/freslest_os_s3.bin");
+        !strcmp(file->valuestring,image_file);
     char image_name[192]={0};
     if(ok) {
         p->image_size=(uint32_t)size->valuedouble;ok=(double)p->image_size==size->valuedouble;
@@ -211,24 +240,27 @@ bool freslest_update_inspect(FILE *f,freslest_update_package *p,char *e,size_t n
     }
     cJSON_Delete(root);
     if(!ok)return fail(e,n,"ZIP is not compatible with this Freslest board");
-    matches=0;pos=d.start;
+    unsigned matches=0;pos=d.start;
     for(unsigned i=0;i<d.count;i++,pos=next) {
         if(!entry_at(f,pos,d.eocd,&v,&next))return fail(e,n,"Broken ZIP directory");
         if(!strcmp(v.name,image_name)) {p->image=v;++matches;}
     }
     if(matches!=1||p->image.size!=p->image_size||!p->image.compressed_size||
        (p->image.flags&~0x080e)||!(p->image.method==0||p->image.method==8))
-        return fail(e,n,"Missing, oversized or unsupported OS image");
+        return fail(e,n,"Missing, oversized or unsupported firmware image");
     return true;
 }
 bool freslest_update_validate_image(const uint8_t *b,size_t size,const freslest_update_package *p,char *e,size_t n) {
     uint8_t hash[32];
-    if(size!=p->image_size||size<288||size>FRESLEST_OS_SLOT_SIZE||!digest(b,size,hash)||memcmp(hash,p->sha256,32))
+    uint32_t limit=target_limit(p->target);
+    if(!limit)return fail(e,n,"Invalid update target");
+    const char *project=p->target==FRESLEST_UPDATE_DOOM?"freslest_doom_s3":"freslest_os_s3";
+    if(size!=p->image_size||size<288||size>limit||!digest(b,size,hash)||memcmp(hash,p->sha256,32))
         return fail(e,n,"Firmware SHA256 mismatch");
     if(b[0]!=0xe9||!b[1]||b[1]>16||le16(b+12)!=9||(b[3]>>4)!=4||b[23]!=1||
        le32(b+32)!=0xabcd5432||!memchr(b+48,0,32)||!memchr(b+80,0,32)||
-       strcmp((const char*)b+80,"freslest_os_s3")||strcmp((const char*)b+48,p->version))
-        return fail(e,n,"Wrong chip, OS project or firmware version");
+       strcmp((const char*)b+80,project)||strcmp((const char*)b+48,p->version))
+        return fail(e,n,"Wrong chip, project or firmware version");
     size_t offset=24;uint8_t checksum=0xef;
     for(unsigned i=0;i<b[1];i++) {
         if(offset+8>size)return fail(e,n,"Truncated ESP image");
@@ -244,6 +276,7 @@ bool freslest_update_validate_image(const uint8_t *b,size_t size,const freslest_
 }
 bool freslest_update_load(FILE *f,const freslest_update_package *p,uint8_t *image,size_t capacity,
                          freslest_update_progress progress,void *context,char *e,size_t n) {
+    if(!target_limit(p->target))return fail(e,n,"Invalid update target");
     zip_directory d;if(!directory(f,&d,e,n))return false;
     if(!read_entry(f,&p->image,d.start,image,capacity,progress,context,e,n))return false;
     return freslest_update_validate_image(image,p->image_size,p,e,n);

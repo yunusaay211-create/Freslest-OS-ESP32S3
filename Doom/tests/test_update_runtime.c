@@ -1,25 +1,36 @@
 #define FRESLEST_OTA_HOST_TEST 1
 #include "freslest_update_package.h"
 #include "../../shared_components/freslest_ota/freslest_ota.c"
+unsigned mock_begin_update_calls,mock_cancel_update_calls,mock_select_update_calls;
+static esp_err_t tracked_begin_update(const esp_partition_t *p) {++mock_begin_update_calls;return freslest_ota_begin_update(p);}
+static void tracked_cancel_update(void) {++mock_cancel_update_calls;freslest_ota_cancel_update();}
+static esp_err_t tracked_select_update(const esp_partition_t *p) {++mock_select_update_calls;return freslest_ota_select_update(p);}
+#define freslest_ota_begin_update tracked_begin_update
+#define freslest_ota_cancel_update tracked_cancel_update
+#define freslest_ota_select_update tracked_select_update
 #define FRESLEST_UPDATE_RUNTIME_TEST 1
 #define USB_ROOT "usb"
 #include "../../common/usb_update/freslest_update.c"
+#undef freslest_ota_begin_update
+#undef freslest_ota_cancel_update
+#undef freslest_ota_select_update
 uint8_t mock_mode,mock_saved[32],mock_staged[32];size_t mock_saved_size,mock_staged_size;
-bool mock_nvs_fail,mock_heap_fail,mock_bad_running,mock_boot_fail,mock_read_corrupt,mock_end_fail,mock_begin_fail;
+bool mock_nvs_fail,mock_heap_fail,mock_bad_running,mock_boot_fail,mock_read_corrupt,mock_read_fail,mock_end_fail,mock_begin_fail;
 unsigned mock_allocations,mock_erases,mock_writes,mock_unmounts,mock_first_erase_mode,mock_running,mock_events,mock_cut_at,mock_ota_states[3];
+unsigned mock_nvs_sets,mock_nvs_commits,mock_boot_selections;
 int mock_write_failure=-1;int64_t mock_time;uint8_t *mock_flash;void *mock_heap_block;
 esp_partition_t mock_parts[]={
  {0x100000,0x1b0000,0,16,"os_a"},{0x2b0000,0x1b0000,0,17,"os_b"},{0x20000,0xe0000,0,18,"doom"},
  {0x460000,0x950000,0x42,6,"wad"},{0xdb0000,0x50000,1,0x82,"spiffs"},{0xe00000,0x200000,1,0x40,"saves"}};
-const esp_partition_t *mock_boot;jmp_buf mock_restart;
+const esp_partition_t *mock_boot,*mock_destination;jmp_buf mock_restart;
 static uint8_t *original;static size_t original_size;static freslest_update_package valid_package;
 esp_err_t esp_ota_set_boot_partition(const esp_partition_t *p) {
- char error[100];if(mock_boot_fail)return ESP_FAIL;
+ char error[100];++mock_boot_selections;if(mock_boot_fail)return ESP_FAIL;
  if(p==&mock_os&&!freslest_update_validate_image(mock_flash,original_size,&valid_package,error,sizeof(error)))return ESP_FAIL;
  mock_event();mock_boot=p;mock_ota_states[p->subtype-16]=ESP_OTA_IMG_NEW;mock_event();return ESP_OK;
 }
 esp_err_t esp_ota_mark_app_invalid_rollback_and_reboot(void) {mock_ota_states[mock_running]=ESP_OTA_IMG_INVALID;mock_boot=&mock_parts[mock_running^1];esp_restart();}
-void freslest_update_draw_indexed(const uint8_t *p) {(void)p;if(last_percent==100)assert(mock_boot==&mock_os);}
+void freslest_update_draw_indexed(const uint8_t *p) {(void)p;if(last_percent==100)assert(mock_boot==(mock_destination==&mock_doom?&mock_parts[mock_running]:&mock_os));}
 static void policy_reset(void) {memset(&state,0,sizeof(state));begun=recovered=false;pending=ready=false;frames=0;started=0;deadline=NULL;}
 static void candidate_from(const char *name) {
  char path[160];snprintf(path,sizeof(path),"usb/%s",name);FILE *f=fopen(path,"rb");assert(f);
@@ -29,11 +40,13 @@ static void candidate_from(const char *name) {
 static void reset(const char *name) {
  if(mock_heap_block)free(mock_heap_block);mock_heap_block=NULL;
  memset(mock_flash,0x3c,FRESLEST_OS_SLOT_SIZE);mock_mode=0;mock_saved_size=mock_staged_size=0;mock_boot=&mock_parts[0];mock_running=0;mock_time=0;
- mock_nvs_fail=mock_heap_fail=mock_bad_running=mock_boot_fail=mock_read_corrupt=mock_end_fail=mock_begin_fail=false;
+ mock_nvs_fail=mock_heap_fail=mock_bad_running=mock_boot_fail=mock_read_corrupt=mock_read_fail=mock_end_fail=mock_begin_fail=false;
  mock_allocations=mock_erases=mock_writes=mock_unmounts=mock_first_erase_mode=mock_events=mock_cut_at=0;mock_write_failure=-1;
  mock_ota_states[0]=mock_ota_states[2]=ESP_OTA_IMG_VALID;mock_ota_states[1]=ESP_OTA_IMG_ABORTED;
  policy_reset();assert(freslest_ota_boot_begin()&&ready);mock_events=0;
- failed=confirm=restore_confirm=false;previous=NULL;last_percent=-1;error_text[0]=0;atomic_store(&removed,false);
+ mock_nvs_sets=mock_nvs_commits=mock_boot_selections=0;mock_destination=NULL;
+ mock_begin_update_calls=mock_cancel_update_calls=mock_select_update_calls=0;
+ failed=confirm=restore_confirm=false;previous=NULL;active_target=FRESLEST_UPDATE_OS;last_percent=-1;error_text[0]=0;atomic_store(&removed,false);
  candidate_from(name);for(unsigned i=0;i<KEY_COUNT;i++)keys[i].edge=false;
 }
 static void press(unsigned key) {for(unsigned i=0;i<KEY_COUNT;i++)keys[i].edge=i==key;handle_keys();}
