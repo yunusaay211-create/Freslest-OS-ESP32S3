@@ -16,3 +16,4 @@ firmware-payload.zip
 audio_pack/
 build-audio/
 native_update/payload/
+native_update/reused/

@@ -189,8 +189,11 @@ static bool shallow_json(const char *s) {
     }
     return !depth&&!quoted;
 }
-bool freslest_update_inspect(FILE *f,freslest_update_package *p,char *e,size_t n) {
+static bool inspect(FILE *f,freslest_update_package *p,int requested,
+                    bool check_output,bool vga,char *e,size_t n) {
     memset(p,0,sizeof(*p));zip_directory d;
+    if(requested!=-1&&requested!=FRESLEST_UPDATE_OS&&requested!=FRESLEST_UPDATE_DOOM)
+        return fail(e,n,"Invalid update target");
     if(!directory(f,&d,e,n))return false;
     freslest_zip_entry os_manifest={0},doom_manifest={0},v;
     unsigned os_matches=0,doom_matches=0;uint32_t pos=d.start,next;
@@ -204,8 +207,12 @@ bool freslest_update_inspect(FILE *f,freslest_update_package *p,char *e,size_t n
         return fail(e,n,"No unique Freslest manifest");
     // New readers select Doom; old readers still see only the format-2 OS
     // manifest in a dual package. Never fall back after selecting Doom.
-    p->target=doom_matches?FRESLEST_UPDATE_DOOM:FRESLEST_UPDATE_OS;
-    freslest_zip_entry manifest=doom_matches?doom_manifest:os_manifest;
+    p->target=requested<0?(doom_matches?FRESLEST_UPDATE_DOOM:FRESLEST_UPDATE_OS):
+        (enum freslest_update_target)requested;
+    if((p->target==FRESLEST_UPDATE_DOOM&&!doom_matches)||
+       (p->target==FRESLEST_UPDATE_OS&&!os_matches))
+        return fail(e,n,"Requested Freslest manifest is missing");
+    freslest_zip_entry manifest=p->target==FRESLEST_UPDATE_DOOM?doom_manifest:os_manifest;
     if(manifest.size>2048)return fail(e,n,"Oversized Freslest manifest");
     char json[2049];
     if(!read_entry(f,&manifest,d.start,(uint8_t*)json,2048,NULL,NULL,e,n))return false;
@@ -217,11 +224,31 @@ bool freslest_update_inspect(FILE *f,freslest_update_package *p,char *e,size_t n
     const cJSON *format=unique(root,"format_version"),*revision=unique(root,"updater_min"),*image=unique(root,"image");
     const cJSON *version=unique(root,"version"),*size=unique(image,"size"),*sha=unique(image,"sha256"),*file=unique(image,"file");
     bool doom=p->target==FRESLEST_UPDATE_DOOM;
+    const cJSON *display=unique(root,"display");
+    bool display_present=cJSON_GetObjectItemCaseSensitive(root,"display")!=NULL;
+    bool display_ok=!display_present;
+    if(display_present&&cJSON_IsString(display)) {
+        if(!doom&&!strcmp(display->valuestring,"preserve"))
+            p->display=FRESLEST_UPDATE_DISPLAY_PRESERVE,display_ok=true;
+        else if(doom&&!strcmp(display->valuestring,"lcd"))
+            p->display=FRESLEST_UPDATE_DISPLAY_LCD,display_ok=true;
+        else if(doom&&!strcmp(display->valuestring,"vga"))
+            p->display=FRESLEST_UPDATE_DISPLAY_VGA,display_ok=true;
+    }
+    if(check_output&&display_present&&doom&&display_ok)
+        display_ok=(p->display==FRESLEST_UPDATE_DISPLAY_VGA)==vga;
+    bool board_ok=string_is(root,"board",FRESLEST_UPDATE_BOARD);
+    // This is the one approved cross-profile image: its VGA pins and ESP32-S3
+    // hardware are shared. LCD Doom and every OS image remain board strict.
+#if FRESLEST_LCD_MODEL == 9488
+    if(check_output&&vga&&doom&&p->display==FRESLEST_UPDATE_DISPLAY_VGA&&
+       string_is(root,"board","esp32s3-n16r8-ili9341-buttons"))board_ok=true;
+#endif
     const char *image_file=doom?"firmware/freslest_doom_s3.bin":"firmware/freslest_os_s3.bin";
     bool target_ok=doom?string_is(root,"target","doom"):
         (!cJSON_GetObjectItemCaseSensitive(root,"target")||string_is(root,"target","os"));
     bool ok=cJSON_IsObject(root)&&string_is(root,"format","freslest-usb-update")&&
-        string_is(root,"board",FRESLEST_UPDATE_BOARD)&&string_is(root,"layout",FRESLEST_UPDATE_LAYOUT)&&
+        board_ok&&display_ok&&string_is(root,"layout",FRESLEST_UPDATE_LAYOUT)&&
         target_ok&&cJSON_IsNumber(format)&&format->valuedouble==(doom?3:2)&&
         cJSON_IsNumber(revision)&&revision->valuedouble==(doom?3:2)&&
         cJSON_IsObject(image)&&cJSON_IsString(version)&&strlen(version->valuestring)>0&&strlen(version->valuestring)<sizeof(p->version)&&
@@ -249,6 +276,17 @@ bool freslest_update_inspect(FILE *f,freslest_update_package *p,char *e,size_t n
        (p->image.flags&~0x080e)||!(p->image.method==0||p->image.method==8))
         return fail(e,n,"Missing, oversized or unsupported firmware image");
     return true;
+}
+bool freslest_update_inspect(FILE *f,freslest_update_package *p,char *e,size_t n) {
+    return inspect(f,p,-1,false,false,e,n);
+}
+bool freslest_update_inspect_target(FILE *f,freslest_update_package *p,
+                                   enum freslest_update_target target,char *e,size_t n) {
+    return inspect(f,p,(int)target,false,false,e,n);
+}
+bool freslest_update_inspect_target_for_output(FILE *f,freslest_update_package *p,
+                                              enum freslest_update_target target,bool vga,char *e,size_t n) {
+    return inspect(f,p,(int)target,true,vga,e,n);
 }
 bool freslest_update_validate_image(const uint8_t *b,size_t size,const freslest_update_package *p,char *e,size_t n) {
     uint8_t hash[32];

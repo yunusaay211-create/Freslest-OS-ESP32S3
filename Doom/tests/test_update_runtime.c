@@ -14,6 +14,8 @@ static esp_err_t tracked_select_update(const esp_partition_t *p) {++mock_select_
 #undef freslest_ota_begin_update
 #undef freslest_ota_cancel_update
 #undef freslest_ota_select_update
+static freslest_display_t mock_video_output = FRESLEST_DISPLAY_LCD;
+freslest_display_t freslest_video_output(void) { return mock_video_output; }
 uint8_t mock_mode,mock_saved[32],mock_staged[32];size_t mock_saved_size,mock_staged_size;
 bool mock_nvs_fail,mock_heap_fail,mock_bad_running,mock_boot_fail,mock_read_corrupt,mock_read_fail,mock_end_fail,mock_begin_fail;
 unsigned mock_allocations,mock_erases,mock_writes,mock_unmounts,mock_first_erase_mode,mock_running,mock_events,mock_cut_at,mock_ota_states[3];

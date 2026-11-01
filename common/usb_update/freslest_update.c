@@ -4,6 +4,7 @@
 #include "freslest_ota.h"
 #include "freslest_update_package.h"
 #include "update_display.h"
+#include "freslest_video.h"
 #include <ctype.h>
 #include <dirent.h>
 #include <stdatomic.h>
@@ -390,15 +391,22 @@ static void scan(void) {
       ++skipped;
       continue;
     }
-    freslest_update_package p;
-    bool ok = freslest_update_inspect(file, &p, last_rejection,
-                                      sizeof(last_rejection));
-    fclose(file);
-    if (ok) {
+    bool found = false;
+    for (unsigned target = FRESLEST_UPDATE_OS;
+         target <= FRESLEST_UPDATE_DOOM && count < MAX_PACKAGES; ++target) {
+      freslest_update_package p;
+      if (!freslest_update_inspect_target_for_output(
+              file, &p, (enum freslest_update_target)target,
+              freslest_video_output() == FRESLEST_DISPLAY_VGA,
+              last_rejection, sizeof(last_rejection)))
+        continue;
       snprintf(packages[count].filename, sizeof(packages[count].filename),
                "%.127s", ent->d_name);
       packages[count++].package = p;
-    } else
+      found = true;
+    }
+    fclose(file);
+    if (!found)
       ++skipped;
     vTaskDelay(1);
   }
@@ -491,12 +499,15 @@ static bool install(void) {
   if (file) {
     // Re-inspect: the USB file may have changed since it was listed.
     freslest_update_package current;
-    ok =
-        freslest_update_inspect(file, &current, error_text, sizeof(error_text));
-    if (ok && (current.target != choice->package.target ||
+    ok = freslest_update_inspect_target_for_output(
+        file, &current, choice->package.target,
+        freslest_video_output() == FRESLEST_DISPLAY_VGA,
+        error_text, sizeof(error_text));
+    if (!ok || current.target != choice->package.target ||
+               current.display != choice->package.display ||
                strcmp(current.version, choice->package.version) ||
                current.image_size != choice->package.image_size ||
-               memcmp(current.sha256, choice->package.sha256, 32)))
+               memcmp(current.sha256, choice->package.sha256, 32))
       ok = false, snprintf(error_text, sizeof(error_text),
                            "ZIP changed. Rescan and confirm again.");
     if (ok)
@@ -728,6 +739,7 @@ static void handle_keys(void) {
 }
 void freslest_update_task(void *argument) {
   puts("FRESLEST_UPDATE:OS_AND_DOOM_V3");
+  puts("FRESLEST_UPDATE:SELECT_OS_AND_DOOM");
   (void)argument;
   screen = heap_caps_malloc(480 * 320, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
   if (!screen) {

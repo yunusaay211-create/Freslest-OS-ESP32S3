@@ -1,5 +1,36 @@
 # Freslest USB Update Formats 2 and 3
 
+## Current display-preserving update collection
+
+Extract the OUTER `Freslest-Update-1.1-OS-Doom.zip`. Copy its `UPD88.ZIP`,
+`UPD41.ZIP` and `DOOMVGA.ZIP` files UNEXTRACTED to the USB drive root.
+Older OS versions list only the OS package matching their LCD controller.
+Apply that OS update, reboot and allow at least ten seconds for startup
+confirmation. The new updater lists OS and Doom as separate choices.
+
+`UPD88.ZIP` carries the ILI9488 OS and preserved LCD Doom, while `UPD41.ZIP`
+carries the corresponding ILI9341 images. Both bootstrap OS images have LCD
+defaults and retain the saved `fl_video/output_v2` setting, so a previously
+saved VGA output remains VGA. `DOOMVGA.ZIP` contains only the existing verified
+native RGB332 VGA Doom. Fresh VGA installation uses a separate VGA-preset OS
+image in the full installer.
+
+Optional manifest `display` is `preserve` for OS, `lcd` or `vga` for Doom.
+Explicit target inspection never falls back to another component. Runtime
+inspection filters Doom by the current initialized display output. OS and LCD
+Doom always require the same LCD board identity. An explicitly tagged VGA Doom
+for the approved ILI9341 VGA build can also run on an ILI9488 OS when the actual
+current output is VGA; it does not change the OS's LCD controller or settings.
+Unknown boards, malformed/duplicate display tags and wrong output are rejected.
+Packages without `display` keep the preceding board-strict legacy behavior.
+
+The full installer replaces only the three OS images and their metadata.
+Its Doom binaries, Windows runtime, audio files and display configuration
+sources are retained. Source-only updater changes require regenerating the
+linked OS images; no Doom or Windows GUI firmware build is performed.
+
+The following sections document the unchanged integrity and write rules.
+
 Identity: format freslest-usb-update, format_version 2, updater_min 2,
 board esp32s3-n16r8-ili9488-buttons, layout freslest-s3-ab-v2.
 Version matches the ESP descriptor. Image: firmware/freslest_os_s3.bin,

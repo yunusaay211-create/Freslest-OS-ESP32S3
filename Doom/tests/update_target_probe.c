@@ -11,12 +11,33 @@ static void progress(unsigned value, void *context) {
 }
 
 int main(int argc, char **argv) {
-    assert(argc == 3 || argc == 4);
+    assert(argc >= 3 && argc <= 6);
     FILE *file = fopen(argv[1], "rb");
     if (!file) return 10;
     freslest_update_package package;
     char error[160] = {0};
-    if (!freslest_update_inspect(file, &package, error, sizeof(error))) {
+    bool selected = false, output = false, vga = false, inspect_only = false;
+    bool invalid_target = false, invalid_request = false;
+    for (int i = 3; i < argc; ++i) {
+        if (!strcmp(argv[i], "--select")) selected = true;
+        else if (!strcmp(argv[i], "--lcd")) output = true;
+        else if (!strcmp(argv[i], "--vga")) output = vga = true;
+        else if (!strcmp(argv[i], "--inspect")) inspect_only = true;
+        else if (!strcmp(argv[i], "--invalid-target")) invalid_target = true;
+        else if (!strcmp(argv[i], "--invalid-request")) invalid_request = true;
+        else assert(!"Unknown probe option");
+    }
+#if defined(FRESLEST_UPDATE_LEGACY_PROBE)
+    (void)selected; (void)output; (void)vga; (void)invalid_target; (void)invalid_request;
+    bool compatible = freslest_update_inspect(file, &package, error, sizeof(error));
+#else
+    enum freslest_update_target requested = !strcmp(argv[2], "os") ? FRESLEST_UPDATE_OS : FRESLEST_UPDATE_DOOM;
+    if (invalid_request) requested = (enum freslest_update_target)255;
+    bool compatible = output ? freslest_update_inspect_target_for_output(file, &package, requested, vga, error, sizeof(error)) :
+        (selected || invalid_request) ? freslest_update_inspect_target(file, &package, requested, error, sizeof(error)) :
+        freslest_update_inspect(file, &package, error, sizeof(error));
+#endif
+    if (!compatible) {
         fprintf(stderr, "REJECT INSPECT: %s\n", error);
         fclose(file);
         return 2;
@@ -25,7 +46,7 @@ int main(int argc, char **argv) {
     const char *target = "os";
 #else
     const char *target = package.target == FRESLEST_UPDATE_DOOM ? "doom" : "os";
-    if (argc == 4 && !strcmp(argv[3], "--invalid-target"))
+    if (invalid_target)
         package.target = (enum freslest_update_target)255;
 #endif
     if (strcmp(target, argv[2])) {
@@ -33,7 +54,7 @@ int main(int argc, char **argv) {
         fclose(file);
         return 4;
     }
-    if (argc == 4 && !strcmp(argv[3], "--inspect")) {
+    if (inspect_only) {
         printf("COMPATIBLE %s %s\n", target, package.version);
         fclose(file);
         return 0;

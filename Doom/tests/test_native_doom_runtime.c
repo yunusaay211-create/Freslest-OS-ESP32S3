@@ -1,4 +1,5 @@
 // Exercise the production parser, OTA policy, updater UI and writer together.
+#include <unistd.h>
 #define main os_update_runtime_main
 #include "test_update_runtime.c"
 #undef main
@@ -199,7 +200,7 @@ static void test_doom_validation(void) {
     assert(failed && !mock_erases && !mock_writes && !mock_allocations);
     assert_os_unchanged(&before);
   }
-  const char *changed[] = {"changed-target.zip", "changed-version.zip", "changed-size.zip", "changed-sha.zip"};
+  const char *changed[] = {"changed-target.zip", "changed-version.zip", "changed-size.zip", "changed-sha.zip", "changed-display.zip"};
   for (unsigned i = 0; i < sizeof(changed) / sizeof(changed[0]); ++i) {
     reset_confirmed_os("doom.zip", 0);
     os_snapshot before = snapshot_os();
@@ -210,7 +211,7 @@ static void test_doom_validation(void) {
     assert(strstr(error_text, "ZIP changed"));
     assert_os_unchanged(&before);
   }
-  puts("PASS: corrupt/wrong-project and changed target/version/size/SHA stop before the first erase");
+  puts("PASS: corrupt/wrong-project and changed target/version/size/SHA/display stop before the first erase");
 }
 
 static void test_doom_writer_preconditions(void) {
@@ -266,13 +267,105 @@ static void test_os_b_regression(const char *os_path) {
   puts("PASS: OS B cancellation and inactive OS A trial update retain the legacy A/B behavior");
 }
 
+static void choose_target(enum freslest_update_target target) {
+  for (selected = 0; selected < count; ++selected)
+    if (packages[selected].package.target == target) return;
+  assert(!"Requested target must be listed");
+}
+
+static void test_dual_selection(const char *os_path, const char *doom_path) {
+  assert(!rename("usb", "fixtures"));
+  assert(!mkdir("usb", 0700));
+  assert(!rename("fixtures/dual.zip", "usb/dual.zip"));
+  for (unsigned running = 0; running < 2; ++running) {
+    for (unsigned target = FRESLEST_UPDATE_OS; target <= FRESLEST_UPDATE_DOOM; ++target) {
+      free(original);
+      load_original(target == FRESLEST_UPDATE_OS ? os_path : doom_path);
+      reset_confirmed_os("dual.zip", running);
+      scan();
+      assert(count == 2 && !strcmp(packages[0].filename, packages[1].filename));
+      assert(packages[0].package.target == FRESLEST_UPDATE_OS);
+      assert(packages[1].package.target == FRESLEST_UPDATE_DOOM);
+      choose_target((enum freslest_update_target)target);
+      valid_package = packages[selected].package;
+      os_snapshot before = snapshot_os();
+      select_package();
+      expect_restart_on_key(2);
+      assert(last_percent == 100 && !mock_allocations);
+      assert(!memcmp(mock_flash, original, original_size));
+      if (target == FRESLEST_UPDATE_DOOM) assert_os_unchanged(&before);
+      else assert(mock_destination == &mock_parts[running ^ 1u] && state.mode == TRIAL);
+    }
+  }
+  // Output is checked again after the user chooses a tagged LCD Doom image.
+  reset_confirmed_os("dual.zip", 0);
+  scan();
+  choose_target(FRESLEST_UPDATE_DOOM);
+  os_snapshot before = snapshot_os();
+  select_package();
+  mock_video_output = FRESLEST_DISPLAY_VGA;
+  press(2);
+  assert(failed && !mock_erases && !mock_writes && !mock_allocations);
+  assert_os_unchanged(&before);
+  mock_video_output = FRESLEST_DISPLAY_LCD;
+  assert(!rename("usb/dual.zip", "fixtures/dual.zip"));
+  assert(!rmdir("usb"));
+  assert(!rename("fixtures", "usb"));
+  puts("PASS: a dual ZIP lists OS and Doom separately, installs either from A/B, and rechecks active output before erase");
+}
+
+static void test_real_package_set(const char *os_path, const char *doom_path, bool vga) {
+  mock_video_output = vga ? FRESLEST_DISPLAY_VGA : FRESLEST_DISPLAY_LCD;
+  const char *board_zip = FRESLEST_LCD_MODEL == 9341 ? "UPD41.ZIP" : "UPD88.ZIP";
+  for (unsigned running = 0; running < 2; ++running) {
+    for (unsigned target = FRESLEST_UPDATE_OS; target <= FRESLEST_UPDATE_DOOM; ++target) {
+      free(original);
+      load_original(target == FRESLEST_UPDATE_OS ? os_path : doom_path);
+      reset_confirmed_os(board_zip, running);
+      scan();
+      assert(count == 2);
+      unsigned os_count = 0, doom_count = 0;
+      for (unsigned i = 0; i < count; ++i) {
+        if (packages[i].package.target == FRESLEST_UPDATE_OS) {
+          ++os_count;
+          assert(!strcmp(packages[i].filename, board_zip));
+          assert(packages[i].package.display == FRESLEST_UPDATE_DISPLAY_PRESERVE);
+        } else {
+          ++doom_count;
+          assert(!strcmp(packages[i].filename, vga ? "DOOMVGA.ZIP" : board_zip));
+          assert(packages[i].package.display == (vga ? FRESLEST_UPDATE_DISPLAY_VGA : FRESLEST_UPDATE_DISPLAY_LCD));
+        }
+      }
+      assert(os_count == 1 && doom_count == 1);
+      choose_target((enum freslest_update_target)target);
+      valid_package = packages[selected].package;
+      os_snapshot before = snapshot_os();
+      select_package();
+      expect_restart_on_key(2);
+      assert(last_percent == 100 && !mock_allocations);
+      assert(!memcmp(mock_flash, original, original_size));
+      assert(mock_video_output == (vga ? FRESLEST_DISPLAY_VGA : FRESLEST_DISPLAY_LCD));
+      if (target == FRESLEST_UPDATE_DOOM) assert_os_unchanged(&before);
+      else assert(mock_destination == &mock_parts[running ^ 1u] && state.mode == TRIAL);
+    }
+  }
+  printf("PASS: real three-package USB set, ILI%d %s: exactly one OS + correct Doom; both A/B installs preserve active output\n",
+         FRESLEST_LCD_MODEL, vga ? "VGA" : "LCD");
+}
+
 int main(int argc, char **argv) {
   setvbuf(stdout, NULL, _IONBF, 0);
-  assert(argc == 3);
+  assert(argc == 3 || argc == 4);
   load_original(argv[1]);
   mock_flash = malloc(FRESLEST_OS_SLOT_SIZE);
   screen = calloc(480 * 320, 1);
   assert(mock_flash && screen);
+  if (argc == 4) {
+    assert(!strcmp(argv[3], "--real-lcd") || !strcmp(argv[3], "--real-vga"));
+    test_real_package_set(argv[1], argv[2], !strcmp(argv[3], "--real-vga"));
+    free(original); free(mock_flash); free(screen);
+    return 0;
+  }
   test_empty_candidate_list();
   test_target_visible_in_prompts();
   test_doom_cancel();
@@ -281,6 +374,7 @@ int main(int argc, char **argv) {
   test_doom_validation();
   test_doom_writer_preconditions();
   test_os_b_regression(argv[1]);
+  test_dual_selection(argv[1], argv[2]);
   free(original);
   free(mock_flash);
   free(screen);

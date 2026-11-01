@@ -87,7 +87,7 @@ with tempfile.TemporaryDirectory() as tmp:
  runtime=build/'test_update_runtime'
  subprocess.run(['gcc','-std=gnu17','-Wall','-Wextra','-Werror','-Wno-misleading-indentation','-Wno-format-truncation','-Wno-unused-variable','-Wno-deprecated-declarations','-g','-fsanitize=address,undefined',
   '-DFRESLEST_UPDATE_HOST_TEST','-DFRESLEST_OTA_HOST_TEST','-I'+str(root.parent/'shared_components/freslest_ota/include'),'-I'+str(shared),'-I'+str(root/'tests'),
-  '-I'+str(root/'components/prboom-esp32-compat/include'),'-I'+str(cjson),
+  '-I'+str(root/'components/prboom-esp32-compat/include'),'-I'+str(root.parent/'shared_components/freslest_video/include'),'-I'+str(cjson),
   str(shared/'freslest_update_package.c'),str(root/'tests/test_update_runtime.c'),str(cjson/'cJSON.c'),
   '-lcrypto','-lz','-lm','-o',str(runtime)],check=True)
  (tmp/'usb').mkdir();(tmp/'firmware.bin').write_bytes(firmware);(tmp/'usb/update.zip').write_bytes(archive())

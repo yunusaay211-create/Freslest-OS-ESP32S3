@@ -13,6 +13,7 @@ import struct
 import subprocess
 import tempfile
 import zipfile
+import update_target_fixtures as fixtures
 
 from update_target_fixtures import DOOM_PATH, DOOM_PROJECT, OS_PATH, OS_PROJECT, archive, esp_image, manifest
 
@@ -21,7 +22,7 @@ LEGACY_COMMIT = '8d599ced5d172e76c5dc6c972498eea3182422d1'
 ENV = {**os.environ, 'ASAN_OPTIONS': 'detect_leaks=0:abort_on_error=1', 'UBSAN_OPTIONS': 'halt_on_error=1'}
 
 
-def compile_probes(build):
+def compile_probes(build, lcd_model=9341, legacy_ref=LEGACY_COMMIT):
     idf = Path(os.environ.get('IDF_PATH', ROOT.parent / 'analysis/host-idf'))
     cjson = idf / 'components/json/cJSON'
     if not (cjson / 'cJSON.c').is_file():
@@ -31,7 +32,7 @@ def compile_probes(build):
                      'common/usb_update/freslest_update_package.h', 'OS/freslest/lcd_profile.h'):
         destination = legacy / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(subprocess.check_output(['git', 'show', LEGACY_COMMIT + ':' + relative], cwd=ROOT))
+        destination.write_bytes(subprocess.check_output(['git', 'show', legacy_ref + ':' + relative], cwd=ROOT))
     probes = []
     for source_root, name, defines in [(ROOT, 'update_target_probe', []),
                                       (legacy, 'legacy_update_target_probe', ['-DFRESLEST_UPDATE_LEGACY_PROBE'])]:
@@ -40,7 +41,7 @@ def compile_probes(build):
         subprocess.run([
             'gcc', '-std=gnu17', '-Wall', '-Wextra', '-Werror', '-g',
             '-fsanitize=address,undefined', '-fno-omit-frame-pointer', '-no-pie',
-            '-DFRESLEST_UPDATE_HOST_TEST', '-DFRESLEST_LCD_MODEL=9341', *defines,
+            '-DFRESLEST_UPDATE_HOST_TEST', '-DFRESLEST_LCD_MODEL=' + str(lcd_model), *defines,
             '-I' + str(shared), '-I' + str(cjson), str(shared / 'freslest_update_package.c'),
             str(ROOT / 'Doom/tests/update_target_probe.c'), str(cjson / 'cJSON.c'),
             '-lcrypto', '-lz', '-lm', '-o', str(executable),
@@ -52,10 +53,13 @@ def compile_probes(build):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--bundle', type=Path, help='Also load a real dual-manifest release ZIP with both parsers')
+    parser.add_argument('--lcd-model', type=int, choices=(9341, 9488), default=9341)
+    parser.add_argument('--legacy-ref', default=LEGACY_COMMIT, help='Frozen legacy source ref (default: original public reader)')
     args = parser.parse_args()
     build = ROOT / 'Doom/tests/host_build'
     build.mkdir(exist_ok=True)
-    current, legacy = compile_probes(build)
+    current, legacy = compile_probes(build, args.lcd_model, args.legacy_ref)
+    fixtures.BOARD = f'esp32s3-n16r8-ili{args.lcd_model}-buttons'
     os_image = esp_image(OS_PROJECT)
     doom_image = esp_image(DOOM_PROJECT)
     checks = 0
@@ -81,13 +85,19 @@ def main():
         check('doom_source_root', archive(doom_image=doom_image, prefix='Freslest-source/'))
         dual = archive(os_image=os_image, doom_image=doom_image)
         check('dual_prefers_doom', dual)
+        check('dual_explicit_os', dual, 'os', option='--select')
+        check('dual_explicit_doom', dual, 'doom', option='--select')
+        check('missing_explicit_os', archive(doom_image=doom_image), 'os', 2, option='--select')
+        check('missing_explicit_doom', archive(os_image=os_image), 'doom', 2, option='--select')
+        check('invalid_requested_target', dual, 'os', 2, option='--invalid-request')
         check('dual_legacy_uses_os', dual, 'os', probe=legacy)
         check('doom_only_legacy_rejected', archive(doom_image=doom_image), 'os', expected=2, probe=legacy)
         check('eocd_comment', archive(doom_image=doom_image, comment=b'PK\x05\x06' * 60))
         for target, image_data in [('os', os_image), ('doom', doom_image)]:
             values = manifest(target, image_data)
             kwargs = {target + '_image': image_data}
-            for field, value in [('format', 'other'), ('board', 'esp32s3-n16r8-ili9488-buttons'),
+            wrong_board = f'esp32s3-n16r8-ili{9488 if args.lcd_model == 9341 else 9341}-buttons'
+            for field, value in [('format', 'other'), ('board', wrong_board),
                                  ('layout', 'other'), ('format_version', 2 if target == 'doom' else 3),
                                  ('updater_min', 2 if target == 'doom' else 3), ('version', 'bad\nversion'),
                                  ('target', 'other')]:

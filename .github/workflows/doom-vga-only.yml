@@ -10,6 +10,7 @@ permissions:
   contents: read
 jobs:
   doom-firmware:
+    if: ${{ !contains(github.event.head_commit.message, '[update-only]') }}
     runs-on: ubuntu-latest
     container: espressif/idf:v5.4.4
     timeout-minutes: 25

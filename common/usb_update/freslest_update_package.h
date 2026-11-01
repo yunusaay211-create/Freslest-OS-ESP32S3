@@ -19,6 +19,12 @@ enum freslest_update_target {
     FRESLEST_UPDATE_OS = 0,
     FRESLEST_UPDATE_DOOM = 1,
 };
+enum freslest_update_display {
+    FRESLEST_UPDATE_DISPLAY_LEGACY = 0,
+    FRESLEST_UPDATE_DISPLAY_PRESERVE,
+    FRESLEST_UPDATE_DISPLAY_LCD,
+    FRESLEST_UPDATE_DISPLAY_VGA,
+};
 
 typedef struct {
     uint32_t local_offset, compressed_size, size, crc;
@@ -27,6 +33,7 @@ typedef struct {
 } freslest_zip_entry;
 typedef struct {
     enum freslest_update_target target;
+    enum freslest_update_display display;
     char version[32];
     uint8_t sha256[32];
     uint32_t image_size;
@@ -38,6 +45,16 @@ typedef void (*freslest_update_progress)(unsigned percent, void *context);
 // are read. All offsets, lengths, CRCs and the destination capacity are bounded.
 bool freslest_update_inspect(FILE *file, freslest_update_package *package,
                             char *error, size_t error_size);
+// Select a manifest explicitly; the original inspect API still prefers Doom.
+// Without an output argument, board matching remains strict.
+bool freslest_update_inspect_target(FILE *file, freslest_update_package *package,
+                                   enum freslest_update_target target,
+                                   char *error, size_t error_size);
+// Runtime selection also checks explicit display tags against the active output.
+// An untagged legacy manifest always retains strict LCD board matching.
+bool freslest_update_inspect_target_for_output(FILE *file, freslest_update_package *package,
+                                              enum freslest_update_target target, bool vga,
+                                              char *error, size_t error_size);
 bool freslest_update_load(FILE *file, const freslest_update_package *package,
                          uint8_t *image, size_t capacity,
                          freslest_update_progress progress, void *context,
