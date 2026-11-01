@@ -44,18 +44,6 @@ jobs:
           python Doom/tests/run_doom_bundle_tests.py
           python Doom/tests/run_native_installer_tests.py
           python Doom/tests/run_idf_rollback_tests.py
-      - uses: actions/download-artifact@v4
-        with:
-          name: lcd-firmware-profiles
-          path: native_update/reused/lcd
-          run-id: 40664780601
-          github-token: ${{ github.token }}
-      - uses: actions/download-artifact@v4
-        with:
-          name: Freslest-Native-Doom-Update-VGA
-          path: native_update/reused/vga
-          run-id: 41300958453
-          github-token: ${{ github.token }}
       - uses: actions/cache@v4
         with:
           path: OS/build-update-shared

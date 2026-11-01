@@ -29,6 +29,13 @@ Its Doom binaries, Windows runtime, audio files and display configuration
 sources are retained. Source-only updater changes require regenerating the
 linked OS images; no Doom or Windows GUI firmware build is performed.
 
+Release assembly uses `tools/assemble_update_collection.py --base CURRENT.exe
+--profiles OS_IMAGES --output Update.zip --packages-dir STAGING
+--source-commit FIRMWARE_COMMIT`. It reads the exact three Doom images from
+the current installer and verifies their profile hashes. Do not substitute
+older CI Doom artifacts. `tools/build_update_profiles.py` builds only the OS
+images; the delivery collection is assembled separately with this command.
+
 The following sections document the unchanged integrity and write rules.
 
 Identity: format freslest-usb-update, format_version 2, updater_min 2,
