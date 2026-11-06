@@ -2,6 +2,8 @@ name: Doom VGA only
 on:
   workflow_dispatch:
   push:
+    branches-ignore:
+      - 'work/freslest-1.5'
     paths:
       - 'Doom/**'
       - 'doom_updater/**'

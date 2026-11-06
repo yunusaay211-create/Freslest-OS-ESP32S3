@@ -9,13 +9,12 @@ import sys
 from prepare_firmware import prepare
 from prepare_audio import prepare as prepare_audio
 from tools.check_windows_archive import check_archive
-from installer.release_version import OS_VERSION
-
 ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT / 'installer'))
+from release_version import OS_VERSION
 
 
 def verify_display_firmware(firmware_root):
-    sys.path.insert(0, str(ROOT / 'installer'))
     from payload import DISPLAY_MODELS, validated_payload
     for model in DISPLAY_MODELS:
         directory = Path(firmware_root) / model

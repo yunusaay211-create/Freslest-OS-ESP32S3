@@ -75,6 +75,11 @@ class DisplayInstallTests(unittest.TestCase):
         for _, name, _ in app.ITEMS:
             tags = {'vga': 'FRESLEST_LCD:ILI9341 FRESLEST_VIDEO:VGA25175_25175000'}
             data = (tags.get(model, f'FRESLEST_LCD:{model.upper()}') if 's3.bin' in name else name).encode()
+            if name == 'freslest_os_s3.bin':
+                descriptor = bytearray(80)
+                descriptor[0x20:0x24] = b'\x32\x54\xcd\xab'
+                descriptor[0x30:0x50] = app.OS_VERSION.encode().ljust(32, b'\0')
+                data = bytes(descriptor) + data
             (directory / name).write_bytes(data)
             manifest['firmware/' + name] = hashlib.sha256(data).hexdigest()
         (directory / 'SHA256.json').write_text(json.dumps(manifest))
