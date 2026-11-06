@@ -1,4 +1,5 @@
 #include "apps.h"
+#include "desktop.h"
 #include "ui_layout.h"
 #include "../../gfx.h"
 #include "../../input.h"
@@ -20,7 +21,22 @@ static const char* SET_ITEMS[] = { "Brightness", "Theme", "WiFi", "Bluetooth", "
 static constexpr int SET_COUNT = sizeof(SET_ITEMS)/sizeof(SET_ITEMS[0]);
 static int setIndex = 0;
 
+static constexpr int TileW = 212, TileH = 48;
+static int tileX(int i) { return 20 + (i % 2) * 228; }
+static int tileY(int i) { return 54 + (i / 2) * 58; }
+
 static void drawSettingsRow(int i,bool selected){
+ if(desktopHasWindow()){
+  const int x=tileX(i),y=tileY(i);
+  const uint16_t bg=selected?desktop_color::Selected:desktop_color::Panel;
+  tft.fillRoundRect(x,y,TileW,TileH,5,bg);
+  tft.drawRoundRect(x,y,TileW,TileH,5,desktop_color::Border);
+  tft.fillRoundRect(x+9,y+10,24,27,4,desktop_color::Ink);
+  tft.setTextSize(2);tft.setTextColor(0xffff,desktop_color::Ink);
+  tft.setCursor(x+15,y+15);tft.printf("%c",SET_ITEMS[i][0]);
+  tft.setTextColor(desktop_color::Ink,bg);tft.setCursor(x+43,y+15);tft.print(SET_ITEMS[i]);
+  return;
+ }
  int w=tft.width(),row=uiMenuRowHeight(w,34),x=uiMenuLeft(w),y=uiMenuTop(w)+i*row;
  tft.fillRect(x-2,y-2,w-2*x+4,row,TH().bg);
  if(selected){tft.fillRoundRect(x,y,w-2*x,uiCompact(w)?row-2:30,6,TH().selbg);tft.drawRoundRect(x,y,w-2*x,uiCompact(w)?row-2:30,6,TH().accent);}
@@ -30,7 +46,7 @@ static void drawSettingsRow(int i,bool selected){
 
 void drawSettingsMenuFull() {
   tft.fillScreen(TH().bg);
-  drawHeader("Settings");
+  drawHeader(desktopHasWindow()?"Control Panel":"Settings");
   drawFooter("UP/DOWN Move  OK Enter", "BACK Menu");
   clearBody();
   for (int i=0;i<SET_COUNT;i++) drawSettingsRow(i, i==setIndex);
@@ -40,6 +56,16 @@ void drawSettingsMenuSelectionOnly(int oldIdx, int newIdx) {
   drawSettingsRow(oldIdx, false);
   drawSettingsRow(newIdx, true);
   drawFooter("UP/DOWN Move  OK Enter", "BACK Menu");
+}
+
+int __settingsMenuHit() {
+  if (desktopHasWindow()) {
+    for (int i=0; i<SET_COUNT; ++i)
+      if (usbInputHit(tileX(i),tileY(i),TileW,TileH)) return i;
+    return -1;
+  }
+  const int width=tft.width(),top=uiMenuTop(width),row=uiMenuRowHeight(width,34),x=uiMenuLeft(width);
+  return usbInputHit(x,top,width-2*x,SET_COUNT*row)?(usbPointer.y-top)/row:-1;
 }
 
 // ===== Brightness =====
@@ -244,7 +270,6 @@ AppId settingsMenuToApp(int idx) {
 
 // allow apps.cpp to use setIndex
 int& __settingsIndex() { return setIndex; }
-int  __settingsCount() { return SET_COUNT; }
 
 
 // ===== Sound =====

@@ -23,11 +23,14 @@ constexpr int MaxWindows = 4, DesktopIcons = 6;
 constexpr uint16_t Blue = 0x125d, Dark = 0x08cd, White = 0xffff, Light = 0xd6df;
 struct Shortcut { const char *name; AppId app; uint16_t color; };
 constexpr Shortcut shortcuts[] = {
-    {"Dosyalar", APP_FILES, 0xff03}, {"Ayarlar", APP_SETTINGS, 0x9e5f},
+    {"Files", APP_FILES, 0xff03}, {"Settings", APP_SETTINGS, 0x9e5f},
     {"FreStore", APP_FRESTORE, 0x1dff}, {"Terminal", APP_TERMINAL, 0x52aa},
-    {"Oyunlar", APP_GAME_MENU, 0x5766}, {"Yuklu Uyg.", APP_FRESTORE_APPS, 0x8d9f},
-    {"Uygulamalar", APP_APPS, 0xe58f}, {"Guncelleme", APP_FRESLEST_UPDATE, 0x764c},
-    {"Sistem Bilgisi", APP_SYSINFO, 0xd6df}, {"Test", APP_TEST, 0xf565}
+    {"Games", APP_GAME_MENU, 0x5766}, {"My Apps", APP_FRESTORE_APPS, 0x8d9f},
+    {"Calculator", APP_CALC, 0xe58f}, {"Notepad", APP_NOTE, 0xd6df},
+    {"Paint", APP_PAINT, 0xf565}, {"Clock", APP_CLOCK, 0xffc9},
+    {"Browser", APP_BROWSER, 0x4dff}, {"Camera", APP_CAMERA, 0x8d9f},
+    {"USB Update", APP_FRESLEST_UPDATE, 0x764c}, {"Wi-Fi Update", APP_NETWORK_UPDATE, 0x5e9d},
+    {"System Info", APP_SYSINFO, 0xd6df}, {"Test", APP_TEST, 0xf565}
 };
 constexpr int Count = sizeof(shortcuts) / sizeof(*shortcuts);
 constexpr int MenuTop = TaskY - Count * 22 - 8;
@@ -54,7 +57,7 @@ void label(int x, int y, const char *text, uint16_t color = White, int scale = 1
 }
 bool fullScreen(AppId page) {
     switch (page) {
-    case APP_CAMERA: case APP_USB_TRANSFER: case APP_FRESLEST_UPDATE:
+    case APP_CAMERA: case APP_USB_TRANSFER: case APP_FRESLEST_UPDATE: case APP_NETWORK_UPDATE:
     case APP_DINO: case APP_TETRIS: case APP_SNAKE: case APP_MINES:
     case APP_2048: case APP_DOOM: case APP_NES_PLAYER: return true;
     default: return false;
@@ -109,7 +112,7 @@ void updateStatus(uint32_t now) {
     snprintf(line, sizeof(line), "%s %s %s %s  %s",
              WiFi.status() == WL_CONNECTED ? "WiFi" : "----",
              freslestBleInfo().connected ? "BT" : "--",
-             soundEnabled ? "SES" : "---",
+             soundEnabled ? "SND" : "---",
              usbInputAttached() || usbStorageInfo().present() ? "USB" : "---", time);
     if (strcmp(statusLine, line)) {
         strcpy(statusLine, line);
@@ -185,8 +188,8 @@ char terminalLine[32], terminalReply[76];
 unsigned terminalLength = 0;
 void drawTerminal() {
     tft.fillScreen(0x0843);
-    drawHeader("Terminal");
-    drawFooter("ENTER Komut   help", "BACK Kapat");
+    drawHeader("Command Prompt");
+    drawFooter("ENTER Run command", "BACK Close");
     tft.setTextSize(1);
     tft.setTextColor(0xbff8);
     tft.setCursor(18, 65); tft.print(terminalReply);
@@ -205,7 +208,12 @@ void desktopBegin() {
     } else Serial.println("Desktop framebuffer unavailable; VGA legacy menu active.");
 }
 bool desktopVisible() { return ready && !fullScreen(app) && (app == APP_MENU || count); }
-bool desktopHasWindow() { return count && app != APP_MENU; }
+bool desktopHasWindow() { return ready && count && app != APP_MENU && !fullScreen(app); }
+bool desktopCloseModal() {
+    if (!ready || !count) return false;
+    closeTop();
+    return true;
+}
 const uint16_t *desktopPixels() { return static_cast<const uint16_t *>(canvas.getBuffer()); }
 
 void desktopUpdate(uint32_t now) {
@@ -223,7 +231,7 @@ void desktopUpdate(uint32_t now) {
     }
     appLoop(now);
     usbPointer = saved;
-    if (app == APP_MENU) closeTop();
+    if (app == APP_MENU || app == APP_APPS) closeTop();
     else rememberPage();
 }
 
@@ -249,16 +257,22 @@ bool desktopCompose(const uint16_t *appPixels, bool appChanged) {
         const auto &w = windows[i];
         const bool active = i == count - 1 && app != APP_MENU;
         canvas.fillRect(w.x, w.y, WinWidth, WinHeight, active ? Blue : Dark);
+        canvas.fillRect(w.x + Frame, w.y + Frame, WinWidth - 2 * Frame, 5,
+                        active ? 0x459f : 0x4cfa);
+        canvas.fillRect(w.x + Frame, w.y + 7, WinWidth - 2 * Frame, 10,
+                        active ? 0x24ff : 0x3317);
         canvas.fillRect(w.x + Frame, w.y + Title, AppWidth, AppHeight, Light);
         if (active) canvas.pushImage(w.x + Frame, w.y + Title, AppWidth, AppHeight, appPixels);
-        else label(w.x + 18, w.y + Title + 16, "Etkinlestirmek icin tikla", Dark);
+        else label(w.x + 18, w.y + Title + 16, "Click to focus", Dark);
         label(w.x + 8, w.y + 7, shortcuts[w.shortcut].name);
         canvas.fillRoundRect(w.x + WinWidth - 21, w.y + 3, 17, 16, 3, 0xd185);
         label(w.x + WinWidth - 16, w.y + 7, "X");
     }
     canvas.fillRect(0, TaskY, Width, Height - TaskY, Blue);
+    canvas.fillRect(0, TaskY, Width, 2, 0x459f);
     canvas.fillRoundRect(2, TaskY + 2, 80, 24, 4, 0x3585);
-    label(15, TaskY + 10, "BASLAT");
+    canvas.fillRect(6, TaskY + 4, 72, 4, 0x564b);
+    label(15, TaskY + 10, "Start");
     for (int i = 0; i < count; ++i) {
         const int x = 86 + i * 86;
         canvas.fillRoundRect(x + 2, TaskY + 3, 82, 22, 3, i == count - 1 ? Dark : 0x249f);
@@ -266,7 +280,7 @@ bool desktopCompose(const uint16_t *appPixels, bool appChanged) {
     }
     label(Width - 157, TaskY + 10, statusLine);
     if (notice) label(440, 45, notice);
-    else if (windowLimit) label(440, 45, "4 pencere acik. Birini kapat.");
+    else if (windowLimit) label(440, 45, "Close a window first.");
     if (menu) {
         canvas.fillRect(0, MenuTop, 170, TaskY - MenuTop, Dark);
         for (int i = 0; i < Count; ++i) {
@@ -281,7 +295,7 @@ bool desktopCompose(const uint16_t *appPixels, bool appChanged) {
 
 void desktopTerminalEnter() {
     terminalLength = 0; terminalLine[0] = 0;
-    strcpy(terminalReply, "Freslest Terminal. help yazin.");
+    strcpy(terminalReply, "Freslest Terminal. Type help.");
     usbInputTextMode(true);
     drawTerminal();
 }
@@ -301,8 +315,8 @@ void desktopTerminalLoop() {
             snprintf(terminalReply, sizeof(terminalReply), "Freslest OS %s / ESP32-S3", esp_app_get_description()->version);
         else if (!strcmp(terminalLine, "usb")) snprintf(terminalReply, sizeof(terminalReply), "%s", freslest_hid_status());
         else if (!strcmp(terminalLine, "vga")) {
-            freslest_video_diagnostics(); strcpy(terminalReply, "VGA tani bilgisi seri porta yazildi.");
-        } else strcpy(terminalReply, "Komut bulunamadi. help yazin.");
+            freslest_video_diagnostics(); strcpy(terminalReply, "VGA diagnostics sent to the serial port.");
+        } else strcpy(terminalReply, "Unknown command. Type help.");
         terminalLength = 0; terminalLine[0] = 0; changed = true;
     }
     if (changed) drawTerminal();

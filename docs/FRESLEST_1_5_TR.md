@@ -11,7 +11,9 @@ Bu sürüm `codex/audio-sd-recovery` dalındaki `42af5a3` kaynağını temel al�
 
 ## Desktop
 
-Başlat menüsü, görev çubuğu ve saat/ağ/ses/USB göstergeleri VGA'ya özeldir. Kısayollar çift tıklamayla açılır. Başlık çubuğu sürüklenir, X pencereyi kapatır, Tab açık pencereler arasında dolaşır. En fazla dört pencere açılır. Ön plandaki mevcut uygulama çalışır. Odak değişince seçilen sayfa yeniden açılır. Oyunlar ve Freslest Update mevcut tam ekran yolunu kullanır. Terminalde `help`, `info`, `usb` ve `vga` tanı komutları vardır.
+VGA Desktop İngilizcedir. Start menüsü, mavi başlık çubukları, görev çubuğu ve durum göstergeleri XP döneminin görünümünden esinlenir. Files'ta Explorer tarzı görev paneli, Settings'te iki sütunlu Control Panel vardır. Calculator, Notepad, Paint, Clock ve Browser mevcut araç düzenini kullanır. Pencerelerde uygulamaya ait araç ve durum çubukları görünür. Start menüsünden uygulamalar doğrudan açılır.
+
+Masaüstü kısayolları çift tıklamayla açılır. Başlık çubuğu sürüklenir, X pencereyi kapatır, Tab açık pencereler arasında dolaşır. En fazla dört pencere açılır. Ön plandaki uygulama çalışır. Odak değişince seçilen sayfa yeniden açılır. Oyunlar ve güncelleme araçları tam ekran çalışır. Terminalde `help`, `info`, `usb` ve `vga` tanı komutları vardır.
 
 ## FreStore
 
@@ -43,10 +45,31 @@ https://store.example.org:8443
 <tek satir Base64 yayin acik anahtari>
 ```
 
-5. Cihazı Wi-Fi'ye bağla ve saatin eşitlenmesini bekle. FreStore → Sunucu'yu aç. Ekrandaki adresi ve SHA-256 parmak izinin ilk 16 karakterini yayıncı makinesindeki değerle karşılaştır. Onayladıktan sonra Yenile'yi seç. Fare olmadan Sunucu için SOL+FIRE, Ara için SAĞ+FIRE kullanılır.
-6. Örnek **Merhaba Freslest** kartını yükle ve Yüklü Uygulamalar'dan aç. Yeni içerik yayımlarken sürüm numarasını artır.
+5. Cihazı Wi-Fi'ye bağla ve saatin eşitlenmesini bekle. Desktop'ta **FreStore → Server**, klasik LCD'de **FreStore → Sunucu** yolunu aç. Ekrandaki adresi ve SHA-256 parmak izinin ilk 16 karakterini yayıncı makinesindeki değerle karşılaştır. Onayladıktan sonra **Refresh** veya **Yenile** seç. Fare olmadan Sunucu için SOL+FIRE, Ara için SAĞ+FIRE kullanılır.
+6. Örnek **Merhaba Freslest** kartını yükle ve **My Apps** veya **Yüklü Uygulamalar** ekranından aç. Yeni içerik yayımlarken sürüm numarasını artır.
 
 Katalog ve paketler ayrı ECDSA P-256 imzası taşır. ESP32 paket boyutunu, SHA-256 özetini, yayın imzasını, kimliği, sürümü ve ABI'yi doğrular. Sunucu Go ile yazıldı ve katalog imzalı bir dosyada tutuluyor. Gönüllü P2P dağıtımı ayrı fazdır.
+
+## Wi-Fi OTA ve iki router arasında kopyalama
+
+Bu 1.5 derlemesini ilk kez USB ZIP veya Windows Installer ile yükle. Ardından Desktop'ta **Start → Wi-Fi Update**, LCD'de **Apps → Wi-Fi Update** üzerinden daha yeni sürümleri alabilirsin. Ağ OTA'sı OS içindir. Doom güncellemeleri mevcut USB menüsünden yapılır.
+
+Yayıncı Pi'de kendi FreStore anahtarınla, kurulu profil için daha yeni bir `freslest_os_s3.bin` yayımla. Desteklenen profil adları `ili9488`, `ili9341` ve `vga`. Cihaz ayarlardan VGA'ya geçse bile imajın derleme profili kullanılır. Sürümü `1.5.1` gibi mevcut sürümden yüksek bir sayısal değer yap.
+
+```sh
+./frestore publish-os -private publisher.pem -profile ili9488 -image freslest_os_s3.bin -out published
+```
+
+İki ağ arasında HTTPS erişimi varsa ESP32, diğer router arkasındaki yayıncı Pi'yi doğrudan kullanabilir. İkinci ağda yerel bir kopya için `published/` başlangıç içeriğini ve doğrulanmış `publisher.pub` dosyasını ikinci Pi'ye aktar. Özel yayın anahtarını yayıncı makinede tut. İkinci Pi'de:
+
+```sh
+./frestore mirror-os -from https://updates-a.example.org:8443 -profile ili9488 -out published
+./frestore serve -dir published -addr :8443 -cert fullchain.pem -tls-key privkey.pem
+```
+
+`mirror-os`, ilk Pi'nin HTTPS sertifikasını ve imzayı kontrol eder, dosyayı doğrular ve yalnızca tamamlanan kopyayı yayımlar. Her yeni yayın veya kopyadan sonra çalışan `serve` işlemini yeniden başlat. Alıcı Pi için kendi HTTPS adını ve ilk yayıncının açık anahtarını `FRESTORE.CFG` dosyasına yaz. Ağlar arası yönlendirme ve DNS, kullanılan Pi adresine erişim sağlamalıdır. Router'lar trafiği taşır. İmzalı kopyalamayı Pi'ler çalıştırır.
+
+**Wi-Fi Update → Check for updates** ekranı yeni sürümü, sunucu adresini ve yayıncı parmak izini gösterir. **Install and restart** ile açık onay ver. İmaj PSRAM'e alınır, imzalı SHA-256 değeri ve ESP imajı doğrulanır, etkin olmayan OS yuvasına yazılır ve geri okunur. İlk açılış sağlık kontrolü mevcut A/B geri alma mekanizmasını kullanır. Yalnız kendi OS yayınlarını onayladığın FreStore anahtarını bu işlem için kullan.
 
 ## Derleme
 

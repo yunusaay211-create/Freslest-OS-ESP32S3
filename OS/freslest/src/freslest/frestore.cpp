@@ -4,6 +4,7 @@
 #include "../../input.h"
 #include "../../usb_input.h"
 #include "apps.h"
+#include "desktop.h"
 #include "system_status.h"
 #include "text_entry.h"
 #include "usb_storage.h"
@@ -24,9 +25,8 @@
 
 namespace {
 using namespace frestore;
-struct Trust { char origin[145], key[145]; };
-Trust trust{CONFIG_FRESLEST_STORE_ORIGIN, CONFIG_FRESLEST_STORE_PUBLIC_KEY};
-Trust candidate{};
+FreStoreTrust trust{CONFIG_FRESLEST_STORE_ORIGIN, CONFIG_FRESLEST_STORE_PUBLIC_KEY};
+FreStoreTrust candidate{};
 char keyFingerprint[17];
 bool trustLoaded = false;
 
@@ -44,14 +44,24 @@ Selection target{};
 std::atomic<bool> cancelled{false}, completed{false};
 std::atomic<unsigned> percent{0};
 bool working = false; // Only the UI task starts jobs and consumes completions.
-const char *message = "";
+struct StoreText {
+    const char *tr = "";
+    const char *en = "";
+    bool empty() const { return !en[0]; }
+    const char *label() const { return desktopHasWindow() ? en : tr; }
+};
+constexpr StoreText TrustRequired{"Magaza adresi ve yayin anahtari gerekli.", "Set the server URL and publisher key."};
+constexpr StoreText DiskRequired{"FAT SD karti USB okuyucuyla baglayin.", "Connect a FAT SD card in a USB reader."};
+StoreText message;
 Job job;
 View view = View::List;
 bool installedOnly, editing;
 int selected, category, offset, cardTop;
 unsigned shownProgress = 101;
 char query[35] = "";
-const char *categories[] = {"Tum kategoriler", "Araclar", "Egitim", "Medya"};
+constexpr StoreText categories[] = {
+    {"Tum kategoriler", "All categories"}, {"Araclar", "Tools"}, {"Egitim", "Education"}, {"Medya", "Media"}
+};
 
 class DiskAccess {
 public:
@@ -88,13 +98,13 @@ bool saveTrust() {
 }
 bool fetch(const char *path, size_t capacity, size_t &length) {
     length = 0;
-    if (!configured()) { message = "Magaza adresi ve yayin anahtari gerekli."; return false; }
-    if (WiFi.status() != WL_CONNECTED) { message = "Once Wi-Fi agina baglanin."; return false; }
+    if (!configured()) { message = TrustRequired; return false; }
+    if (WiFi.status() != WL_CONNECTED) { message = {"Once Wi-Fi agina baglanin.", "Connect to Wi-Fi first."}; return false; }
     struct tm time{};
-    if (!rtcGetLocal(time)) { message = "HTTPS icin saat esitlemesini bekleyin."; return false; }
+    if (!rtcGetLocal(time)) { message = {"HTTPS icin saat esitlemesini bekleyin.", "Waiting for the clock to sync for HTTPS."}; return false; }
     char url[256];
     int n = snprintf(url, sizeof(url), "%s%s", trust.origin, path);
-    if (n < 0 || n >= (int)sizeof(url)) { message = "Magaza adresi gecersiz."; return false; }
+    if (n < 0 || n >= (int)sizeof(url)) { message = {"Magaza adresi gecersiz.", "Invalid store URL."}; return false; }
     esp_http_client_config_t config{};
     config.url = url;
     config.crt_bundle_attach = esp_crt_bundle_attach;
@@ -102,15 +112,16 @@ bool fetch(const char *path, size_t capacity, size_t &length) {
     config.timeout_ms = 4000;
     config.buffer_size = 1024;
     esp_http_client_handle_t client = esp_http_client_init(&config);
-    message = "HTTPS baglantisi kurulamadi.";
+    message = {"HTTPS baglantisi kurulamadi.", "HTTPS connection failed."};
     if (!client) return false;
     bool ok = false;
     if (esp_http_client_open(client, 0) == ESP_OK) {
         const int64_t bytes = esp_http_client_fetch_headers(client);
         const int status = esp_http_client_get_status_code(client);
-        if (status != 200) message = status == 404 ? "Surum sunucuda bulunamadi." : "Sunucu istegi basarisiz.";
+        if (status != 200) message = status == 404 ? StoreText{"Surum sunucuda bulunamadi.", "Version not found on the server."}
+                                                   : StoreText{"Sunucu istegi basarisiz.", "Server request failed."};
         else if (bytes <= 0 || bytes > (int64_t)capacity || esp_http_client_is_chunked_response(client))
-            message = "Sunucu dosya boyutu gecersiz.";
+            message = {"Sunucu dosya boyutu gecersiz.", "Invalid file size from the server."};
         else {
             const int64_t deadline = esp_timer_get_time() + 25000000;
             while (!cancelled.load() && length < (size_t)bytes && esp_timer_get_time() < deadline) {
@@ -121,7 +132,8 @@ bool fetch(const char *path, size_t capacity, size_t &length) {
             }
             ok = !cancelled.load() && length == (size_t)bytes &&
                  esp_http_client_is_complete_data_received(client);
-            if (!ok) message = cancelled.load() ? "Indirme iptal edildi." : "Indirme yarida kesildi. Tekrar deneyin.";
+            if (!ok) message = cancelled.load() ? StoreText{"Indirme iptal edildi.", "Download cancelled."}
+                                                : StoreText{"Indirme yarida kesildi. Tekrar deneyin.", "Download interrupted. Try again."};
         }
     }
     esp_http_client_cleanup(client);
@@ -183,22 +195,22 @@ void install(size_t length) {
     const App &offer = target.offer;
     if (!matches(download, length, offer) || !parseCard(download, length, trust.key, card) ||
         strcmp(offer.id, card.id) || strcmp(offer.name, card.name) || offer.version != card.version) {
-        message = "Paket imzasi, ozeti veya kimligi gecersiz.";
+        message = {"Paket imzasi, ozeti veya kimligi gecersiz.", "Invalid package signature, hash or ID."};
         return;
     }
     DiskAccess disk;
-    if (!disk.ok) { message = "FAT SD karti USB okuyucuyla baglayin."; return; }
+    if (!disk.ok) { message = DiskRequired; return; }
     char root[48]; directory(root);
-    if (mkdir(root, 0777) && errno != EEXIST) { message = "SD kart dizini acilamadi."; return; }
+    if (mkdir(root, 0777) && errno != EEXIST) { message = {"SD kart dizini acilamadi.", "Cannot create the SD card folder."}; return; }
     const char current = newest(offer.id, card);
-    if (current && card.version >= offer.version) { message = "Bu surum zaten yuklu."; return; }
-    if (!current && installedCount >= MaxApps) { message = "Yuklu uygulama sinirina ulasildi."; return; }
+    if (current && card.version >= offer.version) { message = {"Bu surum zaten yuklu.", "This version is already installed."}; return; }
+    if (!current && installedCount >= MaxApps) { message = {"Yuklu uygulama sinirina ulasildi.", "Installed app limit reached."}; return; }
     uint64_t total, available;
     if (esp_vfs_fat_info(usbStorageRoot(), &total, &available) != ESP_OK || available < length + 4096) {
-        message = "SD kartta yeterli bos alan yok.";
+        message = {"SD kartta yeterli bos alan yok.", "Not enough free space on the SD card."};
         return;
     }
-    if (cancelled.load()) { message = "Kurulum iptal edildi."; return; }
+    if (cancelled.load()) { message = {"Kurulum iptal edildi.", "Installation cancelled."}; return; }
     char pending[80], next[80];
     path(pending, offer.id, 't');
     path(next, offer.id, current == 'a' ? 'b' : 'a');
@@ -211,7 +223,8 @@ void install(size_t length) {
     saved = saved && usbStorageInfo().state == UsbStorageState::Ready &&
             removeFile(next) && rename(pending, next) == 0;
     if (!saved) removeFile(pending);
-    message = saved ? "Uygulama yuklendi." : "SD karta yazilamadi. Tekrar deneyin.";
+    message = saved ? StoreText{"Uygulama yuklendi.", "App installed."}
+                    : StoreText{"SD karta yazilamadi. Tekrar deneyin.", "Cannot write to the SD card. Try again."};
     scanLocked();
 }
 bool importTrust() {
@@ -234,7 +247,8 @@ void worker(void *) {
         size_t length;
         if (fetch("/v1/catalog", CatalogBytes, length))
             message = parseCatalog(download, length, trust.key, offers, offerCount) ?
-                      "Katalog dogrulandi." : "Katalog imzasi veya bicimi gecersiz.";
+                      StoreText{"Katalog dogrulandi.", "Catalog verified."}
+                    : StoreText{"Katalog imzasi veya bicimi gecersiz.", "Invalid catalog signature or format."};
     } else if (job == Job::Install) {
         char route[80];
         snprintf(route, sizeof(route), "/v1/packages/%s/%lu", target.offer.id, (unsigned long)target.offer.version);
@@ -244,14 +258,17 @@ void worker(void *) {
         DiskAccess disk;
         if (!disk.ok) {
             if (job == Job::Scan) installedCount = 0;
-            message = "FAT SD karti USB okuyucuyla baglayin.";
+            message = DiskRequired;
         } else if (job == Job::Scan) {
             scanLocked();
-            message = installedCount ? "Yuklu uygulamalar okundu." : "SD kart hazir.";
+            message = installedCount ? StoreText{"Yuklu uygulamalar okundu.", "Installed apps loaded."}
+                                     : StoreText{"SD kart hazir.", "SD card ready."};
         } else if (job == Job::Open) {
-            message = newest(target.local.id, card) ? "" : "Yuklu paket imzasi gecersiz.";
+            message = newest(target.local.id, card) ? StoreText{} :
+                      StoreText{"Yuklu paket imzasi gecersiz.", "Installed package signature is invalid."};
         } else if (job == Job::Import) {
-            message = importTrust() ? "" : "SD kartta gecerli FRESTORE.CFG bulunamadi.";
+            message = importTrust() ? StoreText{} :
+                      StoreText{"SD kartta gecerli FRESTORE.CFG bulunamadi.", "No valid FRESTORE.CFG on the SD card."};
         } else {
             char old[80], active[80], pending[80];
             const char current = newest(target.local.id, card);
@@ -259,7 +276,8 @@ void worker(void *) {
             path(active, target.local.id, current == 'a' ? 'a' : 'b');
             path(pending, target.local.id, 't');
             message = removeFile(pending) && removeFile(old) && removeFile(active) ?
-                      "Uygulama kaldirildi." : "SD karttan silinemedi.";
+                      StoreText{"Uygulama kaldirildi.", "App removed."}
+                    : StoreText{"SD karttan silinemedi.", "Cannot remove app from the SD card."};
             scanLocked();
         }
     }
@@ -276,7 +294,7 @@ void start(Job next) {
     shownProgress = 101;
     if (xTaskCreatePinnedToCore(worker, "frestore", 10240, nullptr, 2, nullptr, 0) != pdPASS) {
         working = false;
-        message = "FreStore icin yeterli bellek yok.";
+        message = {"FreStore icin yeterli bellek yok.", "Not enough memory for FreStore."};
     }
 }
 
@@ -311,19 +329,22 @@ bool cancellable() { return job == Job::Catalog || job == Job::Install; }
 void draw() {
     const int w = tft.width(), h = tft.height();
     tft.fillScreen(TH().bg);
-    drawHeader(installedOnly ? "Yuklu Uygulamalar" : "FreStore");
-    drawFooter("OK Sec  FIRE Yenile", "BACK Geri");
+    const bool desktop = desktopHasWindow();
+    drawHeader(installedOnly ? (desktop ? "Installed Apps" : "Yuklu Uygulamalar") : "FreStore");
+    drawFooter(desktop ? "OK Select  FIRE Refresh" : "OK Sec  FIRE Yenile",
+               desktop ? "BACK Close / Up" : "BACK Geri");
     tft.setTextSize(1);
     tft.setTextColor(TH().text);
     if (working) {
         const unsigned progress = percent.load();
         shownProgress = progress;
-        label(12, 80, job == Job::Scan ? "SD kart okunuyor..." : "FreStore islem yapiyor...");
+        label(12, 80, job == Job::Scan ? (desktop ? "Reading SD card..." : "SD kart okunuyor...")
+                                       : (desktop ? "Working..." : "FreStore islem yapiyor..."));
         if (cancellable()) {
             tft.drawRect(12, 100, w - 24, 14, TH().dim);
             tft.fillRect(14, 102, (w - 28) * progress / 100, 10, TH().accent);
             tft.setCursor(12, 124); tft.printf("%u%%", progress);
-            button(12, 146, 84, "Iptal");
+            button(12, 146, 84, desktop ? "Cancel" : "Iptal");
         }
         return;
     }
@@ -334,30 +355,32 @@ void draw() {
         return;
     }
     if (view == View::Trust) {
-        label(12, 48, "Bu sunucuya ve yayin anahtarina guvenilsin mi?");
+        label(12, 48, desktop ? "Trust this server and publisher key?" : "Bu sunucuya ve yayin anahtarina guvenilsin mi?");
         wrap(12, 67, candidate.origin);
-        tft.setCursor(12, 117); tft.printf("SHA-256 / ilk 16: %s", keyFingerprint);
-        button(12, h - 76, 90, "Onayla");
+        tft.setCursor(12, 117); tft.printf(desktop ? "SHA-256 / first 16: %s" : "SHA-256 / ilk 16: %s", keyFingerprint);
+        button(12, h - 76, 90, desktop ? "Confirm" : "Onayla");
     } else if (view == View::Detail) {
         const App &offer = target.offer;
         const auto &local = target.local;
         label(12, 48, installedOnly ? local.name : offer.name);
         tft.setCursor(12, 64);
-        if (installedOnly) tft.printf("Surum %lu", (unsigned long)local.version);
+        if (installedOnly) tft.printf(desktop ? "Version %lu" : "Surum %lu", (unsigned long)local.version);
         else {
-            tft.printf("Surum %lu  %lu B  ESP32-S3 / ABI 1", (unsigned long)offer.version, (unsigned long)offer.size);
+            tft.printf(desktop ? "Version %lu  %lu B  ESP32-S3 / ABI 1" : "Surum %lu  %lu B  ESP32-S3 / ABI 1",
+                       (unsigned long)offer.version, (unsigned long)offer.size);
             label(12, 80, offer.developer);
             wrap(12, 98, offer.description);
         }
-        button(12, h - 76, 84, installedOnly || local.version >= offer.version ? "Ac" :
-                                      local.version ? "Guncelle" : "Yukle");
-        if (local.version) button(108, h - 76, 84, "Kaldir");
+        const StoreText action = installedOnly || local.version >= offer.version ? StoreText{"Ac", "Open"} :
+                                 local.version ? StoreText{"Guncelle", "Update"} : StoreText{"Yukle", "Install"};
+        button(12, h - 76, 84, action.label());
+        if (local.version) button(108, h - 76, 84, desktop ? "Remove" : "Kaldir");
     } else {
-        button(12, 40, 52, "Ara");
-        button(70, 40, 60, "Yenile");
+        button(12, 40, 52, desktop ? "Search" : "Ara");
+        button(70, 40, 60, desktop ? "Refresh" : "Yenile");
         if (!installedOnly) {
-            button(136, 40, 101, categories[category]);
-            button(243, 40, 65, "Sunucu");
+            button(136, 40, 101, categories[category].label());
+            button(243, 40, 65, desktop ? "Server" : "Sunucu");
         }
         if (query[0]) label(12, 64, query);
         for (int i = 0; i < rows(); ++i) {
@@ -368,9 +391,9 @@ void draw() {
             label(18, y + 5, installedOnly ? installed[index].name : offers[index].name);
         }
     }
-    if (message[0]) {
+    if (!message.empty()) {
         tft.setCursor(12, h - 43);
-        tft.printf("%.*s", (w - 24) / 6, message);
+        tft.printf("%.*s", (w - 24) / 6, message.label());
     }
 }
 void detail(int index) {
@@ -385,6 +408,13 @@ void detail(int index) {
 }
 } // namespace
 
+bool frestoreReadTrust(FreStoreTrust &out) {
+    loadTrust();
+    if (!configured()) return false;
+    out = trust;
+    return true;
+}
+
 void frestoreEnter(bool local) {
     loadTrust();
     installedOnly = local;
@@ -395,7 +425,7 @@ void frestoreEnter(bool local) {
     usbStorageBegin();
     if (!working && !local && !offerCount) {
         if (configured()) start(Job::Catalog);
-        else message = "Magaza adresi ve yayin anahtari gerekli.";
+        else message = TrustRequired;
     }
     draw();
 }
@@ -411,8 +441,8 @@ void frestoreLoop() {
             return;
         }
         working = false;
-        if (job == Job::Open && view == View::Detail && !message[0]) { view = View::Card; cardTop = 0; }
-        if (job == Job::Import && !message[0] && !installedOnly) view = View::Trust;
+        if (job == Job::Open && view == View::Detail && message.empty()) { view = View::Card; cardTop = 0; }
+        if (job == Job::Import && message.empty() && !installedOnly) view = View::Trust;
         if (job == Job::Install || job == Job::Remove || job == Job::Catalog) {
             view = View::List;
             selected = offset = 0;
@@ -454,7 +484,8 @@ void frestoreLoop() {
     const int h = tft.height();
     if (view == View::Trust) {
         if (bOk.pressed() || usbInputHit(12, h - 76, 90, 20)) {
-            message = saveTrust() ? "Sunucu kaydedildi. Katalogu yenileyin." : "Sunucu ayarlari kaydedilemedi.";
+            message = saveTrust() ? StoreText{"Sunucu kaydedildi. Katalogu yenileyin.", "Server saved. Refresh the catalog."}
+                                  : StoreText{"Sunucu ayarlari kaydedilemedi.", "Cannot save server settings."};
             view = View::List;
             draw();
         }
@@ -474,7 +505,7 @@ void frestoreLoop() {
         return;
     }
     if (usbInputHit(12, 40, 52, 20) || (bFire.pressed() && bRight.down())) {
-        textEntryBegin("FreStore Ara", query, sizeof(query) - 1);
+        textEntryBegin(desktopHasWindow() ? "Search FreStore" : "FreStore Ara", query, sizeof(query) - 1);
         editing = true;
         return;
     }

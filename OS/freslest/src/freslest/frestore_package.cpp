@@ -1,4 +1,5 @@
 #include "frestore_package.h"
+#include "freslest_update_package.h"
 #include <cJSON.h>
 #include <cstring>
 #include <mbedtls/base64.h>
@@ -98,7 +99,47 @@ bool parseApp(const cJSON *item, App &app) {
     app.category = category - 1;
     return true;
 }
+bool versionNumber(const char *text, uint64_t &value) {
+    uint64_t parsed = 0;
+    for (unsigned i = 0; i < 3; ++i) {
+        if (*text < '0' || *text > '9' || (*text == '0' && text[1] >= '0' && text[1] <= '9'))
+            return false;
+        unsigned component = 0, digits = 0;
+        while (*text >= '0' && *text <= '9') {
+            if (++digits > 4) return false;
+            component = component * 10 + (*text++ - '0');
+        }
+        parsed = parsed * 10000 + component;
+        if (!*text) {
+            if (i == 0) return false;
+            value = i == 1 ? parsed * 10000 : parsed;
+            return true;
+        }
+        if (*text++ != '.') return false;
+    }
+    return false;
+}
 } // namespace
+
+bool parseOsUpdate(const char *data, size_t size, const char *key,
+                   const char *profile, OsUpdate &update) {
+    if (!data || !size || size > OsManifestBytes) return false;
+    cJSON *doc = verified(data, size, key, "frestore-os-update-1");
+    if (!doc) return false;
+    OsUpdate parsed{};
+    uint64_t release;
+    const bool valid = is(doc, "layout", FRESLEST_UPDATE_LAYOUT) && is(doc, "profile", profile) &&
+        text(doc, "version", parsed.version, sizeof(parsed.version)) && versionNumber(parsed.version, release) &&
+        number(doc, "size", FRESLEST_OS_SLOT_SIZE, parsed.size) && parsed.size >= 288 &&
+        hashField(doc, parsed.digest);
+    cJSON_Delete(doc);
+    if (valid) update = parsed;
+    return valid;
+}
+bool newerOsVersion(const char *candidate, const char *running) {
+    uint64_t next, current;
+    return versionNumber(candidate, next) && versionNumber(running, current) && next > current;
+}
 
 bool validId(const char *id) {
     if (!id || !id[0] || strlen(id) > 24) return false;

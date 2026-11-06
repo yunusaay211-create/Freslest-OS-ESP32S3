@@ -4,9 +4,13 @@ import base64
 import json
 import os
 import subprocess
+import sys
 import tempfile
 
 root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(root / "Doom/tests"))
+from update_target_fixtures import esp_image, OS_PROJECT
+
 sdk = Path(os.environ["IDF_PATH"]) / "components"
 tls = sdk / "mbedtls/mbedtls"
 cjson = sdk / "json/cJSON"
@@ -21,13 +25,19 @@ with tempfile.TemporaryDirectory() as tmp:
     subprocess.run([server, "keygen", "-private", private], check=True, stdout=subprocess.DEVNULL)
     subprocess.run([server, "publish", "-private", private,
                     "-input", root / "frestore-server/examples", "-out", published], check=True)
+    image = work / "os.bin"
+    image.write_bytes(esp_image(OS_PROJECT, version="1.5.1", markers=[b"FRESLEST_LCD:ILI9488"]))
+    subprocess.run([server, "publish-os", "-private", private, "-image", image,
+                    "-profile", "ili9488", "-out", published], check=True)
 
     catalogue, package = published / "catalog.fsc", published / "merhaba.1.fsp"
+    os_manifest = published / "os-ili9488.fsm"
     negative = []
     for name, source, field, value in (
         ("wrong-target", package, "target", "x64"),
         ("wrong-abi", package, "abi", 2),
         ("bad-deps", catalogue, "dependencies", ["unavailable"]),
+        ("wrong-layout", os_manifest, "layout", "different"),
     ):
         body = json.loads(source.read_bytes().split(b"\n", 1)[1])
         if field == "dependencies":
@@ -48,8 +58,9 @@ with tempfile.TemporaryDirectory() as tmp:
     flags = ["-fsanitize=address,undefined", "-fno-pie"]
     subprocess.run(["gcc", *flags, "-c", cjson / "cJSON.c", "-o", obj], check=True)
     subprocess.run(["g++", "-std=c++17", "-Wall", "-Wextra", "-Werror", *flags, "-no-pie",
-                    "-I", tls / "include", "-I", cjson, "-I", app, root / "tests/test_frestore_package.cpp",
+                    "-I", tls / "include", "-I", cjson, "-I", app, "-I", root / "common/usb_update",
+                    root / "tests/test_frestore_package.cpp",
                     app / "frestore_package.cpp", obj, build / "library/libmbedcrypto.a", "-o", exe], check=True)
-    subprocess.run([exe, published / "publisher.pub", catalogue, package, *negative],
+    subprocess.run([exe, published / "publisher.pub", catalogue, package, *negative, os_manifest, image],
                    check=True, env={**os.environ, "ASAN_OPTIONS": "detect_leaks=0"})
-print("PASS: HTTPS catalogue and packages, matching SHA-256, ECDSA verification, tamper and compatibility rejection")
+print("PASS: Go/C++ signed app and OS manifests, SHA-256, tamper and compatibility rejection")

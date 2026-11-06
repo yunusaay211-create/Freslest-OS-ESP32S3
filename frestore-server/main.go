@@ -273,7 +273,7 @@ func publish(input, out string, key *ecdsa.PrivateKey) error {
 	return writeAtomic(filepath.Join(out, catalogFile), envelope, false)
 }
 
-func loadStore(dir string) (map[string][]byte, error) {
+func readPublisher(dir string) (*ecdsa.PublicKey, error) {
 	encoded, err := readBounded(filepath.Join(dir, publicFile), 256)
 	if err != nil {
 		return nil, err
@@ -286,6 +286,14 @@ func loadStore(dir string) (map[string][]byte, error) {
 	pub, ok := key.(*ecdsa.PublicKey)
 	if err != nil || !ok || pub.Curve != elliptic.P256() {
 		return nil, errors.New("invalid publisher public key")
+	}
+	return pub, nil
+}
+
+func loadStore(dir string) (map[string][]byte, error) {
+	pub, err := readPublisher(dir)
+	if err != nil {
+		return nil, err
 	}
 	envelope, err := readBounded(filepath.Join(dir, catalogFile), maxCatalog)
 	if err != nil {
@@ -317,6 +325,7 @@ func loadStore(dir string) (map[string][]byte, error) {
 		}
 		routes["/v1/packages/"+item.ID+"/"+strconv.Itoa(item.Version)] = data
 	}
+	loadOSRoutes(dir, pub, routes)
 	return routes, nil
 }
 
@@ -365,7 +374,7 @@ func storeHandler(routes map[string][]byte) http.Handler {
 }
 
 func run(args []string) error {
-	usage := errors.New("usage: frestore keygen|publish|serve [options]")
+	usage := errors.New("usage: frestore keygen|publish|publish-os|mirror-os|serve [options]")
 	if len(args) == 0 {
 		return usage
 	}
@@ -392,6 +401,31 @@ func run(args []string) error {
 			return err
 		}
 		return publish(*input, *output, key)
+	case "publish-os":
+		private := flags.String("private", "", "publisher key file")
+		profile := flags.String("profile", "", "ili9488, ili9341 or vga")
+		image := flags.String("image", "", "Freslest OS application image")
+		dir := flags.String("out", "published", "public files directory")
+		if err := flags.Parse(args[1:]); err != nil {
+			return err
+		}
+		key, err := readPrivate(*private)
+		if err != nil {
+			return err
+		}
+		return publishOS(*dir, *profile, *image, key)
+	case "mirror-os":
+		source := flags.String("from", "", "trusted source HTTPS origin")
+		profile := flags.String("profile", "", "ili9488, ili9341 or vga")
+		dir := flags.String("out", "published", "public files directory with publisher.pub")
+		if err := flags.Parse(args[1:]); err != nil {
+			return err
+		}
+		client := &http.Client{
+			Timeout:       80 * time.Second,
+			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+		}
+		return mirrorOS(client, *source, *profile, *dir)
 	case "serve":
 		dir := flags.String("dir", "published", "public files directory")
 		cert := flags.String("cert", "", "TLS certificate chain PEM")
@@ -409,7 +443,7 @@ func run(args []string) error {
 		}
 		server := &http.Server{Addr: *addr, Handler: storeHandler(routes),
 			ReadHeaderTimeout: 4 * time.Second, ReadTimeout: 8 * time.Second,
-			WriteTimeout: 10 * time.Second, IdleTimeout: 15 * time.Second, MaxHeaderBytes: 4096,
+			WriteTimeout: 90 * time.Second, IdleTimeout: 15 * time.Second, MaxHeaderBytes: 4096,
 			TLSConfig: &tls.Config{MinVersion: tls.VersionTLS12}}
 		log.Printf("FreStore HTTPS on %s", *addr)
 		return server.ListenAndServeTLS(*cert, *key)

@@ -55,6 +55,7 @@ typedef struct {uint64_t pin_bit_mask;int mode,pull_up_en;} gpio_config_t;
 #define GPIO_PULLUP_ENABLE 1
 
 extern uint8_t mock_mode;
+extern bool mock_network_update;
 extern bool mock_nvs_fail,mock_heap_fail,mock_bad_running,mock_boot_fail,mock_read_corrupt,mock_read_fail;
 extern unsigned mock_allocations,mock_erases,mock_writes,mock_unmounts,mock_first_erase_mode;
 extern unsigned mock_nvs_sets,mock_nvs_commits,mock_boot_selections;
@@ -98,7 +99,7 @@ esp_err_t esp_ota_mark_app_invalid_rollback_and_reboot(void);
 esp_err_t esp_ota_set_boot_partition(const esp_partition_t *p);
 static inline esp_err_t esp_partition_erase_range(const esp_partition_t *p,uint32_t offset,size_t bytes) {
  assert((p==&mock_os||p==&mock_doom)&&p==mock_destination&&offset+bytes<=p->size&&offset%4096==0&&bytes==4096);
- assert(mock_unmounts==2&&(p==&mock_doom||mock_mode==2));mock_event();
+ assert(mock_unmounts==(mock_network_update?0:2)&&(p==&mock_doom||mock_mode==2));mock_event();
  if(!mock_erases)mock_first_erase_mode=mock_mode;
  ++mock_erases;memset(mock_flash+offset,0xff,bytes);mock_event();return ESP_OK;
 }

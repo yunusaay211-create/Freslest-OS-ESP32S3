@@ -41,6 +41,9 @@ typedef struct {
 } freslest_update_package;
 typedef void (*freslest_update_progress)(unsigned percent, void *context);
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 // No ZIP extraction to a filesystem: only the manifest and specified image
 // are read. All offsets, lengths, CRCs and the destination capacity are bounded.
 bool freslest_update_inspect(FILE *file, freslest_update_package *package,
@@ -62,3 +65,6 @@ bool freslest_update_load(FILE *file, const freslest_update_package *package,
 bool freslest_update_validate_image(const uint8_t *image, size_t size,
                                     const freslest_update_package *package,
                                     char *error, size_t error_size);
+#ifdef __cplusplus
+}
+#endif

@@ -18,6 +18,7 @@
 #include "app_browser.h"
 #include "desktop.h"
 #include "frestore.h"
+#include "network_update.h"
 #include "text_entry.h"
 #include "../../usb_input.h"
 #include <freslest_hid.h>
@@ -71,7 +72,7 @@ void fpsTick(uint32_t now) {
     fpsLast = now;
     footerDirty = true;
 
-    if (!taskView && (app == APP_MENU || app == APP_APPS || app == APP_SETTINGS || app == APP_SYSINFO || app == APP_TEST)) {
+    if (!desktopVisible() && !taskView && (app == APP_MENU || app == APP_APPS || app == APP_SETTINGS || app == APP_SYSINFO || app == APP_TEST)) {
       if (app == APP_MENU)     drawFooter("UP/DOWN Move  OK Enter", "HOLD OK Tasks");
       if (app == APP_APPS)     drawFooter("UP/DOWN Move  OK Enter", "BACK Menu");
       if (app == APP_SETTINGS) drawFooter("L/R Bright(UI) OK Theme", "BACK Save+Menu");
@@ -109,9 +110,16 @@ static void drawHeaderSubtitle() {
 }
 void appInstallNoticeUpdate(uint32_t now,bool startupReady) {
   bool headerVisible=app!=APP_CAMERA&&app!=APP_FRESLEST_UPDATE&&!(app==APP_NES_PLAYER&&nesPlayerFullscreen());
-  if(installNoticeUpdate(now,startupReady,headerVisible)&&headerVisible)drawHeaderSubtitle();
+  if(installNoticeUpdate(now,startupReady,headerVisible)&&headerVisible&&!desktopVisible())drawHeaderSubtitle();
 }
 void drawHeader(const char* title) {
+  if (desktopHasWindow()) {
+    tft.fillRect(0,0,tft.width(),36,desktop_color::Panel);
+    tft.fillRect(0,35,tft.width(),1,desktop_color::Border);
+    tft.setTextColor(desktop_color::Ink,desktop_color::Panel);
+    tft.setTextSize(2);tft.setCursor(12,10);tft.print(title);
+    return;
+  }
   tft.fillRect(0,0,tft.width(),uiHeaderHeight(tft.width()),TH().panel);
   tft.setTextColor(TH().text,TH().panel);
   tft.setTextSize(2);tft.setCursor(10,4);tft.print("FRESLEST");
@@ -122,6 +130,15 @@ void drawHeader(const char* title) {
 
 void drawFooter(const char* leftHint, const char* rightHint) {
   const int y=tft.height()-24,w=tft.width();
+  if (desktopHasWindow()) {
+    tft.fillRect(0,y,w,24,desktop_color::Panel);
+    tft.fillRect(0,y,w,1,desktop_color::Border);
+    tft.setTextColor(desktop_color::Ink,desktop_color::Panel);
+    tft.setTextSize(1);tft.setCursor(10,y+8);tft.print(leftHint);
+    tft.setCursor(w-150,y+8);tft.printf("%.24s",rightHint);
+    footerDirty=false;
+    return;
+  }
   tft.fillRect(0,y,w,24,TH().panel);tft.setTextColor(TH().text,TH().panel);tft.setTextSize(1);
   if(uiCompact(w)){
     tft.setCursor(8,y+2);tft.printf("%.50s",leftHint);
@@ -275,7 +292,7 @@ static void drawTaskSwitcherFull() {
 
 void taskSwitcherHandle(uint32_t now) {
   taskInputConsumed=false;
-  if (textEntryActive()||app==APP_NES_PLAYER||app==APP_USB_TRANSFER||app==APP_FRESLEST_UPDATE) {taskHold.blockUntilRelease();return;}
+  if (textEntryActive()||app==APP_NES_PLAYER||app==APP_USB_TRANSFER||app==APP_FRESLEST_UPDATE||app==APP_NETWORK_UPDATE) {taskHold.blockUntilRelease();return;}
   bool open=taskHold.update(bOk.down(),now,OK_HOLD_MS)||usbInputTasks()||(app==APP_MENU&&usbInputHit(tft.width()-150,tft.height()-24,150,24));
   if (!taskView && open) {
       if(app==APP_BROWSER)browserExit();
@@ -424,7 +441,7 @@ void enterApp(AppId next) {
   if(app==APP_SET_BT && next!=APP_SET_BT)setBtExit();
   if(app==APP_TERMINAL && next!=APP_TERMINAL)usbInputTextMode(false);
   if((app==APP_FRESTORE||app==APP_FRESTORE_APPS)&&next!=app)frestoreExit();
-  gfxSetCompactUi(next==APP_FRESTORE||next==APP_FRESTORE_APPS||next==APP_MENU||next==APP_APPS||next==APP_CALC||next==APP_NOTE||next==APP_CLOCK||next==APP_PAINT||next==APP_CAMERA||next==APP_FILES||next==APP_BROWSER||next==APP_SETTINGS||next==APP_GAME_MENU||next==APP_SYSINFO||next==APP_TEST||next==APP_TEST_BUTTONS||next==APP_SET_BRIGHTNESS||next==APP_SET_THEME||next==APP_SET_WIFI||next==APP_SET_BT||next==APP_SET_SOUND||next==APP_SET_FLASHRESET||next==APP_SET_DISPLAY);
+  gfxSetCompactUi(next==APP_NETWORK_UPDATE||next==APP_FRESTORE||next==APP_FRESTORE_APPS||next==APP_MENU||next==APP_APPS||next==APP_CALC||next==APP_NOTE||next==APP_CLOCK||next==APP_PAINT||next==APP_CAMERA||next==APP_FILES||next==APP_BROWSER||next==APP_SETTINGS||next==APP_GAME_MENU||next==APP_SYSINFO||next==APP_TEST||next==APP_TEST_BUTTONS||next==APP_SET_BRIGHTNESS||next==APP_SET_THEME||next==APP_SET_WIFI||next==APP_SET_BT||next==APP_SET_SOUND||next==APP_SET_FLASHRESET||next==APP_SET_DISPLAY);
   app = next;
   addTaskLocal(app);
   footerDirty = true;
@@ -471,6 +488,7 @@ void enterApp(AppId next) {
     case APP_NES_PLAYER:  nesPlayerEnter(); break;
     case APP_USB_TRANSFER: nesUsbEnter(); break;
     case APP_FRESLEST_UPDATE: freslestUpdateEnter(); break;
+    case APP_NETWORK_UPDATE: networkUpdateEnter(); break;
 
     default: break;
   }
@@ -494,10 +512,11 @@ void appLoop(uint32_t now) {
   if(taskView||taskInputConsumed)return;
   if(textEntryActive()){textEntryLoop();return;}
   int cnt = testCount();
-  if(app!=APP_CAMERA&&!(app==APP_NES_PLAYER&&nesPlayerFullscreen())) {systemStatusDraw();drawBatteryTopBar();}
+  if(!desktopHasWindow()&&app!=APP_CAMERA&&!(app==APP_NES_PLAYER&&nesPlayerFullscreen())) {systemStatusDraw();drawBatteryTopBar();}
   if(app==APP_USB_TRANSFER) {nesUsbLoop(now);return;}
   if(app==APP_FRESLEST_UPDATE) {freslestUpdateLoop(now);return;}
   if(usbInputHit(tft.width()-150,tft.height()-24,150,24))bBack.pressedEdge=true;
+  if(app==APP_NETWORK_UPDATE) {networkUpdateLoop();return;}
   if(app==APP_FRESTORE||app==APP_FRESTORE_APPS){frestoreLoop();return;}
   if(app==APP_TERMINAL){desktopTerminalLoop();return;}
   if(app==APP_FILES){filesLoop(now);return;}
@@ -506,7 +525,7 @@ void appLoop(uint32_t now) {
   int mouseRow=-1;
   if(app==APP_MENU&&usbInputHit(uiMenuLeft(tft.width()),uiMenuTop(tft.width()),tft.width()-2*uiMenuLeft(tft.width()),MENU_COUNT*uiMenuRowHeight(tft.width(),39)))mouseRow=(usbPointer.y-uiMenuTop(tft.width()))/uiMenuRowHeight(tft.width(),39);
   if(app==APP_APPS&&usbInputHit(uiMenuLeft(tft.width()),uiMenuTop(tft.width()),tft.width()-2*uiMenuLeft(tft.width()),tft.height()-uiMenuTop(tft.width())-24))mouseRow=__appsMenuRowAt(usbPointer.y);
-  if(app==APP_SETTINGS&&usbInputHit(uiMenuLeft(tft.width()),uiMenuTop(tft.width()),tft.width()-2*uiMenuLeft(tft.width()),__settingsCount()*uiMenuRowHeight(tft.width(),34)))mouseRow=(usbPointer.y-uiMenuTop(tft.width()))/uiMenuRowHeight(tft.width(),34);
+  if(app==APP_SETTINGS)mouseRow=__settingsMenuHit();
   if(app==APP_GAME_MENU&&usbInputHit(uiMenuLeft(tft.width()),uiMenuTop(tft.width(),50),tft.width()-2*uiMenuLeft(tft.width()),__gameCount()*uiMenuRowHeight(tft.width(),30)))mouseRow=(usbPointer.y-uiMenuTop(tft.width(),50))/uiMenuRowHeight(tft.width(),30);
   if(app==APP_TEST&&usbInputHit(uiMenuLeft(tft.width()),uiMenuTop(tft.width()),tft.width()-2*uiMenuLeft(tft.width()),2*uiMenuRowHeight(tft.width(),39)))mouseRow=(usbPointer.y-uiMenuTop(tft.width()))/uiMenuRowHeight(tft.width(),39);
   if(mouseRow>=0){

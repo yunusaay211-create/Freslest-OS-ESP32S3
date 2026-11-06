@@ -44,3 +44,5 @@ constexpr unsigned TFT_RED=0xf800;constexpr int APP_APPS=1;inline int entered=-1
 struct FS{size_t totalBytes(){return 320*1024;}size_t usedBytes(){return 24000;}};inline FS LittleFS;
 
 inline bool usbInputHostMode(){return !hostPC;}
+inline bool desktopClient=false;
+inline bool desktopHasWindow(){return desktopClient;}

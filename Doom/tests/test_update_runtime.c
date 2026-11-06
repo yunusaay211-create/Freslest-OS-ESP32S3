@@ -18,6 +18,7 @@ static freslest_display_t mock_video_output = FRESLEST_DISPLAY_LCD;
 freslest_display_t freslest_video_output(void) { return mock_video_output; }
 uint8_t mock_mode,mock_saved[32],mock_staged[32];size_t mock_saved_size,mock_staged_size;
 bool mock_nvs_fail,mock_heap_fail,mock_bad_running,mock_boot_fail,mock_read_corrupt,mock_read_fail,mock_end_fail,mock_begin_fail;
+bool mock_network_update;
 unsigned mock_allocations,mock_erases,mock_writes,mock_unmounts,mock_first_erase_mode,mock_running,mock_events,mock_cut_at,mock_ota_states[3];
 unsigned mock_nvs_sets,mock_nvs_commits,mock_boot_selections;
 int mock_write_failure=-1;int64_t mock_time;uint8_t *mock_flash;void *mock_heap_block;
@@ -43,6 +44,7 @@ static void reset(const char *name) {
  if(mock_heap_block)free(mock_heap_block);mock_heap_block=NULL;
  memset(mock_flash,0x3c,FRESLEST_OS_SLOT_SIZE);mock_mode=0;mock_saved_size=mock_staged_size=0;mock_boot=&mock_parts[0];mock_running=0;mock_time=0;
  mock_nvs_fail=mock_heap_fail=mock_bad_running=mock_boot_fail=mock_read_corrupt=mock_read_fail=mock_end_fail=mock_begin_fail=false;
+ mock_network_update=false;
  mock_allocations=mock_erases=mock_writes=mock_unmounts=mock_first_erase_mode=mock_events=mock_cut_at=0;mock_write_failure=-1;
  mock_ota_states[0]=mock_ota_states[2]=ESP_OTA_IMG_VALID;mock_ota_states[1]=ESP_OTA_IMG_ABORTED;
  policy_reset();assert(freslest_ota_boot_begin()&&ready);mock_events=0;
@@ -57,6 +59,9 @@ static void begin_new_boot(void) {mock_running=1;mock_ota_states[1]=ESP_OTA_IMG_
 static void old_boot(void) {mock_running=0;mock_boot=&mock_parts[0];mock_ota_states[1]=ESP_OTA_IMG_ABORTED;policy_reset();assert(freslest_ota_boot_begin()&&ready);}
 static void confirm_startup(void) {for(unsigned i=0;i<60;i++) {mock_time+=200000;freslest_ota_health_tick(true);}assert(ready&&!pending);}
 static void capture(const char *path) {FILE *f=fopen(path,"wb");assert(f);assert(fwrite(screen,1,480*320,f)==480*320);fclose(f);}
+static void network_progress(unsigned percent,const char *phase) {
+ assert(phase&&percent<100&&mock_boot==&mock_parts[0]);
+}
 int main(int argc,char **argv) {
  assert(argc==2);FILE *f=fopen(argv[1],"rb");assert(f);fseek(f,0,SEEK_END);original_size=ftell(f);rewind(f);original=malloc(original_size);assert(original);assert(fread(original,1,original_size,f)==original_size);fclose(f);
  mock_flash=malloc(FRESLEST_OS_SLOT_SIZE);screen=calloc(480*320,1);assert(mock_flash&&screen);
@@ -92,6 +97,16 @@ int main(int argc,char **argv) {
   select_package();press(2);assert(failed&&last_percent<100&&mock_boot==&mock_parts[0]&&!mock_allocations);
  }
  puts("PASS: corrupt SHA, heap/NVS, OTA begin/write/end, read-back and boot-selection failures retain old OS");
+ reset("update.zip");mock_network_update=true;original[original_size-1]^=1;
+ assert(!freslest_update_stage_os(original,original_size,&valid_package,network_progress,error_text,sizeof(error_text)));
+ assert(!mock_erases&&mock_boot==&mock_parts[0]);original[original_size-1]^=1;
+ mock_read_corrupt=true;
+ assert(!freslest_update_stage_os(original,original_size,&valid_package,network_progress,error_text,sizeof(error_text)));
+ assert(state.mode==IDLE&&mock_boot==&mock_parts[0]);
+ reset("update.zip");mock_network_update=true;
+ assert(freslest_update_stage_os(original,original_size,&valid_package,network_progress,error_text,sizeof(error_text)));
+ assert(mock_boot==&mock_os&&state.mode==TRIAL&&!memcmp(mock_flash,original,original_size));
+ puts("PASS: network image is checked before erase, verified on read-back and selected as a trial");
  reset("update.zip");mock_parts[4].address++;assert(!freslest_ota_layout_valid());mock_parts[4].address--;
  free(original);free(mock_flash);free(screen);return 0;
 }

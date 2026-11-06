@@ -47,6 +47,7 @@ enum AppId : uint8_t {
   APP_FRESTORE,
   APP_FRESTORE_APPS,
   APP_TERMINAL,
+  APP_NETWORK_UPDATE,
 };
 
 extern AppId app;
@@ -155,7 +156,7 @@ void nesPlayerLoop(uint32_t now);
 // ===== internal helpers exposed across TUs =====
 AppId settingsMenuToApp(int idx);
 int& __settingsIndex();
-int  __settingsCount();
+int  __settingsMenuHit();
 
 // ===== Internal menu helpers =====
 int& __appsIndex();

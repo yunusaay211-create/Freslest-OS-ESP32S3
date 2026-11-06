@@ -2,13 +2,16 @@
 #define FRESLEST_INTERNAL_ROOT testInternalRoot
 static const char *testInternalRoot;
 #include "../freslest/src/freslest/app_files.cpp"
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <unistd.h>
 static void clear(){bBack.pressedEdge=bUp.pressedEdge=bDown.pressedEdge=bLeft.pressedEdge=bRight.pressedEdge=bOk.pressedEdge=bFire.pressedEdge=false;usbPointer.click=usbPointer.rightClick=false;}
 static void click(int x,int y,bool right=false){clear();if(tft.width()==320){x=x*2/3;y=36+(y-44)*5/7;}usbPointer={x,y,true,false,!right,right};filesLoop(0);clear();}
 int main(){
- auto root=std::filesystem::temp_directory_path()/("files_ui_"+std::to_string(getpid()));std::string mount=root.string();std::filesystem::create_directories(root/"games/nes");std::ofstream(root/"note.txt")<<"Keep this note";std::ofstream(root/"games/nes/TEST.NES")<<"NES data";testInternalRoot=mount.c_str();filesEnter();assert(view==DISKS);bOk.pressedEdge=true;filesLoop(0);clear();assert(view==LIST&&browser.count()==2);
+ std::string mount=(std::filesystem::temp_directory_path()/"files_ui_XXXXXX").string();
+ assert(mkdtemp(mount.data()));auto root=std::filesystem::path(mount);
+ std::filesystem::create_directories(root/"games/nes");std::ofstream(root/"note.txt")<<"Keep this note";std::ofstream(root/"games/nes/TEST.NES")<<"NES data";testInternalRoot=mount.c_str();filesEnter();assert(view==DISKS);bOk.pressedEdge=true;filesLoop(0);clear();assert(view==LIST&&browser.count()==2);
  click(40,120,true);assert(view==ACTIONS&&selected==1);click(60,220);assert(view==DELETE_CONFIRM&&!confirmDelete);bOk.pressedEdge=true;filesLoop(0);clear();assert(view==LIST&&std::filesystem::exists(root/"note.txt"));
  click(40,120,true);click(60,220);bBack.pressedEdge=true;filesLoop(0);clear();assert(view==LIST&&std::filesystem::exists(root/"note.txt"));click(40,120);assert(view==TEXT&&!strcmp(preview,"Keep this note"));bBack.pressedEdge=true;filesLoop(0);clear();
  click(40,120,true);click(60,220);click(300,230);assert(view==LIST&&!std::filesystem::exists(root/"note.txt")&&std::filesystem::exists(root/"games/nes/TEST.NES"));click(40,90);assert(!strcmp(browser.path(),"/games"));bBack.pressedEdge=true;filesLoop(0);clear();assert(!strcmp(browser.path(),"/"));bBack.pressedEdge=true;filesLoop(0);clear();assert(view==DISKS);bBack.pressedEdge=true;filesLoop(0);clear();assert(entered==APP_APPS);
@@ -29,6 +32,11 @@ int main(){
  disk=1;bOk.pressedEdge=true;filesLoop(8);clear();assert(retries==1&&view==DISKS);
  hostUsb.state=UsbStorageState::Error;hostUsb.revision++;filesLoop(9);bOk.pressedEdge=true;filesLoop(10);clear();assert(retries==2&&view==DISKS);
  hostPC=true;hostUsb.state=UsbStorageState::Disabled;hostUsb.revision++;filesLoop(11);bFire.pressedEdge=true;filesLoop(12);clear();assert(!hostPC&&modeSwitches==1);
+ tft.w=480;desktopClient=true;filesEnter();
+ assert(std::find(tft.words.begin(),tft.words.end(),"My Computer")!=tft.words.end());
+ click(180,102);assert(view==LIST&&browser.count());
+ click(27,98);assert(view==DISKS);
+ click(180,102);click(182,92);assert(view==LIST&&!strcmp(browser.path(),"/games"));
  std::filesystem::remove_all(root);
  puts("PASS: actual Files UI C:/D: Disks, USB folders/text, hot removal during preview, replaced-drive root reset, USB-only confirmed delete, retry/eject/PC-role switch, internal ROM preservation and lock release; original actions/cancel/parent behavior");
 }

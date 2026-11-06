@@ -4,7 +4,7 @@
 #include "settings.h"
 
 // ===== Apps menu =====
-static const char* APPS_ITEMS[] = { "Calculator", "Note", "Paint", "Clock", "Camera", "Files", "Browser", "Settings", "FreStore", "Yuklu Uygulamalar" };
+static const char* APPS_ITEMS[] = { "Calculator", "Note", "Paint", "Clock", "Camera", "Files", "Browser", "Settings", "FreStore", "Yuklu Uygulamalar", "Wi-Fi Update" };
 static constexpr int APPS_COUNT = sizeof(APPS_ITEMS)/sizeof(APPS_ITEMS[0]);
 static int appsIndex = 0;
 static int appsTop = 0;
@@ -49,6 +49,7 @@ static AppId appsMenuToApp(int idx){
     case 7: return APP_SETTINGS;
     case 8: return APP_FRESTORE;
     case 9: return APP_FRESTORE_APPS;
+    case 10: return APP_NETWORK_UPDATE;
   }
   return APP_APPS;
 }

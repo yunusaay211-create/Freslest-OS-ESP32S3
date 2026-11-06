@@ -452,6 +452,120 @@ static void check_progress(unsigned percent, void *unused) {
   (void)unused;
   progress((percent * 25) / 100, "Checking ZIP and firmware");
 }
+static bool compatible_chip(const uint8_t *image) {
+#ifndef FRESLEST_UPDATE_RUNTIME_TEST
+  const esp_image_header_t *header = (const esp_image_header_t *)image;
+  const esp_app_desc_t *description = (const esp_app_desc_t *)(image + 32);
+  return bootloader_common_check_chip_validity(header, ESP_IMAGE_APPLICATION) == ESP_OK &&
+         bootloader_common_check_efuse_blk_validity(
+             description->min_efuse_blk_rev_full,
+             description->max_efuse_blk_rev_full) == ESP_OK;
+#else
+  (void)image;
+  return true;
+#endif
+}
+
+static bool write_firmware(const esp_partition_t *target, const uint8_t *image,
+                           uint32_t image_size, const uint8_t expected[32],
+                           const char *write_phase, freslest_flash_progress report,
+                           char *error, size_t error_size) {
+  report(26, write_phase);
+  esp_ota_handle_t handle = 0;
+  esp_err_t result = esp_ota_begin(target, image_size, &handle);
+  bool ok = result == ESP_OK;
+  if (!ok)
+    snprintf(error, error_size, "OTA begin: %s",
+             esp_err_to_name(result));
+  for (uint32_t offset = 0; ok && offset < image_size; offset += 4096) {
+    size_t bytes = image_size - offset;
+    if (bytes > 4096)
+      bytes = 4096;
+    result = esp_ota_write(handle, image + offset, bytes);
+    if (result != ESP_OK) {
+      snprintf(error, error_size, "OTA write: %s",
+               esp_err_to_name(result));
+      ok = false;
+    } else
+      report(26 + (unsigned)((uint64_t)(offset + bytes) * 68 / image_size),
+               write_phase);
+    vTaskDelay(1);
+  }
+  if (ok) {
+    result = esp_ota_end(handle);
+    handle = 0;
+    ok = result == ESP_OK;
+    if (!ok)
+      snprintf(error, error_size, "OTA image rejected: %s",
+               esp_err_to_name(result));
+  } else if (handle)
+    esp_ota_abort(handle);
+  uint8_t hash[32];
+  if (ok) {
+    report(95, "Verifying written firmware");
+    // esp_partition_get_sha256(app) verifies the ESP image, but returns
+    // the image's embedded digest, not the ZIP's whole-file hash. Use a
+    // separate streaming read-back hash to check every written byte.
+    mbedtls_sha256_context sha;
+    mbedtls_sha256_init(&sha);
+    ok = mbedtls_sha256_starts(&sha, 0) == 0;
+    uint8_t block[4096];
+    for (uint32_t offset = 0; ok && offset < image_size;
+         offset += sizeof(block)) {
+      size_t bytes = image_size - offset;
+      if (bytes > sizeof(block))
+        bytes = sizeof(block);
+      ok = esp_partition_read(target, offset, block, bytes) == ESP_OK &&
+           mbedtls_sha256_update(&sha, block, bytes) == 0;
+      vTaskDelay(1);
+    }
+    if (ok)
+      ok = mbedtls_sha256_finish(&sha, hash) == 0;
+    mbedtls_sha256_free(&sha);
+    ok = ok && !memcmp(hash, expected, 32);
+    if (!ok)
+      snprintf(error, error_size,
+               "Written firmware checksum failed. Retry update.");
+  }
+  return ok;
+}
+
+bool freslest_update_stage_os(const uint8_t *image, size_t size,
+                              const freslest_update_package *package,
+                              freslest_flash_progress report,
+                              char *error, size_t error_size) {
+  const esp_partition_t *target = os_partition();
+  if (!target || !image || !package || !report || package->target != FRESLEST_UPDATE_OS) {
+    snprintf(error, error_size, "OS update unavailable for this flash layout.");
+    return false;
+  }
+  if (!freslest_update_validate_image(image, size, package, error, error_size))
+    return false;
+  if (!compatible_chip(image)) {
+    snprintf(error, error_size, "Firmware needs a different chip revision.");
+    return false;
+  }
+  if (freslest_ota_begin_update(target) != ESP_OK) {
+    snprintf(error, error_size, "Cannot save OTA state. Current OS kept.");
+    return false;
+  }
+  if (!write_firmware(target, image, package->image_size, package->sha256,
+                      "Writing the inactive OS slot", report, error, error_size)) {
+    freslest_ota_cancel_update();
+    return false;
+  }
+  report(99, "Checking boot image");
+  esp_err_t result = freslest_ota_select_update(target);
+  if (result == ESP_OK) return true;
+  const esp_partition_t *running = esp_ota_get_running_partition();
+  const esp_partition_t *boot = esp_ota_get_boot_partition();
+  if (running && ((boot && boot->address == running->address) ||
+                  esp_ota_set_boot_partition(running) == ESP_OK))
+    freslest_ota_cancel_update();
+  snprintf(error, error_size, "Boot image rejected: %s", esp_err_to_name(result));
+  return false;
+}
+
 static bool install(void) {
   if (!count || count > MAX_PACKAGES || selected >= count)
     return snprintf(error_text, sizeof(error_text),
@@ -522,20 +636,12 @@ static bool install(void) {
     heap_caps_free(image);
     return false;
   }
-#ifndef FRESLEST_UPDATE_RUNTIME_TEST
-  const esp_image_header_t *header = (const esp_image_header_t *)image;
-  const esp_app_desc_t *description = (const esp_app_desc_t *)(image + 32);
-  if (bootloader_common_check_chip_validity(header, ESP_IMAGE_APPLICATION) !=
-          ESP_OK ||
-      bootloader_common_check_efuse_blk_validity(
-          description->min_efuse_blk_rev_full,
-          description->max_efuse_blk_rev_full) != ESP_OK) {
+  if (!compatible_chip(image)) {
     heap_caps_free(image);
     snprintf(error_text, sizeof(error_text),
              "Firmware needs a different chip revision.");
     return false;
   }
-#endif
   // All compressed data, CRC, SHA256, ESP segments, ESP digest and project
   // identity have passed before the first flash erase. Stage the entire image
   // in PSRAM, so unplugging the USB cannot interrupt a flash write.
@@ -549,65 +655,9 @@ static bool install(void) {
     previous = NULL;
   uint32_t image_size = choice->package.image_size;
   unmount_drive();
-  const char *write_phase = doom ? "Writing the single Doom slot"
-                                 : "Writing the inactive OS slot";
-  progress(26, write_phase);
-  esp_ota_handle_t handle = 0;
-  esp_err_t result = esp_ota_begin(target, image_size, &handle);
-  ok = result == ESP_OK;
-  if (!ok)
-    snprintf(error_text, sizeof(error_text), "OTA begin: %s",
-             esp_err_to_name(result));
-  for (uint32_t offset = 0; ok && offset < image_size; offset += 4096) {
-    size_t bytes = image_size - offset;
-    if (bytes > 4096)
-      bytes = 4096;
-    result = esp_ota_write(handle, image + offset, bytes);
-    if (result != ESP_OK) {
-      snprintf(error_text, sizeof(error_text), "OTA write: %s",
-               esp_err_to_name(result));
-      ok = false;
-    } else
-      progress(26 + (unsigned)((uint64_t)(offset + bytes) * 68 / image_size),
-               write_phase);
-    vTaskDelay(1);
-  }
-  if (ok) {
-    result = esp_ota_end(handle);
-    handle = 0;
-    ok = result == ESP_OK;
-    if (!ok)
-      snprintf(error_text, sizeof(error_text), "OTA image rejected: %s",
-               esp_err_to_name(result));
-  } else if (handle)
-    esp_ota_abort(handle);
-  uint8_t hash[32];
-  if (ok) {
-    progress(95, "Verifying written firmware");
-    // esp_partition_get_sha256(app) verifies the ESP image, but returns
-    // the image's embedded digest, not the ZIP's whole-file hash. Use a
-    // separate streaming read-back hash to check every written byte.
-    mbedtls_sha256_context sha;
-    mbedtls_sha256_init(&sha);
-    ok = mbedtls_sha256_starts(&sha, 0) == 0;
-    uint8_t block[4096];
-    for (uint32_t offset = 0; ok && offset < image_size;
-         offset += sizeof(block)) {
-      size_t bytes = image_size - offset;
-      if (bytes > sizeof(block))
-        bytes = sizeof(block);
-      ok = esp_partition_read(target, offset, block, bytes) == ESP_OK &&
-           mbedtls_sha256_update(&sha, block, bytes) == 0;
-      vTaskDelay(1);
-    }
-    if (ok)
-      ok = mbedtls_sha256_finish(&sha, hash) == 0;
-    mbedtls_sha256_free(&sha);
-    ok = ok && !memcmp(hash, choice->package.sha256, 32);
-    if (!ok)
-      snprintf(error_text, sizeof(error_text),
-               "Written firmware checksum failed. Retry USB.");
-  }
+  ok = write_firmware(target, image, image_size, choice->package.sha256,
+                      doom ? "Writing the single Doom slot" : "Writing the inactive OS slot",
+                      progress, error_text, sizeof(error_text));
   heap_caps_free(image);
   if (!ok) {
     if (!doom)

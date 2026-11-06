@@ -8,6 +8,7 @@
 #include "storage_init.h"
 #include <LittleFS.h>
 #endif
+#include "desktop.h"
 #include "file_browser.h"
 #include "usb_storage.h"
 #include <algorithm>
@@ -28,6 +29,7 @@ uint32_t diskRevision=0;
 size_t used = 0, total = 0;
 char preview[FileBrowser::TEXT_PAGE + 1], message[96];
 constexpr unsigned ROWS = 6;
+constexpr int SidebarX = 12, SidebarW = 128, DesktopListX = 156, ListRight = 464;
 struct UsbAccess {
   bool held=false,ok=true;
   explicit UsbAccess(bool needed){if(needed)ok=held=usbStorageLock();}
@@ -57,50 +59,71 @@ void button(int x, int y, int w, const char *text, bool active) {
   tft.setTextColor(TH().text, bg);
   label(x + 10, y + 9, text);
 }
+void drawSidebar() {
+  tft.fillRoundRect(SidebarX,52,SidebarW,236,5,desktop_color::Panel);
+  tft.drawRoundRect(SidebarX,52,SidebarW,236,5,desktop_color::Border);
+  tft.setTextColor(desktop_color::Ink,desktop_color::Panel);
+  label(22,63,view==DISKS?"Other Places":"File Tasks");
+  if (view == DISKS) {
+    label(22,94,"My Computer");
+    label(22,112,"Local and USB");
+  } else {
+    button(20,90,112,"My Computer",false);
+    if (ready && browser.count()) button(20,130,112,"Actions",false);
+  }
+}
 void draw() {
+  const bool desktop=desktopHasWindow();
+  const bool sidebar=desktop&&(view==DISKS||view==LIST);
+  const int contentX=sidebar?DesktopListX:16;
+  const int driveX=desktop?DesktopListX:20, driveW=460-driveX;
   tft.fillScreen(TH().bg);
-  drawHeader("Apps: Files");
+  drawHeader(desktop?"Files and Folders":"Apps: Files");
   clearBody();
   drawFooter(view == DISKS ? "OK Open  FIRE Eject USB" : view == LIST ? "OK Open  FIRE Actions" : "OK Select",
-             view == DISKS ? "BACK Apps" : view == LIST ? "BACK Parent / Disks" : "BACK Cancel");
+             view == DISKS ? (desktop?"BACK Close":"BACK Apps") : view == LIST ? "BACK Parent / Disks" : "BACK Cancel");
+  if (sidebar) drawSidebar();
   tft.setTextColor(TH().dim, TH().bg);
   char text[80];
   if(view==DISKS){
     UsbStorageInfo usb=usbStorageInfo();
-    label(20,56,"Disks",2);
-    button(20,96,440,"C:  Internal flash",disk==0);
+    label(driveX,56,desktop?"Hard Disk Drives":"Disks",2);
+    button(driveX,96,driveW,"C:  Internal flash",disk==0);
     tft.setTextColor(TH().dim,TH().bg);
-    label(30,134,freslestStorageStatus());
+    label(driveX+10,134,freslestStorageStatus());
     if(usb.present()){
-      button(20,164,440,"D:  USB drive",disk==1);
+      button(driveX,164,driveW,"D:  USB drive",disk==1);
       tft.setTextColor(TH().dim,TH().bg);
       if(usb.state==UsbStorageState::Ready){
         if(usb.bytes)snprintf(text,sizeof(text),"FAT16/FAT32 | Drive capacity: %llu MB",(unsigned long long)(usb.bytes/(1024*1024)));
         else snprintf(text,sizeof(text),"FAT USB drive ready");
-        label(30,202,text);
+        label(driveX+10,202,text);
       }
-    }else label(24,180,"Connect a USB drive to USB/OTG.");
-    snprintf(text,sizeof(text),"%.72s",usb.message);label(24,224,text);
-    if(!usbInputHostMode())button(20,250,300,"FIRE: Switch to USB host",false);
+    }else label(driveX+4,180,"Connect a USB drive to USB/OTG.");
+    snprintf(text,sizeof(text),"%.*s",desktop?49:72,usb.message);label(driveX+4,224,text);
+    if(!usbInputHostMode())button(driveX,250,300,"FIRE: Switch to USB host",false);
     return;
   }
   if(onUsb)snprintf(text,sizeof(text),"D: USB drive | FAT16/FAT32");
   else snprintf(text, sizeof(text), "C: Internal flash | %u / %u KB used",
            (unsigned)(used / 1024), (unsigned)(total / 1024));
-  label(16, 48, text);
-  snprintf(text, sizeof(text), "%c:%.70s",onUsb?'D':'C',browser.path());
-  label(16, 64, text);
+  label(contentX, 48, text);
+  snprintf(text, sizeof(text), "%c:%.*s",onUsb?'D':'C',sidebar?49:70,browser.path());
+  label(contentX, 64, text);
   if (!ready) {
-    label(20, 112, "Storage unavailable", 2);
-    label(20, 152, onUsb?usbStorageInfo().message:freslestStorageStatus());
-    label(20, 182, browser.error());
-    button(20, 230, 160, "OK: Retry", true);
+    const int x=contentX+4;
+    label(x, 112, "Storage unavailable", 2);
+    snprintf(text,sizeof(text),"%.*s",sidebar?49:72,onUsb?usbStorageInfo().message:freslestStorageStatus());
+    label(x, 152, text);
+    snprintf(text,sizeof(text),"%.*s",sidebar?49:72,browser.error());
+    label(x, 182, text);
+    button(x, 230, 160, "OK: Retry", true);
     return;
   }
   if (view == LIST) {
     if (!browser.count()) {
-      label(30, 120, "This folder is empty", 2);
-      label(30, 156, "BACK opens the parent folder.");
+      label(contentX+14, 120, "This folder is empty", 2);
+      label(contentX+14, 156, "BACK opens the parent folder.");
     }
     for (unsigned row = 0; row < ROWS && top + row < browser.count(); row++) {
       unsigned i = top + row;
@@ -108,19 +131,19 @@ void draw() {
       bool sel = i == selected;
       int y = 84 + row * 30;
       uint16_t bg = sel ? TH().selbg : TH().bg;
-      uiCanvasRoundRect(16, y, 448, 28, 6, bg);
+      uiCanvasRoundRect(contentX, y, ListRight-contentX, 28, 6, bg);
       if (sel)
-        uiCanvasOutline(16, y, 448, 28, 6, TH().accent);
+        uiCanvasOutline(contentX, y, ListRight-contentX, 28, 6, TH().accent);
       tft.setTextColor(sel ? TH().text : TH().dim, bg);
       snprintf(text, sizeof(text), "%s %.31s", e->directory ? "[+]" : "   ",
                e->name);
-      label(24, y + 6, text, 2);
+      label(contentX+8, y + (desktop?10:6), text, desktop?1:2);
     }
     tft.setTextColor(TH().dim, TH().bg);
     snprintf(text, sizeof(text), "%u items | L/R Page%s", browser.count(),
              browser.truncated() ? " | List limited" : "");
-    label(20, 278, text);
-    button(358, 268, 106, "Actions", false);
+    label(contentX+4, 278, text);
+    if (!desktop) button(358, 268, 106, "Actions", false);
     return;
   }
   const auto *e = browser.entry(selected);
@@ -218,6 +241,8 @@ void filesEnter() {
 }
 void filesLoop(uint32_t now) {
   (void)now;
+  const bool desktop=desktopHasWindow();
+  const int driveX=desktop?DesktopListX:20, listX=desktop?DesktopListX:16;
   UsbStorageInfo usb=usbStorageInfo();
   if(usb.revision!=diskRevision){
     diskRevision=usb.revision;
@@ -227,11 +252,11 @@ void filesLoop(uint32_t now) {
   }
   if(view==DISKS){
     if(bBack.pressed()||usbPointer.rightClick){enterApp(APP_APPS);return;}
-    if(!usbInputHostMode()&&(bFire.pressed()||uiCanvasHit(20,250,300,28))){usbInputSwitchMode(false);return;}
+    if(!usbInputHostMode()&&(bFire.pressed()||uiCanvasHit(driveX,250,300,28))){usbInputSwitchMode(false);return;}
     bool ok=bOk.pressed(),changed=false;
     if((bUp.pressed()||bDown.pressed()||bLeft.pressed()||bRight.pressed())&&usb.present()){disk^=1;changed=true;}
-    if(uiCanvasHit(20,96,440,28)){disk=0;ok=true;}
-    if(usb.present()&&uiCanvasHit(20,164,440,28)){disk=1;ok=true;}
+    if(uiCanvasHit(driveX,96,460-driveX,28)){disk=0;ok=true;}
+    if(usb.present()&&uiCanvasHit(driveX,164,460-driveX,28)){disk=1;ok=true;}
     if(bFire.pressed()&&usb.present()){usbStorageEject();return;}
     if(changed)draw();
     if(!ok)return;
@@ -243,10 +268,13 @@ void filesLoop(uint32_t now) {
     browser.selectMount(onUsb?usbStorageRoot():FRESLEST_INTERNAL_ROOT);
     selected=top=0;view=LIST;refresh();draw();return;
   }
+  if (desktop && view == LIST && uiCanvasHit(20,90,112,28)) {
+    view=DISKS;disk=onUsb?1:0;draw();return;
+  }
   UsbAccess access(onUsb);
   if(!access.ok){view=DISKS;draw();return;}
   if (usbPointer.rightClick) {
-    if (view == LIST && uiCanvasPointerX() >= 16 && uiCanvasPointerX() < 464 &&
+    if (view == LIST && uiCanvasPointerX() >= listX && uiCanvasPointerX() < ListRight &&
         uiCanvasPointerY() >= 84 && uiCanvasPointerY() < 264) {
       unsigned i = top + (uiCanvasPointerY() - 84) / 30;
       if (i < browser.count()) {
@@ -276,7 +304,7 @@ void filesLoop(uint32_t now) {
     return;
   }
   if (!ready) {
-    if (bOk.pressed() || uiCanvasHit(20, 230, 160, 28)) {
+    if (bOk.pressed() || uiCanvasHit(view==LIST?listX+4:20, 230, 160, 28)) {
       refresh();
       draw();
     }
@@ -308,7 +336,7 @@ void filesLoop(uint32_t now) {
       selected = std::min(selected + ROWS, count - 1);
       changed = true;
     }
-    if (uiCanvasHit(16, 84, 448, ROWS * 30)) {
+    if (uiCanvasHit(listX, 84, ListRight-listX, ROWS * 30)) {
       unsigned i = top + (uiCanvasPointerY() - 84) / 30;
       if (i < count) {
         selected = i;
@@ -319,7 +347,7 @@ void filesLoop(uint32_t now) {
       top = selected / ROWS * ROWS;
       draw();
     }
-    if (bFire.pressed() || uiCanvasHit(358, 268, 106, 28)) {
+    if (bFire.pressed() || (desktop?uiCanvasHit(20,130,112,28):uiCanvasHit(358,268,106,28))) {
       view = ACTIONS;
       action = 0;
       draw();

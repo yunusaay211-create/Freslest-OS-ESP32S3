@@ -7,6 +7,8 @@ def function(source,name):
     while depth:depth+=(source[end]=='{')-(source[end]=='}');end+=1
     return source[start:end]
 source=(app/'apps.cpp').read_text();menus=(app/'menus_sub.cpp').read_text();header=(app/'apps.h').read_text()
+settings=(app/'settings_pages.cpp').read_text()
+settings_menu=settings[settings.index('// ===== Settings menu ====='):settings.index('// ===== Brightness =====')]
 enum=header[header.index('enum AppId'):header.index('};')+2]
 items=menus[menus.index('static const char* GAME_ITEMS'):menus.index('static void drawGameRow')]
 appitems=menus[menus.index('static const char* APPS_ITEMS'):menus.index('// ===== Game menu =====')]
@@ -19,6 +21,7 @@ prelude=r'''
 #include <vector>
 #include "task_hold.h"
 #include "ui_layout.h"
+#include "desktop.h"
 struct Button {bool state=false,edge=false,pressedEdge=false;bool down()const{return state;}bool pressed()const{return edge||pressedEdge;}};
 Button bOk,bUp,bDown,bLeft,bRight,bBack;
 struct Pointer{int x=0,y=0;bool click=false;}usbPointer;
@@ -28,7 +31,7 @@ bool usbInputHit(int x,int y,int w,int h){return usbPointer.click&&usbPointer.x>
 bool taskView=false,taskInputConsumed=false,nesFullscreen=false;
 TaskHold taskHold;constexpr unsigned OK_HOLD_MS=650;
 unsigned switcherDraws=0,menuDraws=0,entered=0;
-struct Theme {unsigned bg=0,text=1,dim=2,accent=3,selbg=4;};
+struct Theme {unsigned bg=0,text=1,dim=2,accent=3,selbg=4,panel=5;};
 Theme& TH(){static Theme t;return t;}
 struct Display {
  int w=480,h=320;int width(){return w;}int height(){return h;}
@@ -40,9 +43,11 @@ struct Display {
  void setTextColor(unsigned,unsigned){}void setTextSize(int n){size=n;}
  void setCursor(int x,int y){cursorX=x;cursorY=y;assert(y>=(w==320?36:44)&&y+8*size<=h-24);}
  void print(const char* text){words.emplace_back(text);cursorX+=strlen(text)*6*size;assert(cursorX<=w);}
+ void printf(const char* format,char value){char text[16];snprintf(text,sizeof(text),format,value);print(text);}
 }tft;
 int& testIdx();void drawTestMenuSelectionOnly(int,int);
 void drawHeader(const char*){}void drawFooter(const char*,const char*){}void clearBody(){}void drawAppsMenuFull();
+bool desktopClient=false;bool desktopHasWindow(){return desktopClient;}
 void audioClick(){}void nesPlayerExit(){}void noteExit(){}
 bool editorActive=false;unsigned browserPauses=0;bool textEntryActive(){return editorActive;}void browserExit(){browserPauses++;}
 void drawMenuFull(){++menuDraws;}void drawTaskSwitcherFull(){++switcherDraws;}
@@ -52,9 +57,9 @@ AppId app=APP_MENU,tasks[]={APP_CALC,APP_NOTE,APP_CLOCK};int taskCount=3,taskSel
 void enterApp(AppId next){app=next;++entered;}
 '''
 pointer=r'''
-int menuIndex=0,settingsIndex=0,testIndex=0;constexpr int MENU_COUNT=6;
-int& __appsIndex(){return appsIndex;}int& __settingsIndex(){return settingsIndex;}
-int& __gameIndex(){return gameIndex;}int __settingsCount(){return 7;}int __gameCount(){return GAME_COUNT;}int& testIdx(){return testIndex;}
+int menuIndex=0,testIndex=0;constexpr int MENU_COUNT=6;
+int& __appsIndex(){return appsIndex;}int& __settingsIndex(){return setIndex;}
+int& __gameIndex(){return gameIndex;}int __gameCount(){return GAME_COUNT;}int& testIdx(){return testIndex;}
 void actualMenuPointer(){
 '''+source[source.index('  int mouseRow=-1;'):source.index('  // BACK navigation tree:')]+"}\n"
 test=r'''
@@ -93,11 +98,15 @@ int main(){
  appsTop=0;app=APP_APPS;usbPointer={22,43,true};actualMenuPointer();assert(appsIndex==0&&bOk.pressed());edges();
  app=APP_TEST;usbPointer={22,43,true};actualMenuPointer();assert(testIndex==0&&bOk.pressed());edges();
  app=APP_TEST;usbPointer={22,71,true};actualMenuPointer();assert(testIndex==1&&bOk.pressed());edges();
- app=APP_SETTINGS;usbPointer={22,187,true};actualMenuPointer();assert(settingsIndex==6&&bOk.pressed());edges();
+ app=APP_SETTINGS;usbPointer={22,187,true};actualMenuPointer();assert(setIndex==6&&bOk.pressed());edges();
  puts("PASS: native 320x240 Apps/Game rows and mouse targets stay inside the body with unscaled fonts");
+ desktopClient=true;tft.w=480;tft.h=320;drawSettingsMenuFull();
+ usbPointer={275,75,true};actualMenuPointer();assert(setIndex==1&&bOk.pressed());edges();
+ usbPointer={239,75,true};actualMenuPointer();assert(!bOk.pressed());
+ puts("PASS: Desktop Control Panel opens the right tile and ignores the column gap");
 }
 '''
-code=prelude+enum+'\n'+globals+function(source,'static void removeTaskAt(')+'\n'+function(source,'void taskSwitcherHandle(')+'\n'+appitems+'\n'+function(menus,'int __appsMenuRowAt(')+'\n'+items+'\n'+function(menus,'static void drawGameRow(')+'\n'+function(menus,'void drawGameMenuFull(')+'\n'+function(menus,'void drawGameMenuSelectionOnly(')+'\n'+pointer+function(source,'void drawTestMenuFull(){')+function(source,'void drawTestMenuSelectionOnly(int old,int cur)')+test
+code=prelude+enum+'\n'+globals+function(source,'static void removeTaskAt(')+'\n'+function(source,'void taskSwitcherHandle(')+'\n'+appitems+'\n'+function(menus,'int __appsMenuRowAt(')+'\n'+items+'\n'+function(menus,'static void drawGameRow(')+'\n'+function(menus,'void drawGameMenuFull(')+'\n'+function(menus,'void drawGameMenuSelectionOnly(')+'\n'+settings_menu+'\n'+pointer+function(source,'void drawTestMenuFull(){')+function(source,'void drawTestMenuSelectionOnly(int old,int cur)')+test
 p=build/'ui_actual.cpp';p.write_text(code)
 binary=build/'test_ui_actual'
 subprocess.run(['g++','-std=c++17','-Werror=misleading-indentation','-g','-fsanitize=address,undefined','-I'+str(app),str(p),'-o',str(binary)],check=True)
