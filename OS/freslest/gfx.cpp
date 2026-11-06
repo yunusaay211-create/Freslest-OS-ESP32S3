@@ -1,6 +1,8 @@
 #include "gfx.h"
 #include "screen_mirror.h"
 #include "usb_input.h"
+#include "src/freslest/desktop.h"
+#include <vga_pixels.h>
 #include <freslest_video.h>
 #include <freslest_cursor.h>
 #include <esp_heap_caps.h>
@@ -72,6 +74,7 @@ lgfx::LGFXBase& tft=frame;
 static uint16_t* presented=nullptr;
 static bool firstPresent=true,oldPointer=false;
 static int oldX=0,oldY=0;
+static bool oldDesktop=false;
 
 static uint32_t _lastFrame = 0;
 static bool compactUi=FRESLEST_LCD_MODEL==9341;
@@ -162,7 +165,8 @@ bool frameReady(uint32_t now)
 bool gfxHealthy(){return frame.getBuffer()&&freslest_video_healthy();}
 void gfxMirrorTick(){
  screenMirrorPoll();
- if(frame.getBuffer())screenMirrorFrame((const uint16_t*)frame.getBuffer(),frame.width(),frame.height(),usbPointer.visible,usbPointer.x,usbPointer.y);
+ if(desktopVisible())screenMirrorFrame(desktopPixels(),VGA_WIDTH,VGA_HEIGHT,usbPointer.visible,usbPointer.x,usbPointer.y);
+ else if(frame.getBuffer())screenMirrorFrame((const uint16_t*)frame.getBuffer(),frame.width(),frame.height(),usbPointer.visible,usbPointer.x,usbPointer.y);
 }
 // Reuse the clipping/address walk for composition and restoration. Keep one
 // copy in flash: the original A/B OS slots have very little remaining space.
@@ -181,21 +185,26 @@ static __attribute__((noinline,noclone)) void gfxCursor(uint16_t* pixels,uint16_
 }
 void gfxInvalidate(){firstPresent=true;}
 void gfxPresent(){
- gfxMirrorTick();
  auto* pixels=(uint16_t*)frame.getBuffer();if(!pixels)return;
  if(freslest_video_output()==FRESLEST_DISPLAY_VGA){
+  const bool desktop=desktopVisible();
+  if(desktop!=oldDesktop){firstPresent=true;oldDesktop=desktop;}
   const int bytes=frame.width()*frame.height()*2;
   bool moved=oldPointer!=usbPointer.visible||(usbPointer.visible&&(oldX!=usbPointer.x||oldY!=usbPointer.y));
   // A static UI must not contend with the continuously scanning PSRAM DMA
   // by rewriting the entire 640x480 RGB332 frame on every UI tick.
-  if(firstPresent||!presented||moved||memcmp(pixels,presented,bytes)!=0){
-   if(freslest_video_rgb565(pixels,frame.width(),frame.height(),true,usbPointer.visible,usbPointer.x,usbPointer.y)){
+  bool changed=firstPresent||((!desktop||desktopHasWindow())&&(!presented||memcmp(pixels,presented,bytes)!=0));
+  if(desktop&&desktopCompose(pixels,changed))firstPresent=true;
+  gfxMirrorTick();
+  if(firstPresent||changed||moved){
+   if(freslest_video_rgb565(desktop?desktopPixels():pixels,desktop?int(VGA_WIDTH):frame.width(),desktop?int(VGA_HEIGHT):frame.height(),true,usbPointer.visible,usbPointer.x,usbPointer.y)){
     if(presented)memcpy(presented,pixels,bytes);
     firstPresent=false;oldPointer=usbPointer.visible;oldX=usbPointer.x;oldY=usbPointer.y;
    }
   }
   return;
  }
+ gfxMirrorTick();
  const int width=frame.width(),height=frame.height(),rowBytes=width*2;
  bool dirty[320];
  bool moved=oldPointer!=usbPointer.visible||(usbPointer.visible&&(oldX!=usbPointer.x||oldY!=usbPointer.y));

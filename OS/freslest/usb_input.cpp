@@ -25,6 +25,8 @@ unsigned repeatUsage = 0;
 char characters[32];
 unsigned readAt = 0, writeAt = 0;
 const char *specialKey = nullptr;
+int pointerWidth = 0, pointerHeight = 0;
+bool usbAttached = false;
 // This private merger leaves all four external slots available to BLE.
 void mergedInput(freslest_hid_snapshot_t*out,bool consume){
  if(consume)freslest_hid_snapshot(out);else freslest_hid_peek(out);
@@ -108,6 +110,18 @@ void usbInputPcMouse(int x,int y,uint8_t buttons){
 void usbInputPcRelease(){
  freslest_hid_state_disconnect(&pcInput,0);freslest_hid_state_disconnect(&pcInput,1);
 }
+void usbInputViewport(int width, int height) {
+  if (width == pointerWidth && height == pointerHeight) return;
+  const int oldWidth = pointerWidth ? pointerWidth : tft.width();
+  const int oldHeight = pointerHeight ? pointerHeight : tft.height();
+  if (oldWidth > 0 && oldHeight > 0) {
+    usbPointer.x = usbPointer.x * (width ? width : tft.width()) / oldWidth;
+    usbPointer.y = usbPointer.y * (height ? height : tft.height()) / oldHeight;
+  }
+  pointerWidth = width;
+  pointerHeight = height;
+}
+bool usbInputAttached() { return usbAttached; }
 void usbInputBegin() {
   nvs_handle_t n;
   if (nvs_open("fl_usb", NVS_READWRITE, &n) == ESP_OK) {
@@ -181,15 +195,17 @@ bool usbInputSwitchMode(bool pc) {
 void usbInputUpdate(uint32_t now) {
   freslest_hid_snapshot_t s{};
   mergedInput(&s,true);
-  bool active=s.dx || s.dy || s.mouse_buttons || s.mouse_pressed;
+  usbAttached = s.usb_interfaces != 0;
+  bool active=s.dx || s.dy || s.wheel || s.mouse_buttons || s.mouse_pressed;
   for(unsigned i=0;i<sizeof(s.keys);++i)active|=s.keys[i]||s.pressed[i];
   if(active)lastActivity=now;
   usbPointer.visible = s.mice != 0;
   usbPointer.left = s.mouse_buttons & 1;
   usbPointer.click = s.mouse_pressed & 1;
   usbPointer.rightClick = s.mouse_pressed & 2;
-  usbPointer.x = constrain(usbPointer.x + s.dx, 0, tft.width()-1);
-  usbPointer.y = constrain(usbPointer.y + s.dy, 0, tft.height()-1);
+  usbPointer.wheel = s.wheel;
+  usbPointer.x = constrain(usbPointer.x + s.dx, 0, (pointerWidth ? pointerWidth : tft.width())-1);
+  usbPointer.y = constrain(usbPointer.y + s.dy, 0, (pointerHeight ? pointerHeight : tft.height())-1);
   held = uiMask(s.keys);
   pressed = uiMask(s.pressed) | (held & ~previous);
   if (usbPointer.rightClick && app != APP_FILES && app != APP_BROWSER)
@@ -221,9 +237,10 @@ void usbInputUpdate(uint32_t now) {
   if (!textMode)
     return;
   bool shift = key(s.keys, 0xe1) || key(s.keys, 0xe5);
+  const bool pressedShift = shift || key(s.pressed, 0xe1) || key(s.pressed, 0xe5);
   for (unsigned u = 4; u < 128; u++)
     if (key(s.pressed, u)) {
-      int c = ascii(u, shift);
+      int c = ascii(u, pressedShift);
       enqueue(c);
       if (c >= 0) {
         repeatUsage = u;

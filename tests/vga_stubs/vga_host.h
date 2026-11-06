@@ -21,7 +21,7 @@ typedef struct {uint64_t pin_bit_mask;int mode,pull_up_en;} gpio_config_t;
 typedef void* esp_lcd_panel_handle_t;
 typedef struct {int dummy;} esp_lcd_rgb_panel_event_data_t;
 typedef struct {bool (*on_vsync)(esp_lcd_panel_handle_t,const esp_lcd_rgb_panel_event_data_t*,void*);bool (*on_frame_buf_complete)(esp_lcd_panel_handle_t,const esp_lcd_rgb_panel_event_data_t*,void*);} esp_lcd_rgb_panel_event_callbacks_t;
-typedef struct {int clk_src,data_width,bits_per_pixel,num_fbs;size_t bounce_buffer_size_px;int hsync_gpio_num,vsync_gpio_num,pclk_gpio_num,de_gpio_num,disp_gpio_num;int data_gpio_nums[16];struct {int pclk_hz,h_res,v_res,hsync_pulse_width,hsync_back_porch,hsync_front_porch,vsync_pulse_width,vsync_back_porch,vsync_front_porch;struct {int hsync_idle_low,vsync_idle_low;}flags;}timings;struct {int fb_in_psram;}flags;} esp_lcd_rgb_panel_config_t;
+typedef struct {int clk_src,data_width,bits_per_pixel,num_fbs;size_t bounce_buffer_size_px,dma_burst_size;int hsync_gpio_num,vsync_gpio_num,pclk_gpio_num,de_gpio_num,disp_gpio_num;int data_gpio_nums[16];struct {int pclk_hz,h_res,v_res,hsync_pulse_width,hsync_back_porch,hsync_front_porch,vsync_pulse_width,vsync_back_porch,vsync_front_porch;struct {int hsync_idle_low,vsync_idle_low;}flags;}timings;struct {int fb_in_psram;}flags;} esp_lcd_rgb_panel_config_t;
 static int stored_fit=90;
 static int stored_preset25175;
 static int pending_fit,pending_v2,pending_preset25175;
@@ -32,7 +32,7 @@ typedef uint16_t host_pixel_t;
 typedef uint8_t host_pixel_t;
 #endif
 static uint64_t pins;static int64_t now_us;static host_pixel_t host_fb[640*480],host_back[640*480],host_snapshot[640*480];
-static host_pixel_t *host_active=host_fb,*host_selected=host_fb;static bool host_events=true;static unsigned host_draws;
+static host_pixel_t *host_active=host_fb,*host_selected=host_fb;static bool host_events=true;static unsigned host_draws,host_restarts;
 static esp_lcd_rgb_panel_config_t saved_config;static esp_lcd_rgb_panel_event_callbacks_t callbacks;
 static esp_err_t nvs_open(const char*n,int m,nvs_handle_t*h){
  assert(!strcmp(n,"fl_video"));(void)m;*h=1;
@@ -75,6 +75,7 @@ static int esp_lcd_rgb_panel_get_frame_buffer(esp_lcd_panel_handle_t p,int n,voi
 static int esp_lcd_rgb_panel_register_event_callbacks(esp_lcd_panel_handle_t p,const esp_lcd_rgb_panel_event_callbacks_t*c,void*ctx){assert(p&&!ctx);callbacks=*c;return driver_failure==3?-1:0;}
 static int esp_lcd_panel_reset(esp_lcd_panel_handle_t p){assert(p&&stage==2);for(unsigned i=0;i<sizeof(host_fb)/sizeof(host_fb[0]);i++)assert(!host_fb[i]&&!host_back[i]);return driver_failure==4?-1:0;}
 static int esp_lcd_panel_init(esp_lcd_panel_handle_t p){assert(p);return driver_failure==5?-1:0;}
+static int esp_lcd_rgb_panel_restart(esp_lcd_panel_handle_t p){assert(p);host_restarts++;return 0;}
 static int esp_lcd_panel_del(esp_lcd_panel_handle_t p){assert(p);panels--;return 0;}
 static int esp_lcd_panel_draw_bitmap(esp_lcd_panel_handle_t p,int x,int y,int w,int h,const void* pixels){
  assert(p&&x==0&&y==0&&w==640&&h==480);

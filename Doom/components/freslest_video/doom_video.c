@@ -90,6 +90,7 @@ bool freslest_video_begin(void){
  // One raw RGB332 value per DMA word; the upper eight data lines are unused.
  // This is a literal digital stream, not an RGB565 conversion.
  esp_lcd_rgb_panel_config_t c={0};c.clk_src=LCD_CLK_SRC_DEFAULT;c.data_width=16;c.bits_per_pixel=16;c.num_fbs=2;c.bounce_buffer_size_px=VGA_WIDTH*20;
+ c.dma_burst_size=64;
  c.hsync_gpio_num=47;c.vsync_gpio_num=48;c.pclk_gpio_num=-1;c.de_gpio_num=-1;c.disp_gpio_num=-1;
  for(int i=0;i<16;++i)c.data_gpio_nums[i]=-1;
  const int pins[]={41,8,13,14,2,42,40,39};for(int i=0;i<8;i++)c.data_gpio_nums[i]=pins[i];
@@ -138,7 +139,7 @@ static uint16_t *acquire_frame(void){
  if(pending){
   int64_t deadline=esp_timer_get_time()+100000;
   while(frame_events==queued_event){
-   if(esp_timer_get_time()>=deadline){dropped++;return NULL;}
+   if(esp_timer_get_time()>=deadline){esp_lcd_rgb_panel_restart(panel);dropped++;return NULL;}
    vTaskDelay(pdMS_TO_TICKS(1));
   }
   front^=1;pending=false;

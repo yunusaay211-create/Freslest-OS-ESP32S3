@@ -2,9 +2,10 @@
 #include <string.h>
 static void aggregate(freslest_hid_state_t *s) {
   uint8_t keys[32] = {0}, buttons = 0;
-  s->state.keyboards = s->state.mice = 0;
+  s->state.keyboards = s->state.mice = s->state.usb_interfaces = 0;
   for (unsigned i = 0; i < FRESLEST_HID_SLOTS; i++) {
     freslest_hid_slot_t *p = &s->slot[i];
+    if (i < FRESLEST_HID_USB_SLOTS && p->kind) ++s->state.usb_interfaces;
     if (p->kind == 1) {
       ++s->state.keyboards;
       for (unsigned j = 0; j < 32; j++)
@@ -39,7 +40,7 @@ void freslest_hid_state_disconnect(freslest_hid_state_t *s, unsigned i) {
     s->state.pressed[j] &= s->state.keys[j];
   s->state.mouse_pressed &= s->state.mouse_buttons;
   if (!s->state.mice)
-    s->state.dx = s->state.dy = 0;
+    s->state.dx = s->state.dy = s->state.wheel = 0;
 }
 static int16_t motion(int16_t old, int delta) {
   int64_t n = (int64_t)old + delta;
@@ -77,6 +78,7 @@ bool freslest_hid_state_report(freslest_hid_state_t *s, unsigned i,
     p->buttons = d[0] & 7;
     s->state.dx = motion(s->state.dx, (int8_t)d[1]);
     s->state.dy = motion(s->state.dy, (int8_t)d[2]);
+    if (n == 4) s->state.wheel = motion(s->state.wheel, (int8_t)d[3]);
   } else
     return false;
   aggregate(s);
@@ -88,6 +90,6 @@ void freslest_hid_state_take(freslest_hid_state_t *s,
   if (consume) {
     memset(s->state.pressed, 0, 32);
     s->state.mouse_pressed = 0;
-    s->state.dx = s->state.dy = 0;
+    s->state.dx = s->state.dy = s->state.wheel = 0;
   }
 }

@@ -47,7 +47,8 @@ class BuilderTests(unittest.TestCase):
                     # Staging validates the app descriptor as well as its LCD tag.
                     data = bytearray(80) if name == 'freslest_os_s3.bin' else bytearray()
                     if data:
-                        data[0x30:0x50] = b'1.1' + bytes(29)
+                        data[0x20:0x24] = b'\x32\x54\xcd\xab'
+                        data[0x30:0x50] = b'1.5' + bytes(29)
                     file.write_bytes(data + marker)
 
             old_path = list(sys.path)
@@ -69,7 +70,7 @@ class BuilderTests(unittest.TestCase):
                         tag = {'ili9488':b'FRESLEST_LCD:ILI9488','ili9341':b'FRESLEST_LCD:ILI9341','vga':b'FRESLEST_VIDEO:VGA25175_25175000'}[model]
                         self.assertIn(tag,path.read_bytes())
                         if path.name == 'freslest_os_s3.bin':
-                            self.assertEqual(path.read_bytes()[0x30:0x50], b'1.1' + bytes(29))
+                            self.assertEqual(path.read_bytes()[0x30:0x50], b'1.5' + bytes(29))
 
 
 if __name__ == '__main__':

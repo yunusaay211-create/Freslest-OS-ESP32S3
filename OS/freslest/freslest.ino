@@ -16,6 +16,8 @@ extern "C" char _ext_ram_bss_start[],_ext_ram_bss_end[],_bt_bss_start[],_bt_bss_
 #include "input.h"
 #include "settings.h"
 #include "src/freslest/apps.h"
+#include "src/freslest/desktop.h"
+#include <vga_pixels.h>
 #include "src/freslest/audio_manager.h"
 #include "src/freslest/system_status.h"
 #include "src/freslest/freslest_update_launcher.h"
@@ -57,6 +59,7 @@ void setup() {
   freslestSafetyStage(FreslestBootStage::Usb);
   usbInputBegin();
   systemStatusBegin();audioInit();audioBootMelody();
+  desktopBegin();
   randomSeed(esp_random());fpsInit();drawMenuFull();
   if(usbInputDeviceMode())enterApp(APP_USB_TRANSFER);
   else if(usbInputResumeNes())enterApp(APP_NES_LIBRARY);
@@ -78,12 +81,15 @@ void loop() {
     if(btEnabled){freslestSafetyStage(FreslestBootStage::Bluetooth);freslestBleStart();}
   }
   if(!frameReady(now)) {delay(1);return;}
+  const bool desktop=desktopVisible();
+  usbInputViewport(desktop?VGA_WIDTH:0,desktop?VGA_HEIGHT:0);
   inputUpdate(now);
   bool gameActive=app==APP_NES_PLAYER||app==APP_DINO||app==APP_TETRIS||app==APP_SNAKE||app==APP_MINES||app==APP_2048;
   if(!gameActive)handleGlobalClick();
-  fpsTick(now);taskSwitcherHandle(now);
-  // Sensor reads happen before display transactions.
-  appLoop(now);
+  fpsTick(now);
+  if(desktop)desktopUpdate(now);
+  else {taskSwitcherHandle(now);appLoop(now);}
+  if(desktop!=desktopVisible())usbInputViewport(desktopVisible()?VGA_WIDTH:0,desktopVisible()?VGA_HEIGHT:0);
   bool essentialsReady=psramFound()&&storageReady&&tft.width()==gfxUiWidth()&&tft.height()==gfxUiHeight();
   bool startupReady=false;
   if(!essentialsReady||!freslest_video_starting())

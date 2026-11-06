@@ -9,8 +9,8 @@ extern "C" {
 #define FRESLEST_HID_USB_SLOTS 4
 typedef struct {
   uint8_t keys[32], pressed[32];
-  int16_t dx, dy;
-  uint8_t mouse_buttons, mouse_pressed, keyboards, mice;
+  int16_t dx, dy, wheel;
+  uint8_t mouse_buttons, mouse_pressed, keyboards, mice, usb_interfaces;
 } freslest_hid_snapshot_t;
 bool freslest_hid_start(void);
 void freslest_hid_snapshot(freslest_hid_snapshot_t *output);

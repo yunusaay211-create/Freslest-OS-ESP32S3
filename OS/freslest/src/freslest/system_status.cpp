@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <driver/gpio.h>
 #include <esp_timer.h>
+#include <freslest_video.h>
 
 static constexpr int DHT_PIN=38;
 static bool dhtStarted=false,dhtValid=false,ntpStarted=false;
@@ -26,7 +27,9 @@ static bool waitLevel(int level,uint32_t limit) {
 }
 static bool readDht() {
   uint8_t data[5]={0};bool ok=true;
-  portENTER_CRITICAL(&dhtMux);
+  // VGA bounce refills must stay runnable through the DHT pulse train.
+  const bool maskInterrupts=freslest_video_output()!=FRESLEST_DISPLAY_VGA;
+  if(maskInterrupts)portENTER_CRITICAL(&dhtMux);
   gpio_set_direction((gpio_num_t)DHT_PIN,GPIO_MODE_INPUT);
   // end host high pulse -> sensor response LOW/HIGH -> first data LOW
   ok=waitLevel(1,120)&&waitLevel(0,120)&&waitLevel(1,120);
@@ -34,9 +37,13 @@ static bool readDht() {
     ok=waitLevel(0,100);
     int64_t start=esp_timer_get_time();
     if(ok)ok=waitLevel(1,100);
-    if(ok) data[i/8]=(uint8_t)((data[i/8]<<1)|((esp_timer_get_time()-start)>45));
+    if(ok){
+      const int64_t high=esp_timer_get_time()-start;
+      if(!maskInterrupts&&(high<10||high>90))ok=false;
+      data[i/8]=(uint8_t)((data[i/8]<<1)|(high>45));
+    }
   }
-  portEXIT_CRITICAL(&dhtMux);
+  if(maskInterrupts)portEXIT_CRITICAL(&dhtMux);
   return ok&&dht11Decode(data,temperature,humidity);
 }
 bool rtcGetLocal(struct tm& out) {

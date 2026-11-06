@@ -2,9 +2,10 @@
 import struct
 MAGIC = b'FSCRN1\r\n'
 HEADER = struct.Struct('<8sIIHHI')
-MAX_PIXELS = 480 * 360
+MAX_PIXELS = 640 * 480
 MAX_PAYLOAD = MAX_PIXELS + (MAX_PIXELS + 127) // 128
-SIZES = {(480, 320), (480, 360), (240, 160), (240, 180)}
+NATIVE_SIZES = {(320, 240), (480, 320), (480, 360), (640, 480)}
+SIZES = NATIVE_SIZES | {(w // 2, h // 2) for w, h in NATIVE_SIZES}
 RGB = tuple(bytes(((v >> 5) * 255 // 7, ((v >> 2) & 7) * 255 // 7, (v & 3) * 255 // 3)) for v in range(256))
 CHANNELS = tuple(bytes(c[i] for c in RGB) for i in range(3))
 

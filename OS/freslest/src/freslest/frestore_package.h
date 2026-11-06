@@ -1,0 +1,26 @@
+#pragma once
+#include <stddef.h>
+#include <stdint.h>
+
+namespace frestore {
+constexpr unsigned MaxApps = 16, CatalogBytes = 12288, PackageBytes = 4096;
+constexpr unsigned MaxLines = 20, LineBytes = 45;
+struct App {
+    char id[25], name[35], developer[30], description[97];
+    uint32_t version, size;
+    uint8_t category, digest[32];
+};
+struct Card {
+    char id[25], name[35];
+    uint32_t version;
+    unsigned count;
+    char lines[MaxLines][LineBytes + 1];
+};
+enum Category : uint8_t { Tools, Education, Media, CategoryCount };
+
+bool parseCatalog(const char *data, size_t size, const char *key, App (&apps)[MaxApps], unsigned &count);
+bool parseCard(const char *data, size_t size, const char *key, Card &card);
+bool matches(const char *data, size_t size, const App &app);
+bool validId(const char *id);
+bool fingerprint(const char *key, char (&hex)[17]);
+}

@@ -1,4 +1,6 @@
 """Installer interface messages in Turkish and English."""
+from release_version import OS_VERSION
+
 LANGUAGES = {'tr': 'Türkçe', 'en': 'English'}
 MESSAGES = {
     'sd_button': ('SD karta ses yükle','Install SD sounds'),
@@ -26,6 +28,8 @@ MESSAGES = {
                      'LCD: ILI9488 480×320, ILI9341 320×240; same pins.\nVGA: 25.175 MHz, 640×480 / 59.94 Hz; 800×525 total timing.\nVGA uses ILI9341 as LCD fallback. LCD recovery: hold BACK and press RESET.'),
     'missing_display': ('{display} firmware paketi eksik. Bu ekran için derlenmiş kurulum paketini kullan.',
                         'Firmware package missing for {display}. Use an installer built with this display profile.'),
+    'wrong_version': ('Derlenen Freslest OS surumu {version} olmali.',
+                      'The bundled Freslest OS must be version {version}.'),
     'wrong_display': ('{name}, seçilen {display} ekranına uygun değil. Yükleme durduruldu.',
                       '{name} does not match the selected {display} display. Installation stopped.'),
     'backup': ('Not: Kurulum başlangıç LittleFS içeriğini değiştirir. Mevcut dosyalarını yedekle.',
@@ -45,8 +49,8 @@ MESSAGES = {
     'invalid_port': ('Geçerli bir Windows COM portu seç (örnek: COM7).',
                      'Select a valid Windows COM port (for example, COM7).'),
     'confirm_title': ('Kurulum onayı', 'Confirm installation'),
-    'confirm': ('{port} portuna Freslest 1.1 yüklensin mi?\nEkran: {display}\n\nOS/Doom/WAD/LittleFS üzerine yazılacaktır. Mevcut dosyalarını yedeklediğine emin ol.',
-                'Install Freslest 1.1 on {port}?\nDisplay: {display}\n\nOS/Doom/WAD/LittleFS will be overwritten. Make sure you have backed up your files.'),
+    'confirm': ('{port} portuna Freslest {version} yüklensin mi?\nEkran: {display}\n\nOS/Doom/WAD/LittleFS üzerine yazılacaktır. Mevcut dosyalarını yedeklediğine emin ol.',
+                'Install Freslest {version} on {port}?\nDisplay: {display}\n\nOS/Doom/WAD/LittleFS will be overwritten. Make sure you have backed up your files.'),
     'flash_heading': ('3 / 3   FIRMWARE YÜKLENİYOR', '3 / 3   INSTALLING FIRMWARE'),
     'close': ('Kapat', 'Close'),
     'verified': ('Doğrulandı: {name}\n', 'Verified: {name}\n'),
@@ -56,7 +60,7 @@ MESSAGES = {
     'error_prefix': ('HATA: ', 'ERROR: '),
     'success_heading': ('KURULUM TAMAMLANDI', 'INSTALLATION COMPLETE'),
     'failure_heading': ('KURULUM BAŞARISIZ', 'INSTALLATION FAILED'),
-    'success_summary': ('Freslest OS 1.1 cihazına yüklendi.', 'Freslest OS 1.1 has been installed on your device.'),
+    'success_summary': ('Freslest OS {version} cihazına yüklendi.', 'Freslest OS {version} has been installed on your device.'),
     'failure_summary': ('Cihaza bağlantı veya yükleme sırasında bir hata oluştu.', 'A connection or installation error occurred.'),
     'success_next': ('Kart açıldıktan sonra Freslest USB Viewer.exe ile ekranını görüntüleyebilir ve kontrol edebilirsin.',
                      'After the board starts, open Freslest USB Viewer.exe to view and control its screen.'),
@@ -75,4 +79,4 @@ MESSAGES = {
 
 
 def translate(key, language='tr', **values):
-    return MESSAGES[key][1 if language == 'en' else 0].format(**values)
+    return MESSAGES[key][1 if language == 'en' else 0].format(version=OS_VERSION, **values)

@@ -33,14 +33,19 @@ class LcdProfiles(unittest.TestCase):
 #include "lcd_profile.h"
 #include "freslest_cursor.h"
 #include "freslest_video.h"
+#include "vga_pixels.h"
 void gfxMirrorTick(){}
+static bool desktop=false;static uint16_t deskPixels[VGA_WIDTH*VGA_HEIGHT];
+bool desktopVisible(){return desktop;}bool desktopHasWindow(){return false;}
+bool desktopCompose(const uint16_t*,bool changed){return changed;}
+const uint16_t *desktopPixels(){return deskPixels;}
 static bool vga=false,vgaAccept=true;static int vgaCalls;
 freslest_display_t freslest_video_output(){return vga?FRESLEST_DISPLAY_VGA:FRESLEST_DISPLAY_LCD;}
-bool freslest_video_rgb565(const uint16_t*,int w,int h,bool,bool,int,int){assert((w==480&&h==320)||(w==320&&h==240));++vgaCalls;return vgaAccept;}
+bool freslest_video_rgb565(const uint16_t*,int w,int h,bool,bool,int,int){assert((w==480&&h==320)||(w==320&&h==240)||(desktop&&w==640&&h==480));++vgaCalls;return vgaAccept;}
 struct {int x=240,y=160;bool visible=false;}usbPointer;
 static uint16_t buffer[480*320],shadow[480*320],lcd[320*240];
 static uint16_t* presented=shadow;
-static bool firstPresent=true,oldPointer=false;static int oldX=0,oldY=0;
+static bool firstPresent=true,oldPointer=false,oldDesktop=false;static int oldX=0,oldY=0;
 struct Device{
  int rows=0;void startWrite(){}void endWrite(){}void waitDMA(){}
  void setClipRect(int,int,int,int){assert(false);}void clearClipRect(){}
@@ -89,6 +94,8 @@ int main(){
  gfxPresent();assert(vgaCalls==6&&before==_tft.rows);
  buffer[0]^=1;vgaAccept=false;gfxPresent();assert(vgaCalls==7);
  vgaAccept=true;gfxPresent();assert(vgaCalls==8);gfxPresent();assert(vgaCalls==8);
+ desktop=true;gfxPresent();assert(vgaCalls==9);gfxPresent();assert(vgaCalls==9);
+ desktop=false;gfxPresent();assert(vgaCalls==10);
 
 }
 '''

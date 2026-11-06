@@ -12,13 +12,18 @@ pre=r'''
 #include <vector>
 #include "freslest_cursor.h"
 #include "freslest_video.h"
+#include "vga_pixels.h"
 void gfxMirrorTick(){}
+static bool desktop=false;static uint16_t deskPixels[VGA_WIDTH*VGA_HEIGHT];
+bool desktopVisible(){return desktop;}bool desktopHasWindow(){return false;}
+bool desktopCompose(const uint16_t*,bool changed){return changed;}
+const uint16_t *desktopPixels(){return deskPixels;}
 static bool composite;static unsigned compositePresents;
 freslest_display_t freslest_video_output(){return composite?FRESLEST_DISPLAY_VGA:FRESLEST_DISPLAY_LCD;}
 bool freslest_video_rgb565(const uint16_t* p,int w,int h,bool swapped,bool cursor,int x,int y){assert(p&&w==480&&h==320);(void)swapped;(void)cursor;(void)x;(void)y;compositePresents++;return true;}
 struct Pointer{int x=240,y=160;bool visible=false;}usbPointer;
 static uint16_t buffer[480*320],shadow[480*320],lcd[480*320];static uint16_t* presented=shadow;
-static bool firstPresent=true,oldPointer=false;static int oldX=0,oldY=0;
+static bool firstPresent=true,oldPointer=false,oldDesktop=false;static int oldX=0,oldY=0;
 struct Device{
  void fillRect(int x,int y,int w,int h,unsigned c){for(int yy=std::max(y,0);yy<std::min(y+h,320);yy++)for(int xx=std::max(x,0);xx<std::min(x+w,480);xx++)lcd[yy*480+xx]=c;}
  std::vector<std::pair<int,int>> pending;

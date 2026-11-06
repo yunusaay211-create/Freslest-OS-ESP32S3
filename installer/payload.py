@@ -33,12 +33,12 @@ ITEMS = [
     (0xDB0000, 'littlefs.bin',0x50000),
 ]
 
-def validated_payload(firmware_root, language='tr', display='ili9488'):
+def validated_payload(firmware_root, language='tr', display='ili9488', expected_version=None):
     if display not in DISPLAY_MODELS:
         raise ValueError('Unknown display model: ' + str(display))
     directory=Path(firmware_root)/display
     # The preserved release payload is ILI9488 only. Other profiles never fall back.
-    legacy=display=='ili9488' and not directory.exists()
+    legacy=expected_version is None and display=='ili9488' and not directory.exists()
     if legacy:directory=Path(firmware_root)
     if not (directory/'SHA256.json').is_file():
         raise RuntimeError(translate('missing_display',language,display=DISPLAY_MODELS[display]))
@@ -53,6 +53,10 @@ def validated_payload(firmware_root, language='tr', display='ili9488'):
                        else firmware_matches_profile(data, display))
             if not matches:
                 raise RuntimeError(translate('wrong_display',language,display=DISPLAY_MODELS[display],name=name))
+        if expected_version and name == 'freslest_os_s3.bin':
+            version = data[0x30:0x50].split(b'\0', 1)[0]
+            if data[0x20:0x24] != b'\x32\x54\xcd\xab' or version != expected_version.encode('ascii'):
+                raise RuntimeError(translate('wrong_version', language))
         result.append((address,path,len(data),digest))
     return result
 

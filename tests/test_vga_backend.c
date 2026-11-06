@@ -13,7 +13,7 @@ int main(void){
  for(int fail=1;fail<=5;fail++){reset();stored_v2=2;driver_failure=fail;assert(!freslest_video_begin());assert(!panels&&!started&&!fb[0]&&!fb[1]);}
  reset();stored_v2=2;memset(host_fb,0xa5,sizeof(host_fb));assert(freslest_video_begin()&&panels==1);assert(pins&(1ULL<<41));
  const int pins_expected[]={41,8,13,14,2,42,40,39};assert(!memcmp(saved_config.data_gpio_nums,pins_expected,sizeof(pins_expected)));
- assert(saved_config.data_width==8&&saved_config.bits_per_pixel==8&&saved_config.flags.fb_in_psram&&saved_config.num_fbs==2&&saved_config.bounce_buffer_size_px==640*20);
+ assert(saved_config.data_width==8&&saved_config.bits_per_pixel==8&&saved_config.flags.fb_in_psram&&saved_config.num_fbs==2&&saved_config.bounce_buffer_size_px==640*20&&saved_config.dma_burst_size==64);
  assert(saved_config.hsync_gpio_num==47&&saved_config.vsync_gpio_num==48&&saved_config.pclk_gpio_num==-1&&saved_config.de_gpio_num==-1);
  assert(saved_config.timings.pclk_hz==25175000&&saved_config.timings.h_res==640&&saved_config.timings.v_res==480);
  assert(saved_config.timings.hsync_pulse_width==96&&saved_config.timings.hsync_back_porch==48&&saved_config.timings.hsync_front_porch==16);
@@ -67,15 +67,28 @@ int main(void){
   assert(host_selected[top*640+left]==255&&host_selected[(479-top)*640+639-left]==255);
   if(left)assert(host_selected[0]==0&&host_selected[top*640+left-1]==0&&host_selected[(480-top)*640]==0);
  }
+ host_frame();
  uint16_t frame[320*240];for(unsigned i=0;i<320*240;i++)frame[i]=0xffff;
  freslest_video_rgb565(frame,320,240,false,true,0,0);assert(!host_selected[0]&&frame[0]==0xffff&&host_selected[639]==255);
  // Pending frames are immutable if completion stops; timeout drops the new
  // image instead of overwriting a frame the DMA may still own.
  unsigned draws=host_draws;host_events=false;uint8_t snapshot[640*480];memcpy(snapshot,host_selected,sizeof(snapshot));
- freslest_video_rgb565(raw,2,2,false,false,0,0);assert(host_draws==draws&&!memcmp(snapshot,host_selected,sizeof(snapshot)));
+ int64_t blocked_at=now_us;
+ assert(!freslest_video_rgb565(raw,2,2,false,false,0,0));
+ assert(now_us==blocked_at&&host_draws==draws&&!memcmp(snapshot,host_selected,sizeof(snapshot)));
+ now_us+=100000;
+ unsigned restarts=host_restarts;
+ assert(!freslest_video_rgb565(raw,2,2,false,false,0,0)&&host_restarts==restarts+1);
+ assert(!freslest_video_rgb565(raw,2,2,false,false,0,0)&&host_restarts==restarts+1);
  host_events=true;host_frame();
  driver_failure=6;freslest_video_rgb565(raw,2,2,false,false,0,0);assert(host_draws==draws+1);driver_failure=0;
  freslest_video_rgb565(raw,2,2,false,false,0,0);host_frame();
+ static uint16_t desktop[VGA_WIDTH*VGA_HEIGHT];
+ desktop[200*VGA_WIDTH+500]=0x1f00; // wire-order blue
+ desktop[479*640+639]=0xffff;
+ assert(freslest_video_rgb565(desktop,640,480,true,true,639,479));
+ assert(host_selected[200*640+500]==3&&!host_selected[479*640+639]);
+ host_frame();
  unsigned count=presentations;freslest_video_rgb565(NULL,1,1,false,false,0,0);freslest_video_rgb565(raw,481,2,false,false,0,0);assert(presentations==count);
  for(int i=0;i<3;i++){now_us+=17000;host_frame();}assert(freslest_video_healthy()&&!freslest_video_starting());
  now_us+=500001;assert(!freslest_video_healthy()&&!freslest_video_starting());

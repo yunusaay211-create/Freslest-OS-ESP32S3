@@ -11,6 +11,15 @@ int main(){
  uint8_t pad[]={0x20,0,0x1b,0x1d,0x28,0x4f,0,0};freslest_hid_state_report(&decoder,0,pad,8);usbInputUpdate(600);assert((usbInputNesPad()&0x8f)==0x8f);
  usbInputTextMode(true);freslest_hid_state_report(&decoder,0,up,8);usbInputUpdate(700);uint8_t a[]={2,0,4,0,0,0,0,0};freslest_hid_state_report(&decoder,0,a,8);usbInputUpdate(800);assert(usbInputCharacter()=='A'&&!usbInputHeld());usbInputUpdate(1200);assert(usbInputLastActivity()==1200);assert(usbInputCharacter()=='A');usbInputTextMode(false);
  uint8_t mouse[]={1,127,127};for(int i=0;i<20;i++)freslest_hid_state_report(&decoder,1,mouse,3);usbInputUpdate(1300);assert(usbPointer.visible&&usbPointer.click&&usbPointer.left&&usbPointer.x==479&&usbPointer.y==319);assert(usbInputHit(470,310,10,10));freslest_hid_state_disconnect(&decoder,0);freslest_hid_state_disconnect(&decoder,1);usbInputUpdate(1400);assert(usbInputLastActivity()==1300);assert(!usbPointer.visible&&!usbInputHeld());
+ usbInputViewport(640,480);
+ freslest_hid_state_connect(&decoder,1,2);
+ uint8_t wheel[]={0,127,127,254};
+ freslest_hid_state_report(&decoder,1,wheel,4);
+ usbInputUpdate(1450);
+ assert(usbInputAttached()&&usbPointer.x==639&&usbPointer.y==479&&usbPointer.wheel==-2);
+ usbInputUpdate(1460);assert(!usbPointer.wheel);
+ freslest_hid_state_disconnect(&decoder,1);
+ usbInputViewport(0,0);assert(usbPointer.x==479&&usbPointer.y==319);
  tft.heightValue=360;freslest_hid_state_connect(&decoder,5,2);
  freslest_hid_state_mouse(&decoder,5,1,2000,2000);usbInputUpdate(1500);
  assert(usbPointer.x==479&&usbPointer.y==359&&usbInputHit(330,336,150,24));

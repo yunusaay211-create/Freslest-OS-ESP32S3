@@ -1,4 +1,4 @@
-"""Freslest USB Viewer for the OS 1.0 release; Screen 2 wire protocol."""
+"""Freslest USB Viewer for the OS 1.5 release; Screen 2 wire protocol."""
 import queue
 import threading
 import time
@@ -9,7 +9,7 @@ try:
     from serial.tools import list_ports
 except ImportError:
     raise SystemExit('Install pyserial: python -m pip install pyserial==3.5')
-from protocol import Decoder, ppm
+from protocol import Decoder, NATIVE_SIZES, ppm
 from control import Controls, control_commands, geometry, source_point
 
 USB_VIDS={0x303a,0x10c4,0x1a86,0x0403}
@@ -35,17 +35,17 @@ def open_device(port,stop):
                 words=line.strip().split()
                 if len(words)==5 and words[:2]==[b'FSHELLO',b'2'] and words[2] in (b'UART',b'NATIVE'):
                     size=tuple(map(int,words[3:5]))
-                    if size in ((480,320),(480,360)):
+                    if size in NATIVE_SIZES:
                         return c,words[2].decode('ascii'),size
             if len(data)>4096:del data[:-512]
-        raise RuntimeError('Freslest ekran bağlantısı bulunamadı. OS 1.0 firmware ve USB PC Viewer ayarını kontrol et.')
+        raise RuntimeError('Freslest ekran bağlantısı bulunamadı. OS 1.5 firmware ve USB PC Viewer ayarını kontrol et.')
     except BaseException:
         c.close();raise
 
 
 class Viewer:
     def __init__(self,root):
-        self.root=root;root.title('Freslest USB Viewer | OS 1.0');root.minsize(640,460);root.geometry('960x680')
+        self.root=root;root.title('Freslest USB Viewer | OS 1.5');root.minsize(640,460);root.geometry('960x680')
         self.events=queue.Queue();self.stop=threading.Event();self.thread=None
         self.frame_lock=threading.Lock();self.pending_frame=None
         self._revision=0;self._render_signature=None;self._viewport=None

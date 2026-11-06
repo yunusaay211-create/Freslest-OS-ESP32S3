@@ -39,6 +39,7 @@ static uint8_t *fb[2];
 static unsigned front;
 static bool pending;
 static uint32_t queued_event;
+static int64_t queued_us;
 static volatile uint32_t frame_events,last_frame_us;
 static uint32_t dropped;
 static unsigned fit_percent=90;
@@ -115,6 +116,8 @@ bool freslest_video_begin(void){
  gpio_config_t bl={.pin_bit_mask=(1ULL<<41)|(1ULL<<10),.mode=GPIO_MODE_OUTPUT};
  gpio_config(&bl);gpio_set_level(41,0);gpio_set_level(10,1);
  esp_lcd_rgb_panel_config_t c={0};c.clk_src=LCD_CLK_SRC_DEFAULT;c.data_width=8;c.bits_per_pixel=8;c.num_fbs=2;c.bounce_buffer_size_px=VGA_WIDTH*20;
+ // ESP-IDF 5.4 derives internal and external alignment from this burst size.
+ c.dma_burst_size=64;
  c.hsync_gpio_num=47;c.vsync_gpio_num=48;c.pclk_gpio_num=-1;c.de_gpio_num=-1;c.disp_gpio_num=-1;
  const int pins[]={41,8,13,14,2,42,40,39};for(int i=0;i<8;i++)c.data_gpio_nums[i]=pins[i];
  c.timings.pclk_hz=FRESLEST_VGA_PCLK_HZ;c.timings.h_res=VGA_WIDTH;c.timings.v_res=VGA_HEIGHT;
@@ -156,12 +159,18 @@ bool freslest_video_starting(void){
 // on_frame fires after the driver has copied a complete frame to internal
 // bounce buffers and selected its next source. Only then may we reuse the old
 // PSRAM frame. A missing IRQ must never turn a timeout into buffer reuse.
-static uint8_t *acquire_frame(void){
+static uint8_t *acquire_frame(bool wait){
  if(!started)return NULL;
  if(pending){
-  int64_t deadline=esp_timer_get_time()+100000;
   while(frame_events==queued_event){
-   if(esp_timer_get_time()>=deadline){dropped++;return NULL;}
+   if(esp_timer_get_time()-queued_us>=100000){
+    // Request VBlank recovery without releasing the pending buffer.
+    esp_lcd_rgb_panel_restart(panel);
+    queued_us=esp_timer_get_time();
+    dropped++;
+    return NULL;
+   }
+   if(!wait)return NULL;
    vTaskDelay(pdMS_TO_TICKS(1));
   }
   front^=1;pending=false;
@@ -172,7 +181,7 @@ static bool publish_frame(uint8_t *target){
  if(esp_lcd_panel_draw_bitmap(panel,0,0,VGA_WIDTH,VGA_HEIGHT,target)!=ESP_OK){dropped++;return false;}
  // Sample AFTER the driver's selection. If an IRQ races this read, waiting
  // one extra frame is safe; sampling before draw could release too early.
- queued_event=frame_events;pending=true;presentations++;return true;
+ queued_event=frame_events;queued_us=esp_timer_get_time();pending=true;presentations++;return true;
 }
 static void raw_test_pattern(uint8_t *target){
  memset(target,0,VGA_WIDTH*VGA_HEIGHT);
@@ -191,7 +200,7 @@ static void raw_test_pattern(uint8_t *target){
 }
 bool freslest_video_color_test(void){
  if(output!=FRESLEST_DISPLAY_VGA||!started)return false;
- uint8_t *target=acquire_frame();if(!target)return false;
+ uint8_t *target=acquire_frame(true);if(!target)return false;
  raw_test_pattern(target);if(!publish_frame(target))return false;
  freslest_video_diagnostics();
  puts("FRESLEST_VGA:RAW332_C4 white yellow cyan green magenta red blue black; ramps R G B gray; bits D0..D7");
@@ -200,8 +209,8 @@ bool freslest_video_color_test(void){
  return true;
 }
 static bool submit(const void *src,int w,int h,const uint32_t *pal,bool swap,bool cursor,int x,int y){
- if(!src||w<1||h<1||w>480||h>360)return false;
- uint8_t *target=acquire_frame();
+ if(!src||!vga_source_size(w,h))return false;
+ uint8_t *target=acquire_frame(pal!=NULL);
  return target&&vga_convert_fit(target,src,w,h,pal,swap,cursor,x,y,fit_percent)&&publish_frame(target);
 }
 bool freslest_video_rgb565(const uint16_t *s,int w,int h,bool swap,bool cursor,int x,int y){return submit(s,w,h,NULL,swap,cursor,x,y);}
@@ -209,7 +218,7 @@ void freslest_video_indexed(const uint8_t *s,int w,int h,const uint32_t *pal,boo
 void freslest_video_doom_palette(const uint8_t *rgb888){if(rgb888)vga_doom_palette(rgb888);}
 void freslest_video_doom(const uint8_t *indices,bool cursor,int x,int y){
  if(!indices)return;
- uint8_t *target=acquire_frame();
+ uint8_t *target=acquire_frame(true);
  if(target&&vga_convert_doom(target,indices,cursor,x,y,fit_percent))publish_frame(target);
 }
 void freslest_video_diagnostics(void){

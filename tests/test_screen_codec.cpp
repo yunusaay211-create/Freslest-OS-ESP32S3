@@ -6,7 +6,7 @@ using namespace freslest_screen;
 int main(){
  for(unsigned v=0;v<65536;v++)assert(rgb332(v)==(((v>>13)<<5)|(((v>>8)&7)<<2)|((v>>3)&3)));
  std::vector<uint8_t> out(maxPacket+16,0xac);
- std::vector<uint16_t> source(480*360);
+ std::vector<uint16_t> source(640*480);
  assert(!encode(out.data(),23,source.data(),480,360,1,true,false,0,0,0));
  assert(!encode(out.data(),maxPacket,source.data(),480,360,0,true,false,0,0,0));
  for(unsigned test=0;test<4;test++){
@@ -19,4 +19,8 @@ int main(){
  std::fill(source.begin(),source.end(),0xffff);
  size_t n=encode(out.data(),maxPacket,source.data(),480,320,1,true,true,4,4,99);assert(n);
  assert(fwrite(out.data(),1,n,stdout)==n);
+ for(unsigned div : {1,2}){
+  n=encode(out.data(),maxPacket,source.data(),640,480,div,true,true,639,479,100+div);
+  assert(n&&fwrite(out.data(),1,n,stdout)==n);
+ }
 }

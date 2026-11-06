@@ -53,7 +53,7 @@ void setBrightnessEnter() {
   settingTextSize(1);
   tft.setTextColor(TH().dim, TH().bg);
   settingCursor(20, 60);
-  tft.print(freslest_video_output()==FRESLEST_DISPLAY_VGA?"LCD backlight only. VGA uses the same LCD frame.":"Real backlight PWM (BL via MOSFET).");
+  tft.print(freslest_video_output()==FRESLEST_DISPLAY_VGA?"LCD backlight only. VGA uses Freslest Desktop.":"Real backlight PWM (BL via MOSFET).");
   drawBrightnessBar();
 }
 

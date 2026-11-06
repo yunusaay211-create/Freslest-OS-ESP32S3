@@ -3,6 +3,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 enum { VGA_WIDTH=640, VGA_HEIGHT=480 };
+static inline bool vga_source_size(int width, int height){
+ return (width>0&&height>0&&width<=480&&height<=360)||(width==VGA_WIDTH&&height==VGA_HEIGHT);
+}
 bool vga_convert(uint8_t *dest,const void *src,int width,int height,
                  const uint32_t *palette,bool swapped,bool cursor,int x,int y);
 

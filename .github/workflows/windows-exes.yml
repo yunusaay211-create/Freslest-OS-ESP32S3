@@ -1,10 +1,11 @@
-name: Freslest 1.1 Windows EXEs
+name: Freslest 1.5 Windows EXEs
 on:
   workflow_dispatch:
   push:
     paths:
       - 'installer/**'
       - 'OS/**'
+      - 'Doom/**'
       - 'common/**'
       - 'shared_components/**'
       - 'tools/build_lcd_profiles.py'
@@ -71,7 +72,7 @@ jobs:
           cache-dependency-path: requirements-build.txt
       - name: Install pinned build tools
         run: python -m pip install -r requirements-build.txt
-      - name: Prepare and verify firmware release 1.1
+      - name: Prepare preserved WAD, LittleFS and audio data
         run: |
           python prepare_firmware.py
           python prepare_audio.py
@@ -89,7 +90,7 @@ jobs:
         run: python tests/smoke_exes_windows.py
       - uses: actions/upload-artifact@v4
         with:
-          name: Freslest-1.1-Windows-EXEs
+          name: Freslest-1.5-Windows-EXEs
           path: dist/*
           if-no-files-found: error
           compression-level: 0

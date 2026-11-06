@@ -8,6 +8,7 @@
 static portMUX_TYPE lock = portMUX_INITIALIZER_UNLOCKED;
 static freslest_hid_state_t state;
 static hid_host_device_handle_t handles[FRESLEST_HID_USB_SLOTS];
+static uint8_t protocols[FRESLEST_HID_USB_SLOTS];
 static QueueHandle_t arrivals;
 static bool started;
 static const char *status = "Not started";
@@ -33,12 +34,12 @@ static void input_event(hid_host_device_handle_t handle,
       freslest_hid_state_disconnect(&state, slot);
       if (event == HID_HOST_INTERFACE_EVENT_DISCONNECTED)
         handles[slot] = NULL;
+      else
+        freslest_hid_state_connect(&state, slot, protocols[slot]);
     }
     portEXIT_CRITICAL(&lock);
     if (event == HID_HOST_INTERFACE_EVENT_DISCONNECTED)
       hid_host_device_close(handle);
-    else
-      ESP_LOGW("USB input", "Transfer error: reconnect input device");
   }
 }
 static void connected(hid_host_device_handle_t h, hid_host_driver_event_t event,
@@ -66,17 +67,22 @@ static void worker(void *unused) {
     unsigned slot = 0;
     while (slot < FRESLEST_HID_USB_SLOTS && handles[slot])
       ++slot;
+    if (slot < FRESLEST_HID_USB_SLOTS) {
+      handles[slot] = handle;
+      protocols[slot] = p.proto;
+    }
     portEXIT_CRITICAL(&lock);
     if (slot == FRESLEST_HID_USB_SLOTS)
       continue;
     hid_host_device_config_t config = {.callback = input_event,
                                        .callback_arg = (void *)(uintptr_t)slot};
     esp_err_t e = hid_host_device_open(handle, &config);
-    if (e != ESP_OK)
+    if (e != ESP_OK) {
+      portENTER_CRITICAL(&lock);
+      handles[slot] = NULL;
+      portEXIT_CRITICAL(&lock);
       continue;
-    portENTER_CRITICAL(&lock);
-    handles[slot] = handle;
-    portEXIT_CRITICAL(&lock);
+    }
     e = hid_class_request_set_protocol(handle, HID_REPORT_PROTOCOL_BOOT);
     if (e == ESP_OK && p.proto == HID_PROTOCOL_KEYBOARD)
       hid_class_request_set_idle(handle, 0, 0);
@@ -101,6 +107,8 @@ static void worker(void *unused) {
 }
 static void daemon_task(void *unused) {
   (void)unused;
+  // Register HID before handling devices already plugged in at boot.
+  ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
   for (;;) {
     uint32_t flags = 0;
     usb_host_lib_handle_events(pdMS_TO_TICKS(20), &flags);
@@ -157,6 +165,7 @@ bool freslest_hid_start(void) {
   }
   started = true;
   status = "USB host: boot keyboard / mouse";
+  xTaskNotifyGive(daemon);
   return true;
 }
 void freslest_hid_snapshot(freslest_hid_snapshot_t *out) {

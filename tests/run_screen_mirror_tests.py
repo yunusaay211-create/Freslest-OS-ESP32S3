@@ -12,7 +12,7 @@ dec=Decoder();frames=[];rng=random.Random(743)
 noise=b'Freslest OS 6.14\r\nW (123) wifi: diagnostic\r\nFSREADY 921600\n'
 stream=noise+wire
 for start in range(0,len(stream),137):frames+=dec.feed(stream[start:start+137])
-assert len(frames)==5
+assert len(frames)==7
 for test,(sequence,w,h,pixels) in enumerate(frames[:4]):
  div=2 if test>=2 else 1;assert (sequence,w,h)==(test+1,480//div,(360 if test&1 else 320)//div)
  expected=bytearray()
@@ -21,8 +21,10 @@ for test,(sequence,w,h,pixels) in enumerate(frames[:4]):
    i=(y*div)*480+x*div;v=0 if test==0 else ((i*73)^(i>>3)^0x5a5a)&65535
    expected.append(((v>>8)&224)|((v>>6)&28)|((v>>3)&3))
  assert pixels==expected,(test,len(pixels))
-assert frames[-1][3][4*480+4]==0
-assert frames[-1][3][6*480+5]==255
+assert frames[4][3][4*480+4]==0
+assert frames[4][3][6*480+5]==255
+assert frames[5][:3]==(101,640,480) and frames[5][3][-1]==0
+assert frames[6][:3]==(102,320,240)
 assert ppm(1,1,b'\xff')==b'P6\n1 1\n255\n\xff\xff\xff'
 for run in (1,2,3,127,128):assert decode_rle(bytes((128|run-1,73)),run)==bytes((73,))*run
 for bad,count in [(b'\x80',1),(b'\x01\x00',2),(b'\xff\x00',127),(b'',1)]:
@@ -75,4 +77,4 @@ for baud,div in [(921600,1),(460800,2)]:
  assert Peer.instances[-1].commands[1]==(115200,f'FS1 {baud} {div}\n'.encode())
  assert Peer.instances[-1].commands[-1]==(baud,b'FSR\nFS0\n') and not Peer.instances[-1].is_open
 assert len(events)>=2
-print('PASS: production C++ RGB565 -> RGB332/RLE -> actual Python decoder, 5 full/half frames, all 65536 input colors, pointer, malformed packets/noise/CRC, actual viewer serial handshake/frame/cancel at both baud rates.')
+print('PASS: production C++ RGB565 -> RGB332/RLE -> actual Python decoder, 7 full/half frames, all 65536 input colors, pointer, malformed packets/noise/CRC, actual viewer serial handshake/frame/cancel at both baud rates.')

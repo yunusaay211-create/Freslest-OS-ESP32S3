@@ -1,4 +1,4 @@
-"""Freslest OS 1.1 Windows installer with Turkish and English interfaces."""
+"""Freslest OS Windows installer with Turkish and English interfaces."""
 import os
 import sys
 # pythonw/PyInstaller windowed applications have no standard streams.
@@ -11,6 +11,7 @@ from pathlib import Path
 from tkinter import ttk, messagebox, filedialog
 from serial.tools import list_ports
 from translations import LANGUAGES, translate
+from release_version import OS_VERSION
 
 ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parents[1]))
 FW = ROOT / 'firmware'
@@ -21,11 +22,11 @@ AUDIO = ROOT / 'audio_pack'
 
 
 def validated_payload(language='tr', display='ili9488'):
-    return _validated_payload(FW, language, display)
+    return _validated_payload(FW, language, display, expected_version=OS_VERSION)
 
 def write_diagnostics(output_path):
     """Export a support report without opening ports or creating a GUI."""
-    report={'ok':False,'release':'1.1','frozen':bool(getattr(sys,'frozen',False)),
+    report={'ok':False,'release':OS_VERSION,'frozen':bool(getattr(sys,'frozen',False)),
             'installer_languages':list(LANGUAGES),'errors':[]}
     try:
         import esptool
@@ -42,13 +43,14 @@ def write_diagnostics(output_path):
             raise RuntimeError('Unexpected flash dependency version')
         if not stub.text or not stub.data or not report['stub_entry_in_text']:
             raise RuntimeError('ESP32-S3 stub resource is invalid')
+        payload=validated_payload()
         report['firmware']={path.name:{'address':hex(address),'bytes':size,'sha256':digest,'valid':True}
-                            for address,path,size,digest in validated_payload()}
+                            for address,path,size,digest in payload}
         report['sd_audio_files']=len(validated_audio(AUDIO))
-        image=(FW/'freslest_os_s3.bin').read_bytes()
+        image=next(path.read_bytes() for _,path,_,_ in payload if path.name=='freslest_os_s3.bin')
         report['firmware_version']=image[0x30:0x50].split(b'\0',1)[0].decode('ascii')
-        if image[0x20:0x24]!=b'\x32\x54\xcd\xab' or report['firmware_version']!='1.1':
-            raise RuntimeError('Bundled OS application descriptor must report 1.1')
+        if image[0x20:0x24]!=b'\x32\x54\xcd\xab' or report['firmware_version']!=OS_VERSION:
+            raise RuntimeError(f'Bundled OS application descriptor must report {OS_VERSION}')
         report['ok']=True
     except Exception as error:
         report['errors'].append(type(error).__name__+': '+str(error))
@@ -59,7 +61,7 @@ class Installer(tk.Tk):
     def __init__(self,language='tr'):
         super().__init__()
         self.language_code=language if language in LANGUAGES else 'tr'
-        self.title('Freslest Installer | OS 1.1')
+        self.title(f'Freslest Installer | OS {OS_VERSION}')
         self.geometry('690x560'); self.minsize(660,520)
         self.configure(bg='#121724')
         self.port = tk.StringVar()
@@ -90,14 +92,14 @@ class Installer(tk.Tk):
         self.wizard()
     def wizard(self):
         self.wipe()
-        self.title('Freslest Installer | OS 1.1'+(' | English' if self.language_code=='en' else ''))
+        self.title(f'Freslest Installer | OS {OS_VERSION}'+(' | English' if self.language_code=='en' else ''))
         bar=tk.Frame(self,bg='#121724');bar.pack(fill='x',padx=34,pady=(14,0))
         tk.Label(bar,text='Dil / Language',font=('Segoe UI',10),fg='#dce6fa',bg='#121724').pack(side='left')
         self.language_selection=tk.StringVar(value=LANGUAGES[self.language_code])
         picker=ttk.Combobox(bar,textvariable=self.language_selection,values=tuple(LANGUAGES.values()),state='readonly',width=12)
         picker.pack(side='left',padx=12);picker.bind('<<ComboboxSelected>>',self.select_language)
         self.label('FRESLEST',30,'#70b1ff',True).pack(anchor='w',padx=34,pady=(18,0))
-        self.label('OS 1.1  |  ESP32-S3 N16R8',18,'#ffffff',True).pack(anchor='w',padx=34,pady=8)
+        self.label(f'OS {OS_VERSION}  |  ESP32-S3 N16R8',18,'#ffffff',True).pack(anchor='w',padx=34,pady=8)
         self.label(self.t('welcome')).pack(anchor='w',padx=34,pady=18)
         self.label(self.t('steps'),13).pack(anchor='w',padx=34,pady=8)
         self.label(self.t('backup'),11,'#ffca80').pack(anchor='w',padx=34,pady=(12,22))
@@ -262,7 +264,7 @@ class Installer(tk.Tk):
         self.destroy()
 if __name__=='__main__':
     import argparse
-    parser=argparse.ArgumentParser(description='Freslest OS 1.1 Installer')
+    parser=argparse.ArgumentParser(description=f'Freslest OS {OS_VERSION} Installer')
     parser.add_argument('--lang',choices=tuple(LANGUAGES),default='tr')
     parser.add_argument('--diagnostics',metavar='REPORT_JSON')
     options=parser.parse_args()

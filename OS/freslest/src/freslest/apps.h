@@ -44,6 +44,9 @@ enum AppId : uint8_t {
   APP_FILES,
   APP_SET_DISPLAY,
   APP_BROWSER,
+  APP_FRESTORE,
+  APP_FRESTORE_APPS,
+  APP_TERMINAL,
 };
 
 extern AppId app;

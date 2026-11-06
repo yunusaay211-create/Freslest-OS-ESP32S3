@@ -1,0 +1,16 @@
+{
+  "id": "merhaba",
+  "name": "Merhaba Freslest",
+  "developer": "Freslest",
+  "description": "FreStore imzali uygulama ornegi. Guvenli metin karti olarak acilir.",
+  "version": 1,
+  "category": 2,
+  "lines": [
+    "Freslest OS 1.5'e hos geldin!",
+    "",
+    "Bu uygulama FreStore'dan indirildi.",
+    "Wi-Fi kapali olsa da SD karttan acilir.",
+    "",
+    "BACK ile FreStore'a donebilirsin."
+  ]
+}

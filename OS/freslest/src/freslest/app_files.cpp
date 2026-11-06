@@ -292,11 +292,11 @@ void filesLoop(uint32_t now) {
       }
       return;
     }
-    if (bUp.pressed()) {
+    if (bUp.pressed() || usbPointer.wheel > 0) {
       selected = selected ? selected - 1 : count - 1;
       changed = true;
     }
-    if (bDown.pressed()) {
+    if (bDown.pressed() || usbPointer.wheel < 0) {
       selected = (selected + 1) % count;
       changed = true;
     }

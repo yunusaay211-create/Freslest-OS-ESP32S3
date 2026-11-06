@@ -21,10 +21,10 @@ def build():
     # Restore common WAD/LittleFS assets from the preserved release payload.
     sys.path.insert(0, str(ROOT))
     from prepare_firmware import prepare
-    from firmware_release import RELEASE_VERSION
     prepare()
     sys.path.insert(0, str(ROOT / 'installer'))
     from payload import ITEMS, validated_payload, firmware_matches_profile
+    from release_version import OS_VERSION
     for profile,model,video in (('ili9488',9488,'lcd'),('ili9341',9341,'lcd'),('vga',9341,'vga')):
         builds = {}
         for project in ('OS', 'Doom'):
@@ -54,13 +54,13 @@ def build():
                 if name in ('freslest_os_s3.bin', 'freslest_doom_s3.bin'):
                     if not firmware_matches_profile(data,profile):
                         raise ValueError(f'{profile}: firmware has the wrong LCD profile: {name}')
-                if name == 'freslest_os_s3.bin' and data[0x30:0x50].split(b'\0',1)[0].decode('ascii') != RELEASE_VERSION:
+                if name == 'freslest_os_s3.bin' and data[0x30:0x50].split(b'\0',1)[0].decode('ascii') != OS_VERSION:
                     raise ValueError(f'{profile}: compiled OS version differs from installer release')
                 shutil.copyfile(source, stage / name)
                 manifest['firmware/' + name] = hashlib.sha256(data).hexdigest()
             (stage / 'SHA256.json').write_text(json.dumps(manifest, indent=2) + '\n')
             shutil.copytree(stage, ROOT / 'firmware' / profile, dirs_exist_ok=True)
-        validated_payload(ROOT / 'firmware', 'en', profile)
+        validated_payload(ROOT / 'firmware', 'en', profile, expected_version=OS_VERSION)
         print(f'Built and verified {profile}: OS, Doom and all seven installer segments.')
 
 

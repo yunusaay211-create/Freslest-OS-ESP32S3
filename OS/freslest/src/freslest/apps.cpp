@@ -16,6 +16,8 @@
 #include "install_notice.h"
 #include "task_hold.h"
 #include "app_browser.h"
+#include "desktop.h"
+#include "frestore.h"
 #include "text_entry.h"
 #include "../../usb_input.h"
 #include <freslest_hid.h>
@@ -195,6 +197,9 @@ static const char* appName(AppId a) {
     case APP_NES_LIBRARY: return "NES Lib";
     case APP_NES_PLAYER: return "NES";
     case APP_FRESLEST_UPDATE: return "Update";
+    case APP_FRESTORE: return "FreStore";
+    case APP_FRESTORE_APPS: return "Yuklu Uyg.";
+    case APP_TERMINAL: return "Terminal";
     default: return "App";
   }
 }
@@ -416,7 +421,10 @@ void enterApp(AppId next) {
   if(app==APP_NOTE && next!=APP_NOTE)noteExit();
   if(app==APP_BROWSER && next!=APP_BROWSER)browserExit();
   if(app==APP_SET_WIFI && next!=APP_SET_WIFI)setWifiExit();
-  gfxSetCompactUi(next==APP_MENU||next==APP_APPS||next==APP_CALC||next==APP_NOTE||next==APP_CLOCK||next==APP_PAINT||next==APP_CAMERA||next==APP_FILES||next==APP_BROWSER||next==APP_SETTINGS||next==APP_GAME_MENU||next==APP_SYSINFO||next==APP_TEST||next==APP_TEST_BUTTONS||next==APP_SET_BRIGHTNESS||next==APP_SET_THEME||next==APP_SET_WIFI||next==APP_SET_BT||next==APP_SET_SOUND||next==APP_SET_FLASHRESET||next==APP_SET_DISPLAY);
+  if(app==APP_SET_BT && next!=APP_SET_BT)setBtExit();
+  if(app==APP_TERMINAL && next!=APP_TERMINAL)usbInputTextMode(false);
+  if((app==APP_FRESTORE||app==APP_FRESTORE_APPS)&&next!=app)frestoreExit();
+  gfxSetCompactUi(next==APP_FRESTORE||next==APP_FRESTORE_APPS||next==APP_MENU||next==APP_APPS||next==APP_CALC||next==APP_NOTE||next==APP_CLOCK||next==APP_PAINT||next==APP_CAMERA||next==APP_FILES||next==APP_BROWSER||next==APP_SETTINGS||next==APP_GAME_MENU||next==APP_SYSINFO||next==APP_TEST||next==APP_TEST_BUTTONS||next==APP_SET_BRIGHTNESS||next==APP_SET_THEME||next==APP_SET_WIFI||next==APP_SET_BT||next==APP_SET_SOUND||next==APP_SET_FLASHRESET||next==APP_SET_DISPLAY);
   app = next;
   addTaskLocal(app);
   footerDirty = true;
@@ -438,6 +446,9 @@ void enterApp(AppId next) {
     case APP_CALC:        calcEnter(); break;
     case APP_NOTE:        noteEnter(); break;
     case APP_FILES:       filesEnter(); break;
+    case APP_FRESTORE:    frestoreEnter(false); break;
+    case APP_FRESTORE_APPS:frestoreEnter(true); break;
+    case APP_TERMINAL:    desktopTerminalEnter(); break;
     case APP_BROWSER:     browserEnter(); break;
     case APP_PAINT:       paintEnter(); break;
     case APP_CLOCK:       clockEnter(); break;
@@ -472,6 +483,7 @@ void backToMenu() {
   if (app == APP_SET_WIFI) setWifiExit();
   if (app == APP_SET_BT)   setBtExit();
 
+  if(app==APP_TERMINAL)usbInputTextMode(false);
   app = APP_MENU;
   footerDirty = true;
   drawMenuFull();
@@ -486,6 +498,8 @@ void appLoop(uint32_t now) {
   if(app==APP_USB_TRANSFER) {nesUsbLoop(now);return;}
   if(app==APP_FRESLEST_UPDATE) {freslestUpdateLoop(now);return;}
   if(usbInputHit(tft.width()-150,tft.height()-24,150,24))bBack.pressedEdge=true;
+  if(app==APP_FRESTORE||app==APP_FRESTORE_APPS){frestoreLoop();return;}
+  if(app==APP_TERMINAL){desktopTerminalLoop();return;}
   if(app==APP_FILES){filesLoop(now);return;}
   if(app==APP_SET_WIFI){setWifiLoop(now);return;}
   if(app==APP_BROWSER){browserLoop(now);return;}

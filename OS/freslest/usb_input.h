@@ -3,10 +3,13 @@
 struct UsbPointer {
   int x = 240, y = 160;
   bool visible = false, left = false, click = false, rightClick = false;
+  int wheel = 0;
 };
 extern UsbPointer usbPointer;
 void usbInputBegin();
 void usbInputUpdate(uint32_t now);
+void usbInputViewport(int width, int height);
+bool usbInputAttached();
 uint8_t usbInputHeld();
 uint8_t usbInputPressed();
 uint32_t usbInputLastActivity();
