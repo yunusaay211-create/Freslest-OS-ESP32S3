@@ -1,10 +1,21 @@
-# Freslest OS 1.0
+# Freslest OS 1.5
 
-**Current VGA update:** 640×480 at a 25.175 MHz target clock, with the existing 480×320 OS canvas. Doom retains its private RGB332 output. The user reports correct Doom colors after fixing a physical connection. The native USB package adds Doom update support and includes the music restart fix; see [Update format and steps](UPDATE_FORMAT.md). ILI9488 and ILI9341 installer profiles remain available. Composite AV has been removed. See [VGA wiring](VGA_DISPLAY_TR.md) and [display release notes](RELEASE_LCD_VGA.md). Automated verification and physical device results are recorded separately.
+Freslest OS for **ESP32-S3 N16R8** includes a graphical OS, NES and Doom, a file manager, USB and BLE input, and three display profiles. VGA opens the English Freslest Desktop. The SPI LCD profiles use the classic Freslest interface. [Türkçe README](README_TR.md)
 
-**A graphical, desktop-style embedded environment for the ESP32-S3**, featuring applications, NES emulation, DOOM, USB input, file management, and experimental RGB332 VGA.
+## What's new in 1.5
 
-> **Public version:** Freslest OS **1.0**. `OS/CMakeLists.txt` sets `PROJECT_VER` to `1.0`. Current LCD profile OS and Doom images are rebuilt from this source; the old baseline payload is used for unchanged data assets.
+- **Freslest Desktop.** A 640×480 XP-inspired shell with a Start menu, taskbar and draggable windows. Files uses an Explorer-style task pane and Settings opens as a Control Panel. Calculator, Notepad, Paint, Clock and Browser retain their existing tool layouts.
+- **FreStore.** A Go HTTPS server on Raspberry Pi publishes signed app cards. The ESP32 verifies and stores them on a FAT microSD card in a USB reader.
+- **Wi-Fi Update.** Check for a newer signed OS image from the configured Pi. An optional Pi on a second routed network can mirror the signed release with `mirror-os`. After confirmation, the device verifies the image and writes it to the inactive OS slot for a trial boot.
+- **Display and input.** VGA frame submission handles delayed DMA without blocking the shell. USB Boot HID releases held keyboard and mouse input on disconnect.
+
+## Downloads
+
+| File | Contents |
+| --- | --- |
+| [Freslest 1.5 test package](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42259066423/artifacts/13525375639) | USB update ZIPs, ARM64 and ARMv7 FreStore binaries, SHA-256 sums and test report |
+| [Windows x64 installer and USB Viewer](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42259066423/artifacts/13524597281) | Freslest Installer.exe and Freslest USB Viewer.exe |
+| [Build and test run](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42259066423) | ESP-IDF firmware builds, Go tests, and Windows build and launch checks |
 
 ## Firmware source code
 
@@ -12,10 +23,11 @@ The ESP32-S3 firmware sources are included directly in this repository:
 
 | Source | Contents |
 |---|---|
-| [OS/freslest](OS/freslest) | Freslest OS C++ and Arduino entry point; apps, settings, NES integration, display, audio and input |
+| [OS/freslest](OS/freslest) | Freslest OS C++ and Arduino entry point, apps, settings, NES integration, display, audio and input |
 | [OS/components](OS/components) | Bundled and modified Arduino, LovyanGFX, TinyUSB, Nofrendo and other dependencies |
 | [Doom](Doom) | ESP-IDF Doom project, PrBoom engine and ESP32-S3 platform code |
-| [common](common) | USB update implementation shared by the firmware |
+| [common](common) | Update package validation and flash writer |
+| [frestore-server](frestore-server) | Go HTTPS server, package signing and OS update mirroring |
 | [shared_components](shared_components) | Shared HID, OTA, VGA video and USB host components |
 | [installer](installer) / [viewer](viewer) | Python sources for the separate Windows PC applications |
 
@@ -23,29 +35,26 @@ Start with [freslest.ino](OS/freslest/freslest.ino), [apps.cpp](OS/freslest/src/
 
 ### Build the board firmware
 
-Use an **ESP-IDF v5.4.4** command prompt. The modified Arduino core and other component sources are already bundled in `OS/components`; install the ESP32-S3 toolchain through ESP-IDF.
+Use **ESP-IDF v5.4.4** and run this command from the repository root.
 
-From the repository root:
-
-```powershell
-idf.py -C OS build
-idf.py -C Doom build
+```sh
+python tools/build_lcd_profiles.py
 ```
 
-The outputs are `OS/build/freslest_os_s3.bin` and `Doom/build/freslest_doom_s3.bin`. Both projects use the checked-in partition layout. Full installation and release-packaging scripts also expect the firmware/data assets from the full release package. WADs, NES game ROMs, recorded MP3s, prebuilt EXEs and ELF debug files are separate from this source checkout.
+The builder compiles OS and Doom for ILI9488, ILI9341 and VGA, checks image sizes and profiles, and stages verified installer files under `firmware/`. `OS/CMakeLists.txt` sets the OS version to **1.5**. `prepare_firmware.py` restores the preserved release data used by the installer.
 
-Host checks that compile production C/C++ modules with SDK test doubles include `python tests/run_screen_input_tests.py`, `python tests/run_power_recovery_tests.py`, `python OS/tests/run_ble_tests.py` and `python OS/tests/run_usb_storage_tests.py`. The full NES and Doom host runners additionally require their game-data fixtures.
+Desktop, VGA, LCD, USB input and OTA host checks live in `tests/`, `OS/tests/` and `Doom/tests/`. The full NES and Doom host runners require their game-data fixtures. Physical display, USB accessories and the two-router network require target-device testing.
 
 ## Hardware requirements
 
 - ESP32-S3 N16R8 development board, **16 MB flash / 8 MB OPI PSRAM**
-- **ILI9488 480 × 320 or ILI9341 320 × 240 SPI TFT** (non-touch configuration)
+- **ILI9488 480×320**, **ILI9341 320×240** SPI TFT, or an RGB332 VGA setup
 - Seven momentary buttons, wired **active-low** (between GPIO and GND)
 - Optional: DFPlayer Mini and microSD, DHT11, VGA RGB332 resistor DAC, amplifier, single-cell battery with sensing divider, USB host peripherals
 
 ## Pin connections
 
-These assignments are based on the provided Freslest ESP32-S3 source archive's hardware table. GPIO means a signal on the ESP32-S3, **not a numbered physical header pin**.
+These assignments use ESP32-S3 GPIO signal names.
 
 ### ILI9488 TFT display
 
@@ -55,12 +64,12 @@ These assignments are based on the provided Freslest ESP32-S3 source archive's h
 | SCK / CLK | GPIO12 | SPI clock |
 | CS | GPIO10 | Chip select |
 | DC / RS | GPIO9 | Data/command |
-| RST / RESET | GPIO8 | **See GPIO8 conflict warning below** |
-| LED / backlight control | GPIO41 | PWM to the existing **MOSFET driver**; NOT direct LED supply |
+| RST / RESET | GPIO8 | Shared with VGA D1 |
+| LED / backlight control | GPIO41 | PWM to the existing MOSFET driver. Shared with VGA D0. |
 | MISO / SDO | Not used | Leave disconnected |
 | TFT touch CS / DO / IRQ | Not used | Touch is disabled |
 
-Supply display power at the voltage specified by **your particular module** and connect grounds. TFT breakout boards differ in whether they tolerate 5 V power and logic; do not assume.
+Supply display power at the voltage specified by **your particular module** and connect grounds. Use the power and logic voltages specified for the breakout board.
 
 ### Physical buttons
 
@@ -74,17 +83,17 @@ Supply display power at the voltage specified by **your particular module** and 
 | BACK / EXIT | GPIO16 | GND |
 | FIRE / SHOOT | GPIO3 | GND |
 
-Buttons are active-low. These are the Freslest-specific seven-button assignments, not a generic ESP32-S3 wiring pattern.
+Buttons are active-low. These seven assignments are Freslest-specific.
 
 ### Audio / DFPlayer Mini
 
 | Connection | ESP32-S3 or destination | Notes |
 |---|---|---|
 | DFPlayer TX | GPIO17 (ESP RX) | Cross TX to RX |
-| DFPlayer RX | GPIO18 (ESP TX) | Source project uses **1 kΩ series resistor** |
-| DFPlayer power | Suitable stable supply | Manufacturer typically recommends 5 V; check your board |
+| DFPlayer RX | GPIO18 (ESP TX) | Existing series resistor is **1 kΩ** |
+| DFPlayer power | Suitable stable supply | Check the module's supply rating |
 | DFPlayer GND | ESP32-S3 GND | Common ground required |
-| NES / DOOM live effects output | GPIO21 | To the **existing filter/amplifier circuit**, not a speaker directly |
+| NES / DOOM live effects output | GPIO21 | To the existing filter and amplifier circuit |
 
 The DFPlayer handles recorded music/cues while GPIO21 provides live effects. An amplifier and proper interface are required for audio output.
 
@@ -92,67 +101,56 @@ The DFPlayer handles recorded music/cues while GPIO21 provides live effects. An 
 
 | Signal | ESP32-S3 | Notes |
 |---|---:|---|
-| DHT11 DATA | GPIO38 | Bare DHT11 requires 4.7 kΩ to 10 kΩ pull-up to 3V3; some modules include it |
+| DHT11 DATA | GPIO38 | Use the existing 3V3 pull-up or the module's built-in pull-up |
 | DHT11 VCC | 3V3 | Common GND |
 | DHT11 GND | GND | Common GND |
-| Battery ADC | GPIO1 | Existing **100 kΩ / 47 kΩ** voltage divider; verify orientation and ADC voltage before wiring |
+| Battery ADC | GPIO1 | Existing **100 kΩ / 47 kΩ** divider. Verify orientation and ADC voltage before wiring. |
 | Native USB D− | GPIO19 | Prefer built-in USB/OTG connector |
 | Native USB D+ | GPIO20 | Prefer built-in USB/OTG connector |
 
-**Never connect a Li-ion battery cell directly to GPIO1**. Use the correctly oriented voltage divider and an appropriate protected battery supply/charging circuit. USB connector roles vary by operating mode.
+Connect the battery sense input through the correctly oriented voltage divider and use an appropriate protected battery supply and charging circuit. USB connector roles vary by operating mode.
 
-### VGA RGB332 output
+### VGA RGB332 and shared pins
 
-The same LCD RGB565 framebuffer is converted to 640×480 RGB332 (256 colors). VGA uses GPIO41/8/13/14/2/42/40/39 for D0..7 and GPIO47/48 for HSYNC/VSYNC. See [VGA_DISPLAY_TR.md](VGA_DISPLAY_TR.md) for the exact resistor table and shared LCD/SD pin routing. This is a mode-dependent output; the shared pins require hardware isolation. Composite AV is removed. Signal stability remains experimental.
+VGA targets 640×480 at 59.94 Hz and a 25.175 MHz pixel clock. Freslest Desktop uses a 640×480 canvas. VGA uses GPIO41/8/13/14/2/42/40/39 for D0–D7 and GPIO47/48 for HSYNC/VSYNC. Isolate shared LCD and SD lines in hardware as required by the wiring table. [VGA wiring and resistors](VGA_DISPLAY_TR.md)
 
-## Installing on Windows
+GPIO41 drives the VGA blue bit and the LCD backlight PWM in their respective modes. Using it as SPI SD MOSI conflicts with those display functions. Normal boot requires GPIO0 high at reset. FreStore uses a USB card reader for FAT microSD. [ESP32-S3 boot mode](https://docs.espressif.com/projects/esptool/en/latest/esp32s3/advanced-topics/boot-mode-selection.html)
+
+## Install and update
 
 ### Windows installer
 
-The **Freslest Installer.exe** workflow:
+1. Open **Freslest Installer.exe** and choose **Türkçe** or **English**.
+2. Select **ILI9488**, **ILI9341** or **VGA**, then choose the ESP32-S3 COM port.
+3. Review the flash warning and keep the board connected until installation finishes.
 
-1. Start the installer and choose **Türkçe** or **English**.
-2. Select **ILI9488** or **ILI9341** on **Step 1: Displays**, then choose the COM port.
-3. Review the flash/data warning and start installation.
-4. Keep the ESP32-S3 connected until flashing completes, then reset it.
+Back up user files, ROMs and notes before initial installation. The Windows x64 installer and viewer passed launch and close checks. [Windows build](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42259066423)
 
-The separate **Freslest USB Viewer.exe** launches directly into the viewer interface. Both x64 Windows EXEs were built and passed native launch/close checks; 35 Windows source tests passed. Reports and SHA-256 hashes are included with the Windows download package. Physical ESP32-S3 flashing and USB display/control were not tested in that build environment.
+### USB update
 
-### Developer/manual flashing
+For an existing Freslest A/B v2 installation, copy the matching ZIP from `updates/` to the root of a FAT16/FAT32 USB drive. Keep that ZIP intact.
 
-Build current profiles with `python tools/build_lcd_profiles.py`, then package/use the verified installer for the selected LCD. The original `flash_all.bat` and baseline `firmware-payload` assets refer to the older release; they do not select the new LCD/VGA profile automatically. Do not treat those baseline OS/Doom images as this update.
+| Installed firmware profile | OS Update |
+| --- | --- |
+| ILI9488 | `UPD88.ZIP` |
+| ILI9341 | `UPD41.ZIP` |
+| Dedicated VGA | `UPDVGA.ZIP` |
 
-The partition layout includes separate OS and DOOM images. Back up user files/ROMs/notes before initial installation. If the port is stuck connecting, use BOOT/RESET download mode and close other serial monitors or viewers first.
+Use **OS Update** first and wait for a healthy boot. An LCD build switched to VGA in Settings still uses its installed LCD firmware profile for OS Update. To update Doom, choose **Doom Update** and use the same LCD ZIP in LCD mode or `DOOMVGA.ZIP` in VGA mode. [USB update format and steps](UPDATE_FORMAT.md)
+
+### Wi-Fi update and Raspberry Pi
+
+Install this 1.5 build once using USB or the installer. Configure the trusted FreStore server and publisher key. Then open **Start → Wi-Fi Update** on Desktop or **Apps → Wi-Fi Update** on LCD. Review the signed version and publisher fingerprint before selecting **Install and restart**. Routed HTTPS access between the Pi and the device is required. [Pi setup, publish and mirror commands](docs/FRESLEST_1_5_TR.md)
 
 ## USB Screen Viewer
 
-The source documentation describes two PC connection modes:
+- **USB/UART COM.** Connect the viewer through the programming port to keep native USB/OTG available for host peripherals.
+- **Native USB CDC.** Enable **Settings → Display → USB PC Viewer**, confirm and restart. This dedicates native USB to the viewer device role.
 
-- **USB/UART COM:** viewer connects through the programming/serial port, leaving native USB/OTG for external keyboard, mouse or storage.
-- **Native USB CDC:** enable **Settings > Display > USB PC Viewer**, confirm and restart. Native USB may enumerate as a COM port, but in viewer device mode it is **not** simultaneously a USB-host connector.
+Use **Fit** to show the whole screen. Frame throughput depends on the port and connection mode. [USB connection modes](NATIVE_USB.md)
 
-Use **Fit** to include top and bottom bars. Large frames over serial can be slow; throughput depends on port and connection mode. Viewer compatibility should be checked against the final Freslest OS 1.0 firmware before publishing.
+## Publishing and license
 
-## Included applications and features
+Include attribution for Doom port code, bundled libraries and third-party assets. Verify redistribution rights for any ROM, WAD and audio files before publishing. Share SHA-256 sums and record physical board tests separately from CI results.
 
-- GUI with system status and on-device controls
-- NES library/player and other applications
-- DOOM and sound support
-- Basic file management and USB input support
-- Wi-Fi/BLE features and lightweight standalone browser (not a modern full-browser engine)
-- Experimental VGA output and recovery/update functions
-
-## Repository layout
-
-`OS/` and `Doom/` are the ESP-IDF projects; `common/` and `shared_components/` contain shared firmware code. `tests/`, `OS/tests/`, `Doom/tests/` and `validation/` contain host checks. `tools/` contains flashing and packaging helpers. Windows sources are in `installer/` and `viewer/`, with their build workflow in `.github/workflows/`. `prepare_firmware.py` reconstructs the preserved payload and applies the verified OS 1.0 metadata stamp for Windows installer builds.
-
-## Important publishing notes
-
-- Include license and attribution for **DOOM port code, libraries and external assets**, respecting each dependency's license. Do not publish copyrighted commercial game ROMs, MP3 files or WAD assets without redistribution rights.
-- Publish SHA-256 sums for installer and firmware; test releases on the target board before saying “one-click ready”.
-- Future OS source builds use version `1.0`; verify the board behavior before describing a release as hardware-tested.
-- Hardware diagrams, battery safety and VGA DAC resistor values must be checked against the finished board-specific wiring before advertising them as fully verified.
-
-## License
-
-License information is **to be confirmed**. Do not claim an open-source license until the code and dependencies have been reviewed and an appropriate license file has been added.
+Project licensing is pending review of the code and bundled dependencies.
