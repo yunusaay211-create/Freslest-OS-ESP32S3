@@ -37,6 +37,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p test_lcd_profiles.py -v
           python -m unittest discover -s tests -p test_vga_transition.py -v
+          python tests/run_desktop_tests.py
       - name: Build ILI9488, ILI9341 and VGA OS and Doom firmware
         shell: bash
         run: |
@@ -94,3 +95,106 @@ jobs:
           path: dist/*
           if-no-files-found: error
           compression-level: 0
+  test-package:
+    if: github.ref == 'refs/heads/work/freslest-1.5'
+    needs: display-firmware
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: lcd-firmware-profiles
+          path: firmware
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.3'
+          cache: false
+      - name: Test FreStore and build Raspberry Pi binaries
+        working-directory: frestore-server
+        run: |
+          go test -race ./...
+          mkdir -p ../delivery/raspberry-pi/examples
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w' -o ../delivery/raspberry-pi/frestore-linux-arm64 .
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -trimpath -ldflags '-s -w' -o ../delivery/raspberry-pi/frestore-linux-armv7 .
+          cp examples/merhaba.json ../delivery/raspberry-pi/examples/
+      - name: Assemble and verify Freslest USB update ZIPs
+        run: |
+          python3 - <<'PY'
+          from hashlib import sha256
+          import json
+          import os
+          from pathlib import Path
+          from zipfile import ZipFile
+          from tools.make_doom_update_zip import make_package, make_doom_package
+
+          output = Path("delivery")
+          updates = output / "updates"
+          profiles = {"ili9488": "UPD88.ZIP", "ili9341": "UPD41.ZIP", "vga": "UPDVGA.ZIP"}
+          rows = []
+          for profile, archive in profiles.items():
+              directory = Path("firmware") / profile
+              hashes = json.loads((directory / "SHA256.json").read_text())
+              assert len(hashes) == 7
+              for name, expected in hashes.items():
+                  assert sha256((directory / Path(name).name).read_bytes()).hexdigest() == expected
+              os_image = directory / "freslest_os_s3.bin"
+              doom_image = directory / "freslest_doom_s3.bin"
+              make_package(os_image, doom_image, updates / archive, profile=profile)
+              with ZipFile(updates / archive) as z:
+                  assert z.testzip() is None
+                  assert json.loads(z.read("freslest-update.json"))["version"] == "1.5"
+                  assert z.read("firmware/freslest_os_s3.bin") == os_image.read_bytes()
+                  assert z.read("firmware/freslest_doom_s3.bin") == doom_image.read_bytes()
+              rows.append(f"| {profile} | {os_image.stat().st_size} | {doom_image.stat().st_size} | {archive} |")
+          make_doom_package(Path("firmware/vga/freslest_doom_s3.bin"), updates / "DOOMVGA.ZIP", profile="vga")
+          with ZipFile(updates / "DOOMVGA.ZIP") as z:
+              assert z.testzip() is None
+              assert json.loads(z.read("freslest-doom-update.json"))["display"] == "vga"
+
+          run = os.environ["GITHUB_SERVER_URL"] + "/" + os.environ["GITHUB_REPOSITORY"]
+          run += "/actions/runs/" + os.environ["GITHUB_RUN_ID"]
+          docs = "https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/blob/work/freslest-1.5/docs/FRESLEST_1_5_TR.md"
+          report = [
+              "# Freslest OS 1.5 · Desktop ve Wi-Fi OTA",
+              "",
+              "Kaynak commit " + os.environ["GITHUB_SHA"][:7] + ". [Derleme ve test kayıtları](" + run + ")",
+              "",
+              "| Profil | OS bayt | Doom bayt | USB ZIP |",
+              "| --- | ---: | ---: | --- |",
+              *rows,
+              "",
+              "ESP-IDF 5.4.4 ile tüm imajlar üretildi. OS ve Doom kendi flash bölümlerine sığdı.",
+              "LCD, VGA ve Desktop kaynak testleri ile Go HTTPS yayın ve kopyalama testleri geçti.",
+              "Ağ OTA'sı OS imajını HTTPS, yayıncı imzası ve SHA-256 doğrulamasından geçirir.",
+              "Kurulum mevcut A/B ve deneme açılışı yolunu kullanır.",
+              "",
+              "VGA Desktop İngilizcedir. Files görev paneli ve Settings Control Panel düzeni kullanır.",
+              "Calculator, Notepad, Paint, Clock ve Browser mevcut araç düzenini kullanır.",
+              "",
+              "GPIO41 VGA mavi biti ve LCD arka ışık PWM hattıdır. MOSI olarak eşzamanlı kullanılamaz.",
+              "GPIO0 reset sırasında açılış modunu belirler. FreStore FAT SD kartı USB okuyucudan kullanır.",
+              "Fiziksel ekran ve iki router arasında gerçek cihaz testi ayrıca yapılır.",
+              "",
+              "[Pi kurulumu ve ağ OTA komutları](" + docs + ")",
+          ]
+          (output / "Freslest_1.5_Derleme_ve_Test.md").write_text("\n".join(report) + "\n", encoding="utf-8")
+          (output / "OKU-BENI.txt").write_text(
+              "Freslest OS 1.5 | ESP32-S3 N16R8\n\n"
+              "İlk yüklemede profile uygun ZIP'i açmadan FAT16/FAT32 USB belleğin köküne kopyala.\n"
+              "ILI9488 için UPD88.ZIP, ILI9341 için UPD41.ZIP, özel VGA derlemesi için UPDVGA.ZIP.\n"
+              "Freslest Update menüsünden OS Update ile yükle ve sağlıklı açılışı bekle.\n"
+              "Doom için LCD'de aynı LCD ZIP'ini, VGA'da DOOMVGA.ZIP'i seç.\n\n"
+              "Sonraki daha yeni OS sürümleri için Desktop > Start > Wi-Fi Update.\n"
+              "Klasik LCD'de Apps > Wi-Fi Update. Pi ikilileri raspberry-pi klasöründedir.\n"
+              "Pi'de çalıştırma izni için uygun ikiliye chmod +x uygula.\n"
+              + docs + "\n", encoding="utf-8")
+          PY
+          cd delivery
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          sha256sum -c SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Freslest_1.5_Test_Paketi
+          path: delivery/
+          if-no-files-found: error

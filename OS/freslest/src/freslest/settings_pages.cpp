@@ -270,6 +270,7 @@ AppId settingsMenuToApp(int idx) {
 
 // allow apps.cpp to use setIndex
 int& __settingsIndex() { return setIndex; }
+int  __settingsCount() { return SET_COUNT; }
 
 
 // ===== Sound =====
