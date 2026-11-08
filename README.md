@@ -5,7 +5,8 @@ Freslest OS for **ESP32-S3 N16R8** includes a graphical OS, NES and Doom, a file
 ## What's new in 1.5
 
 - **Freslest Desktop.** A 640×480 XP-inspired shell with a Start menu, taskbar and draggable windows. Files uses an Explorer-style task pane and Settings opens as a Control Panel. Calculator, Notepad, Paint, Clock and Browser retain their existing tool layouts.
-- **FreStore.** A Go HTTPS server on Raspberry Pi publishes signed app cards. The ESP32 verifies and stores them on a FAT microSD card in a USB reader.
+- **FreStore.** A Go HTTPS server on Raspberry Pi publishes signed app cards. The ESP32 verifies and stores them on a FAT microSD card over SD-SPI or in a USB reader.
+- **Bluetooth.** Freslest restores the enabled setting and remembered keyboards and mice after a restart. BLE waits for 2,500 KiB of free PSRAM before starting, then reconnects as the devices advertise.
 - **Wi-Fi Update.** Check for a newer signed OS image from the configured Pi. An optional Pi on a second routed network can mirror the signed release with `mirror-os`. After confirmation, the device verifies the image and writes it to the inactive OS slot for a trial boot.
 - **Display and input.** VGA frame submission handles delayed DMA without blocking the shell. USB Boot HID releases held keyboard and mouse input on disconnect.
 
@@ -116,13 +117,14 @@ VGA targets 640×480 at 59.94 Hz and a 25.175 MHz pixel clock. Freslest Desktop 
 
 ### microSD
 
-FreStore 1.5 reads FAT microSD cards through a USB card reader.
+Insert the FAT16/FAT32 microSD before powering on. FreStore uses the SD-SPI card when it mounts at boot and falls back to a USB card reader otherwise.
 
-| Reported SD-SPI signal | ESP32-S3 | Notes |
+| SD-SPI signal | ESP32-S3 | Notes |
 | --- | --- | --- |
 | MOSI / DI | GPIO11 | Shared with TFT MOSI |
+| SCK / CLK | GPIO12 | Shared with TFT SCK |
 | MISO / DO | GPIO46 | Boot strapping pin |
-| CS | GPIO0 | High at reset for normal flash boot |
+| CS | GPIO0 | Open drain. High at reset for normal flash boot |
 
 An SD module that pulls GPIO46 high during reset can block ROM download mode. [ESP32-S3 boot mode](https://docs.espressif.com/projects/esptool/en/latest/esp32s3/advanced-topics/boot-mode-selection.html) · [SD pull-up requirements](https://docs.espressif.com/projects/esp-idf/en/release-v5.4/esp32s3/api-reference/peripherals/sd_pullup_requirements.html)
 

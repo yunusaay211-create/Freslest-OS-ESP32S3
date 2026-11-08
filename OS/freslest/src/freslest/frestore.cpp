@@ -5,6 +5,7 @@
 #include "../../usb_input.h"
 #include "apps.h"
 #include "desktop.h"
+#include "storage_init.h"
 #include "system_status.h"
 #include "text_entry.h"
 #include "usb_storage.h"
@@ -51,7 +52,7 @@ struct StoreText {
     const char *label() const { return desktopHasWindow() ? en : tr; }
 };
 constexpr StoreText TrustRequired{"Magaza adresi ve yayin anahtari gerekli.", "Set the server URL and publisher key."};
-constexpr StoreText DiskRequired{"FAT SD karti USB okuyucuyla baglayin.", "Connect a FAT SD card in a USB reader."};
+constexpr StoreText DiskRequired{"FAT SD kart takin veya USB okuyucu baglayin.", "Insert a FAT SD card or connect a USB reader."};
 StoreText message;
 Job job;
 View view = View::List;
@@ -64,10 +65,14 @@ constexpr StoreText categories[] = {
 };
 
 class DiskAccess {
+    const bool usb = !freslestSdMounted();
 public:
-    const bool ok = usbStorageLock();
-    ~DiskAccess() { if (ok) usbStorageUnlock(); }
+    const bool ok = !usb || usbStorageLock();
+    bool ready() const { return !usb || usbStorageInfo().state == UsbStorageState::Ready; }
+    ~DiskAccess() { if (usb && ok) usbStorageUnlock(); }
 };
+
+const char *diskRoot() { return freslestSdMounted() ? freslestSdRoot() : usbStorageRoot(); }
 
 bool validOrigin(const char *origin) {
     if (strncmp(origin, "https://", 8) || !origin[8]) return false;
@@ -141,9 +146,9 @@ bool fetch(const char *path, size_t capacity, size_t &length) {
 }
 
 void path(char (&out)[80], const char *id, char slot) {
-    snprintf(out, sizeof(out), "%s/FRESTORE/%s.%c", usbStorageRoot(), id, slot);
+    snprintf(out, sizeof(out), "%s/FRESTORE/%s.%c", diskRoot(), id, slot);
 }
-void directory(char (&out)[48]) { snprintf(out, sizeof(out), "%s/FRESTORE", usbStorageRoot()); }
+void directory(char (&out)[48]) { snprintf(out, sizeof(out), "%s/FRESTORE", diskRoot()); }
 bool readSlot(const char *id, char slot, Card &out) {
     char file[80]; path(file, id, slot);
     FILE *f = fopen(file, "rb");
@@ -206,7 +211,7 @@ void install(size_t length) {
     if (current && card.version >= offer.version) { message = {"Bu surum zaten yuklu.", "This version is already installed."}; return; }
     if (!current && installedCount >= MaxApps) { message = {"Yuklu uygulama sinirina ulasildi.", "Installed app limit reached."}; return; }
     uint64_t total, available;
-    if (esp_vfs_fat_info(usbStorageRoot(), &total, &available) != ESP_OK || available < length + 4096) {
+    if (esp_vfs_fat_info(diskRoot(), &total, &available) != ESP_OK || available < length + 4096) {
         message = {"SD kartta yeterli bos alan yok.", "Not enough free space on the SD card."};
         return;
     }
@@ -220,8 +225,7 @@ void install(size_t length) {
         saved = fwrite(download, 1, length, f) == length && fflush(f) == 0 && fsync(fileno(f)) == 0;
         if (fclose(f)) saved = false;
     }
-    saved = saved && usbStorageInfo().state == UsbStorageState::Ready &&
-            removeFile(next) && rename(pending, next) == 0;
+    saved = saved && disk.ready() && removeFile(next) && rename(pending, next) == 0;
     if (!saved) removeFile(pending);
     message = saved ? StoreText{"Uygulama yuklendi.", "App installed."}
                     : StoreText{"SD karta yazilamadi. Tekrar deneyin.", "Cannot write to the SD card. Try again."};
@@ -229,7 +233,7 @@ void install(size_t length) {
 }
 bool importTrust() {
     char filename[48];
-    snprintf(filename, sizeof(filename), "%s/FRESTORE.CFG", usbStorageRoot());
+    snprintf(filename, sizeof(filename), "%s/FRESTORE.CFG", diskRoot());
     FILE *f = fopen(filename, "r");
     if (!f) return false;
     candidate = {};
@@ -415,6 +419,8 @@ bool frestoreReadTrust(FreStoreTrust &out) {
     return true;
 }
 
+bool frestoreBusy() { return working && !completed.load(std::memory_order_acquire); }
+
 void frestoreEnter(bool local) {
     loadTrust();
     installedOnly = local;
@@ -422,7 +428,7 @@ void frestoreEnter(bool local) {
     selected = offset = category = 0;
     query[0] = 0;
     editing = false;
-    usbStorageBegin();
+    if (!freslestSdMounted()) usbStorageBegin();
     if (!working && !local && !offerCount) {
         if (configured()) start(Job::Catalog);
         else message = TrustRequired;
@@ -450,10 +456,11 @@ void frestoreLoop() {
         draw();
         return;
     }
-    const auto disk = usbStorageInfo();
+    const bool nativeSd = freslestSdMounted();
+    const auto disk = nativeSd ? UsbStorageInfo{} : usbStorageInfo();
     if (disk.revision != diskRevision && view != View::Trust) {
         diskRevision = disk.revision;
-        if (disk.state == UsbStorageState::Ready) {
+        if (nativeSd || disk.state == UsbStorageState::Ready) {
             start(Job::Scan);
             view = View::List;
             draw();

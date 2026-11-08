@@ -17,6 +17,11 @@ int main(){
  const uint8_t kd[]={0x05,7,0x85,1,0x19,0xe0,0x29,0xe7,0x75,1,0x95,8,0x81,2,0x75,8,0x95,1,0x81,1,0x19,0,0x29,0x65,0x75,8,0x95,6,0x81,0};
  const uint8_t md[]={0x05,9,0x85,2,0x19,1,0x29,3,0x75,1,0x95,3,0x81,2,0x75,5,0x95,1,0x81,1,0x05,1,0x09,0x30,0x09,0x31,0x15,0x81,0x75,8,0x95,2,0x81,6};
  esp_hidh_dev_t k{{1,2,3,4,5,6},{{kd,sizeof(kd)},{}},1},m{{6,5,4,3,2,1},{{md,sizeof(md)},{}},1};
+ constexpr size_t psramLimit=2500u*1024u;
+ freePsram=psramLimit-1;freslestBleStart();pump();
+ assert(info.enabled&&!info.ready&&!initialized&&!sdkStarts&&strstr(info.status,"2500 KiB"));
+ freslestBleStop();pump();freePsram=psramLimit;maintenance(fakeNow);
+ assert(!info.enabled&&!sdkStarts);
  internalFree=64000;freslestBleStart();pump();assert(!info.enabled&&!info.ready&&!sdkStarts);
  internalFree=131072;internalLargest=8192;freslestBleStart();pump();assert(!info.enabled&&!info.ready&&!sdkStarts);
  internalLargest=65536;bluedroidState=ESP_BLUEDROID_STATUS_UNINITIALIZED;freeAfterInit=16000;
@@ -24,7 +29,7 @@ int main(){
  internalFree=freeAfterInit=131072;freslestBleStart();pump();assert(info.enabled&&info.ready&&scans==1&&sdkStarts==1&&bluedroidEnables==1);
  advertise(k);advertise(m);openHook=[&](uint8_t*b,int){auto*d=same(b,k.address)?&k:&m;d->freed=false;openEvent(*d);return d;};
  freslestBleConnect(0);pump();freslestBleConnect(1);pump();assert(info.connected==2&&saved.count==2&&!info.busy);
- persist(fakeNow);assert(!nvsBytes.empty());
+ assert(!nvsBytes.empty()); // The open event queued its NVS save.
  uint8_t keys[]={0,0,0x1a,0,0,0,0,0},mouse[]={1,5,0xfb};inputEvent(k,1,keys,8);inputEvent(m,2,mouse,3);
  freslest_hid_snapshot_t snap;freslest_hid_state_take(&state,&snap,true);assert(snap.keyboards==1&&snap.mice==1&&snap.dx==5&&snap.dy==-5&&snap.mouse_buttons==1);
  inputEvent(m,2,mouse,2);freslest_hid_state_take(&state,&snap,true);assert(!snap.dx&&!snap.dy);
@@ -34,15 +39,20 @@ int main(){
  unsigned before=opens;fakeNow+=1000;advertise(m,false);maintenance(fakeNow);assert(opens==before+1&&info.connected==1);
  freslestBleConnect(1);pump();closeEvent(m);before=opens;fakeNow+=7000;advertise(m,false);maintenance(fakeNow);assert(opens==before);
  freslestBleStop();pump();assert(!info.enabled&&!info.connected);
- saved={0x46424c45,1,0,{}};memset(retry,0,sizeof(retry));loaded=initialized=privacyReady=false;info={};
- freslestBleStart();pump();assert(saved.count==2&&info.count==2&&info.devices[1].remembered);
- before=opens;maintenance(fakeNow);assert(opens==before);fakeNow+=50;advertise(m,false);maintenance(fakeNow);assert(opens==before+1&&info.connected==1);
- closeEvent(m);fakeNow+=1000;openHook=[&](uint8_t*,int){freslestBleStop();m.freed=false;openEvent(m);m.freed=true;return &m;};
+ saved={0x46424c45,1,0,{}};memset(retry,0,sizeof(retry));memset(peers,0,sizeof(peers));
+ loaded=initialized=privacyReady=scanRequested=false;info={};
+ freePsram=psramLimit-1;freslestBleStart();pump();assert(!initialized&&!info.ready);
+ freePsram=psramLimit;maintenance(fakeNow);
+ assert(info.enabled&&info.ready&&saved.count==2&&info.count==2&&info.devices[1].remembered);
+ before=opens;maintenance(fakeNow);assert(opens==before);
+ fakeNow+=50;advertise(k,false);advertise(m,false);maintenance(fakeNow);maintenance(fakeNow);
+ assert(opens==before+2&&info.connected==2);pump();
+ closeEvent(k);closeEvent(m);fakeNow+=1000;openHook=[&](uint8_t*,int){freslestBleStop();m.freed=false;openEvent(m);m.freed=true;return &m;};
  advertise(m,false);maintenance(fakeNow);pump();assert(!info.enabled&&!info.connected&&rejectCount);maintenance(fakeNow);assert(!rejectCount);
  openHook=[](uint8_t*,int)->esp_hidh_dev_t*{return nullptr;};freslestBleStart();pump();fakeNow+=100;advertise(m,false);maintenance(fakeNow);before=opens;
  maintenance(fakeNow+100);assert(opens==before);fakeNow+=2100;advertise(m,false);maintenance(fakeNow);assert(opens==before+1);
  nvsFail=true;dirty=true;saveAfter=0;persist(fakeNow);assert(dirty&&saveAfter==fakeNow+5000);nvsFail=false;persist(fakeNow+5000);assert(!dirty);
  assert(due(20,UINT32_MAX-5)&&!due(UINT32_MAX-20,30));
  freslestBleStop();pump();assert(!critical);
- puts("PASS: complete BLE production source: persistent peers, reboot/wake reconnect without UUID, two HID devices, real report parser/state, USB key retention, unplug release, manual pause, stale SDK OPEN cancellation, retry backoff, wrap-safe timers and NVS retry.");
+ puts("PASS: BLE PSRAM threshold, deferred/cancelled startup, saved keyboard and mouse reconnect after reset, real HID input, USB key retention, unplug release, manual pause, stale OPEN cancellation, retry backoff and NVS retry.");
 }

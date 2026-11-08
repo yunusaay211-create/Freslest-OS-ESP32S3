@@ -686,7 +686,7 @@ uint8_t sdcard_uninit(uint8_t pdrv) {
   return err;
 }
 
-uint8_t sdcard_init(uint8_t cs, SPIClass *spi, int hz) {
+uint8_t sdcard_init(uint8_t cs, SPIClass *spi, int hz, bool open_drain_cs) {
 
   uint8_t pdrv = 0xFF;
   if (ff_diskio_get_drive(&pdrv) != ESP_OK || pdrv == 0xFF) {
@@ -707,7 +707,8 @@ uint8_t sdcard_init(uint8_t cs, SPIClass *spi, int hz) {
   card->type = CARD_NONE;
   card->status = STA_NOINIT;
 
-  pinMode(card->ssPin, OUTPUT);
+  // An open-drain CS can share a GPIO with the active-low BOOT button.
+  pinMode(card->ssPin, open_drain_cs ? (OUTPUT_OPEN_DRAIN | PULLUP) : OUTPUT);
   digitalWrite(card->ssPin, HIGH);
   perimanSetPinBusExtraType(card->ssPin, "SD_SS");
 

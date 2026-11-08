@@ -4,7 +4,7 @@ void resetGlobals(bool erase=true){
  if(erase)nv.clear();handles.clear();logger=defaultLogger;record={};logRing={};storeOk=false;healthyBoot=false;inRecovery=false;stable=false;stableAt=0;
  idle.begin(0);fakeNow=100;resetReason=ESP_RST_POWERON;pinLevels.clear();script.clear();scriptAt=0;onPoll={};drawn.clear();
  radioCalls=restarts=sleeps=settingsWrites=otaSelects=rtcDeinits=0;wifiEnabled=btEnabled=true;
- nvsOk=commitOk=available=correctProject=hashOk=verifyOk=storageSleepOk=true;portalActive=browserBusy=deviceRole=false;
+ nvsOk=commitOk=available=correctProject=hashOk=verifyOk=storageSleepOk=true;portalActive=browserBusy=deviceRole=storeBusy=false;
  running={0x100000,0x1b0000,16};previousPart={0x2b0000,0x1b0000,17};previousState=ESP_OTA_IMG_VALID;
  wakeResult=btStopResult=wifiStopResult=selectResult=otaStateResult=ESP_OK;btHost=btController=0;ble={};disk={};app=APP_MENU;lastHid=0;
  for(Button*b:{&bUp,&bDown,&bLeft,&bRight,&bOk,&bBack,&bFire}){b->stable=HIGH;b->lastRead=HIGH;b->pressedEdge=false;}
@@ -65,9 +65,10 @@ void sleepTests(){
  for(int a:{APP_USB_TRANSFER,APP_FRESLEST_UPDATE,APP_NOTE,APP_PAINT,APP_CAMERA}){
   resetGlobals();freslestSafetyBegin();healthyBoot=true;idle.begin(0);app=a;fakeNow=300000;freslestIdleUpdate(fakeNow);assert(!sleeps&&idle.last==fakeNow);
  }
- for(int blocker=0;blocker<4;++blocker){resetGlobals();freslestSafetyBegin();healthyBoot=true;idle.begin(0);fakeNow=300000;
+ for(int blocker=0;blocker<5;++blocker){resetGlobals();freslestSafetyBegin();healthyBoot=true;idle.begin(0);fakeNow=300000;
   if(blocker==0)disk.state=UsbStorageState::Ready;if(blocker==1)browserBusy=true;if(blocker==2)portalActive=true;
   if(blocker==3)deviceRole=true;
+  if(blocker==4)storeBusy=true;
   freslestIdleUpdate(fakeNow);assert(!sleeps);
  }
  resetGlobals();freslestSafetyBegin();healthyBoot=true;idle.begin(0);fakeNow=300000;bOk.stable=LOW;freslestIdleUpdate(fakeNow);assert(!sleeps);

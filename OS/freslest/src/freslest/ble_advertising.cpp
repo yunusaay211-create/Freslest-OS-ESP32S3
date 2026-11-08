@@ -47,10 +47,13 @@ struct Command {
   uint8_t op;
   FreslestBleDevice device;
 };
-enum { START = 1, STOP, SCAN, CONNECT, FORGET };
+enum { START = 1, STOP, SCAN, CONNECT, FORGET, SAVE };
 QueueHandle_t commands;
 bool initialized = false, loaded = false, privacyReady = false,
      privateAddress = false;
+bool waitingForPsram = false; // Owned by the BLE worker.
+constexpr size_t MinFreePsram = 2500u * 1024u;
+constexpr char PsramRequired[] = "Bluetooth needs 2500 KiB free PSRAM.";
 bool pending = false, dirty = false, scanRequested = false;
 uint8_t pairing[6]{};
 uint32_t epoch = 0, pendingEpoch = 0, nextScan = 0, handshakeDeadline = 0,
@@ -428,6 +431,9 @@ void hid(void *, esp_event_base_t, int32_t event, void *arg) {
     info.pairMode = 0;
     refreshList();
     portEXIT_CRITICAL(&mux);
+    // Wake the worker to commit the peer before its normal maintenance tick.
+    const Command save{SAVE, {}};
+    xQueueSend(commands, &save, 0);
     if (kind & 1)
       freslest_hid_external_connect(i * 2, 1);
     if (kind & 2)
@@ -511,6 +517,9 @@ bool memoryReady(size_t minimum,size_t block) {
   }
   return true;
 }
+bool psramReady() {
+  return heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT) >= MinFreePsram;
+}
 bool initialize() {
   if(initialized)return true;
   if(!memoryReady(65536u,12288u))return false;
@@ -560,10 +569,6 @@ bool initialize() {
   loadSaved();
   if (esp_ble_gap_config_local_privacy(true) != ESP_OK)
     privacyReady = true;
-  portENTER_CRITICAL(&mux);
-  info.ready = true;
-  ++info.revision;
-  portEXIT_CRITICAL(&mux);
   return true;
 }
 void scan(bool manual = false) {
@@ -669,7 +674,29 @@ void connectDevice(FreslestBleDevice d, bool manual) {
   else if (!opened)
     status("Not connected. Wake device; saved peers retry automatically.");
 }
+void startWhenReady() {
+  if (!enabled()) {
+    waitingForPsram = false;
+    return;
+  }
+  if (!psramReady()) {
+    if (!waitingForPsram) status(PsramRequired);
+    waitingForPsram = true;
+    return;
+  }
+  waitingForPsram = false;
+  if (!initialize()) return;
+  portENTER_CRITICAL(&mux);
+  info.ready = true;
+  for (auto &r : retry)
+    r = {false, false, 0, 0, millis()};
+  nextScan = millis();
+  portEXIT_CRITICAL(&mux);
+  status("Saved peers restore automatically. Wake your mouse.");
+  scan(true);
+}
 void maintenance(uint32_t now) {
+  if (waitingForPsram) startWhenReady();
   uint8_t rejected[2][6];
   unsigned n;
   portENTER_CRITICAL(&mux);
@@ -726,18 +753,13 @@ void maintenance(uint32_t now) {
 }
 void process(Command c) {
   if (c.op == START) {
-    if (enabled() && initialize()) {
-      portENTER_CRITICAL(&mux);
-      for (auto &r : retry)
-        r = {false, false, 0, 0, millis()};
-      nextScan = millis();
-      portEXIT_CRITICAL(&mux);
-      status("Saved peers restore automatically. Wake your mouse.");
-      scan(true);
-    }
+    startWhenReady();
   } else if (c.op == STOP || c.op == FORGET) {
-    if (c.op == FORGET && !initialized)
-      initialize();
+    if (c.op == STOP) waitingForPsram = false;
+    if (c.op == FORGET && !initialized) {
+      if (!psramReady()) { status(PsramRequired); return; }
+      if (!initialize()) return;
+    }
     if (initialized)
       esp_ble_gap_stop_scanning();
     uint8_t b[2][6];
@@ -773,7 +795,9 @@ void process(Command c) {
       status("Bonds removed. Put devices in pairing mode.");
     } else
       status("Bluetooth is off.");
-  } else if (c.op == SCAN)
+  } else if (c.op == SAVE)
+    persist(millis());
+  else if (c.op == SCAN)
     scan(true);
   else if (c.op == CONNECT) {
     if (enabled() && initialized)
@@ -828,6 +852,7 @@ void freslestBleStart() {
     return;
   portENTER_CRITICAL(&mux);
   info.enabled = true;
+  info.ready = false;
   ++epoch;
   ++info.revision;
   portEXIT_CRITICAL(&mux);

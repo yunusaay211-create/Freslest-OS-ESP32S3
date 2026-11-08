@@ -8,6 +8,7 @@
 #include "apps.h"
 #include "audio_manager.h"
 #include "browser_native.h"
+#include "frestore.h"
 #include "wifi_manager.h"
 #include "ble_advertising.h"
 #include "usb_storage.h"
@@ -353,7 +354,7 @@ void freslestIdleUpdate(uint32_t now) {
   for(Button *b : {&bUp,&bDown,&bLeft,&bRight,&bOk,&bBack,&bFire})activity|=b->down()||b->pressed();
   activity|=(uint32_t)(now-usbInputLastActivity())<100u;
   auto disk=usbStorageInfo();
-  bool blocked=screenMirrorActive()||inRecovery||!healthyBoot||usbInputDeviceMode()||app==APP_USB_TRANSFER||app==APP_FRESLEST_UPDATE||app==APP_PAINT||app==APP_NOTE||app==APP_CAMERA||wifiPortalActive()||nativeBrowserStatus().busy||disk.present();
+  bool blocked=screenMirrorActive()||inRecovery||!healthyBoot||usbInputDeviceMode()||app==APP_USB_TRANSFER||app==APP_FRESLEST_UPDATE||app==APP_PAINT||app==APP_NOTE||app==APP_CAMERA||wifiPortalActive()||nativeBrowserStatus().busy||frestoreBusy()||disk.present();
   if(!idle.tick(now,activity,blocked))return;
   // OK and BACK are RTC GPIOs on ESP32-S3. Restore their digital mode on wake.
   constexpr uint64_t wake=(1ULL<<BTN_OK)|(1ULL<<BTN_BACK);

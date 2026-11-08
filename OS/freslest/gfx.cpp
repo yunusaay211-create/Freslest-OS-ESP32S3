@@ -34,7 +34,7 @@ public:
 
       cfg.pin_sclk = PIN_TFT_SCK;
       cfg.pin_mosi = PIN_TFT_MOSI;
-      cfg.pin_miso = PIN_TFT_MISO;
+      cfg.pin_miso = PIN_SD_MISO;
       cfg.pin_dc   = PIN_TFT_DC;
 
       _bus.config(cfg);

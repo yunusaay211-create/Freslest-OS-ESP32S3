@@ -111,6 +111,7 @@ inline bool usbInputDeviceMode(){return deviceRole;}
 inline bool usbStoragePrepareSleep(){return storageSleepOk;}
 inline bool wifiPortalActive(){return portalActive;}
 struct BrowserStatus{bool busy;};inline BrowserStatus nativeBrowserStatus(){return {browserBusy};}
+inline bool storeBusy=false;inline bool frestoreBusy(){return storeBusy;}
 enum class UsbStorageState{Disabled,Absent,Mounting,Ready,Error,Ejected};
 struct DiskInfo {UsbStorageState state=UsbStorageState::Absent;bool present(){return state!=UsbStorageState::Disabled&&state!=UsbStorageState::Absent;}};inline DiskInfo disk;
 inline DiskInfo usbStorageInfo(){return disk;}

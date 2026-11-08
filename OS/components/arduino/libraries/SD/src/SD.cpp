@@ -26,7 +26,7 @@ SDFS::~SDFS() {
   end();
 }
 
-bool SDFS::begin(uint8_t ssPin, SPIClass &spi, uint32_t frequency, const char *mountpoint, uint8_t max_files, bool format_if_empty) {
+bool SDFS::begin(uint8_t ssPin, SPIClass &spi, uint32_t frequency, const char *mountpoint, uint8_t max_files, bool format_if_empty, bool open_drain_cs) {
   if (_pdrv != 0xFF) {
     return true;
   }
@@ -35,7 +35,7 @@ bool SDFS::begin(uint8_t ssPin, SPIClass &spi, uint32_t frequency, const char *m
     return false;
   }
 
-  _pdrv = sdcard_init(ssPin, &spi, frequency);
+  _pdrv = sdcard_init(ssPin, &spi, frequency, open_drain_cs);
   if (_pdrv == 0xFF) {
     return false;
   }

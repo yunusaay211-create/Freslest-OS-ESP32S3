@@ -28,7 +28,8 @@ public:
   SDFS(FSImplPtr impl);
   ~SDFS();
   bool begin(
-    uint8_t ssPin = SS, SPIClass &spi = SPI, uint32_t frequency = 4000000, const char *mountpoint = "/sd", uint8_t max_files = 5, bool format_if_empty = false
+    uint8_t ssPin = SS, SPIClass &spi = SPI, uint32_t frequency = 4000000, const char *mountpoint = "/sd", uint8_t max_files = 5,
+    bool format_if_empty = false, bool open_drain_cs = false
   );
   void end();
   sdcard_type_t cardType();

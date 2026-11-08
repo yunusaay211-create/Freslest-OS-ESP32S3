@@ -33,11 +33,12 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - name: Test actual LCD C and C++ output paths
+      - name: Test display and Bluetooth behavior
         run: |
           python -m unittest discover -s tests -p test_lcd_profiles.py -v
           python -m unittest discover -s tests -p test_vga_transition.py -v
           python tests/run_desktop_tests.py
+          python tests/run_ble_callback_tests.py
       - name: Build ILI9488, ILI9341 and VGA OS and Doom firmware
         shell: bash
         run: |
@@ -165,16 +166,17 @@ jobs:
               *rows,
               "",
               "ESP-IDF 5.4.4 ile tüm imajlar üretildi. OS ve Doom kendi flash bölümlerine sığdı.",
-              "LCD, VGA ve Desktop kaynak testleri ile Go HTTPS yayın ve kopyalama testleri geçti.",
+              "LCD, VGA, Desktop ve Bluetooth kaynak testleri ile Go HTTPS yayın ve kopyalama testleri geçti.",
               "Ağ OTA'sı OS imajını HTTPS, yayıncı imzası ve SHA-256 doğrulamasından geçirir.",
               "Kurulum mevcut A/B ve deneme açılışı yolunu kullanır.",
               "",
               "VGA Desktop İngilizcedir. Files görev paneli ve Settings Control Panel düzeni kullanır.",
               "Calculator, Notepad, Paint, Clock ve Browser mevcut araç düzenini kullanır.",
               "",
-              "GPIO41 VGA mavi biti ve LCD arka ışık PWM hattıdır. MOSI olarak eşzamanlı kullanılamaz.",
-              "GPIO0 reset sırasında açılış modunu belirler. FreStore FAT SD kartı USB okuyucudan kullanır.",
-              "Fiziksel ekran ve iki router arasında gerçek cihaz testi ayrıca yapılır.",
+              "SD-SPI, TFT ile GPIO11 MOSI ve GPIO12 SCK hatlarını paylaşır. SD CS GPIO0, MISO GPIO46'dır.",
+              "FreStore açılışta SD-SPI kartı bağlar veya USB okuyucuyu kullanır.",
+              "Bluetooth 2.500 KiB boş PSRAM bekler ve kayıtlı cihazlara yeniden bağlanır.",
+              "Fiziksel ekran, SD kart, Bluetooth ve iki router arasında gerçek cihaz testi ayrıca yapılır.",
               "",
               "[Pi kurulumu ve ağ OTA komutları](" + docs + ")",
           ]

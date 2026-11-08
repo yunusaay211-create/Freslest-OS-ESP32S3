@@ -14,9 +14,9 @@ using esp_err_t=int;using esp_event_base_t=const char*;using nvs_handle_t=int;us
 constexpr int ESP_OK=0,portMUX_INITIALIZER_UNLOCKED=0,pdTRUE=1,pdPASS=1,NVS_READONLY=0,NVS_READWRITE=1;
 inline int critical=0;inline uint32_t fakeNow=100;inline bool nvsFail=false;inline std::vector<uint8_t> nvsBytes;
 constexpr int MALLOC_CAP_INTERNAL=1,MALLOC_CAP_8BIT=2,MALLOC_CAP_SPIRAM=4;
-inline size_t internalFree=131072,internalLargest=65536;
+inline size_t internalFree=131072,internalLargest=65536,freePsram=8u*1024u*1024u;
 inline unsigned sdkStarts=0;
-inline size_t heap_caps_get_free_size(int){return internalFree;}
+inline size_t heap_caps_get_free_size(int caps){return caps&MALLOC_CAP_SPIRAM?freePsram:internalFree;}
 inline size_t heap_caps_get_largest_free_block(int){return internalLargest;}
 #define portENTER_CRITICAL(x) (++critical)
 #define portEXIT_CRITICAL(x) (--critical)

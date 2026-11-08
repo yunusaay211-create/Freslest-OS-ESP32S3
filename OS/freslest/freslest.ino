@@ -44,11 +44,13 @@ void setup() {
   freslestSafetyBegin();
   bool recovery=freslestRecoveryRequested();
   freslestSafetyStage(FreslestBootStage::Display);
-  inputBegin();gfxBegin();
+  inputBegin();
+  if(!recovery)freslestSdBegin();
+  gfxBegin();
   freslestSafetyStage(FreslestBootStage::Settings);
   settingsLoad();backlightSet((uint8_t)brightnessUI);
   if(recovery)freslestRecoveryRun();
-  // Recovery runs before the OTA trial timer and before storage/USB/radios.
+  // Recovery runs before the OTA trial timer, internal storage, USB and radios.
   if(!freslest_ota_boot_begin()){
     freslestRecoveryRun("OTA state unavailable. See Log before retrying.");
     ESP.restart();return;

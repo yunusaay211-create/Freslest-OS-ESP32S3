@@ -1,9 +1,13 @@
 #include "storage_init.h"
+#include "../../gfx.h"
 #include <Arduino.h>
 #include <LittleFS.h>
+#include <SD.h>
 #include <esp_partition.h>
 namespace {
 const char *status = "Not mounted";
+constexpr char sdRoot[] = "/sd";
+bool sdMounted = false;
 bool blank(const esp_partition_t *p) {
   if (!p || p->address != 0xdb0000 || p->size != 0x50000)
     return false;
@@ -41,3 +45,18 @@ bool freslestStorageEnsure() {
   return false;
 }
 const char *freslestStorageStatus() { return status; }
+
+void freslestSdBegin() {
+  // Enter SD SPI mode with the TFT deselected before the first LCD transfer.
+  // LovyanGFX later uses this same Arduino SPI bus and transaction mutex.
+  pinMode(PIN_TFT_CS, OUTPUT);
+  digitalWrite(PIN_TFT_CS, HIGH);
+  sdMounted = SPI.begin(PIN_TFT_SCK, PIN_SD_MISO, PIN_TFT_MOSI) &&
+              SD.begin(PIN_SD_CS, SPI, 4000000, sdRoot, 4, false, true);
+  if (!sdMounted)
+    SPI.end();
+  Serial.println(sdMounted ? "SD SPI: mounted /sd" : "SD SPI: USB fallback");
+}
+
+bool freslestSdMounted() { return sdMounted; }
+const char *freslestSdRoot() { return sdRoot; }

@@ -5,7 +5,8 @@
 ## 1.5 yenilikleri
 
 - **Freslest Desktop.** 640×480 VGA’da XP tarzı Start menüsü, görev çubuğu ve sürüklenebilir pencereler. Files, Explorer tarzı görev paneliyle açılır. Settings, Control Panel düzenini kullanır. Calculator, Notepad, Paint, Clock ve Browser mevcut araç düzenini kullanır.
-- **FreStore.** Raspberry Pi’deki Go HTTPS sunucusu imzalı uygulama kartları yayımlar. Freslest kartları doğrular ve USB kart okuyucudaki FAT microSD’ye kaydeder.
+- **FreStore.** Raspberry Pi’deki Go HTTPS sunucusu imzalı uygulama kartları yayımlar. Freslest kartları doğrular ve SD-SPI veya USB okuyucu üzerinden FAT microSD’ye kaydeder.
+- **Bluetooth.** Açık tercihi ve kayıtlı klavye ile fare resetten sonra geri yüklenir. BLE, başlamak için 2.500 KiB boş PSRAM bekler ve cihazlar yeniden ilan verdiğinde bağlanır.
 - **Wi-Fi Update.** İmzalı, daha yeni OS imajı erişilebilir Pi sunucusundan alınır. İkinci router arkasındaki Pi, `mirror-os` ile imzalı yayını kopyalayabilir. Kurulum onayla başlar ve A/B deneme açılışını kullanır.
 - **VGA ve USB.** Geciken VGA kareleri yeniden eşitlenir. USB klavye veya fare ayrılınca basılı girişler bırakılır. NES, Doom, ses ve Recovery yolları korunur.
 
@@ -33,13 +34,14 @@ Bu 1.5 derlemesini önce USB veya Installer ile yükle. FreStore’da Pi adresin
 
 VGA hedefi 640×480, 59,94 Hz ve 25.175 MHz RGB332. [VGA pin ve direnç tablosu](VGA_DISPLAY_TR.md)
 
-FreStore 1.5 için FAT microSD’yi USB kart okuyucuya tak.
+FAT16/FAT32 microSD’yi ESP32-S3’e güç vermeden önce tak. FreStore açılışta bağlanan SD-SPI kartı kullanır. Kart bağlanamazsa USB kart okuyucuya geçer.
 
-| Bildirilen SD-SPI hattı | ESP32-S3 | Not |
+| SD-SPI hattı | ESP32-S3 | Not |
 | --- | --- | --- |
 | MOSI / DI | GPIO11 | TFT MOSI ile ortak |
+| SCK / CLK | GPIO12 | TFT SCK ile ortak |
 | MISO / DO | GPIO46 | Açılış modu pini |
-| CS | GPIO0 | Normal açılış için reset sırasında yüksek |
+| CS | GPIO0 | Açık drenç çıkışı. Normal açılış için reset sırasında yüksek |
 
 SD modülü reset sırasında GPIO46’yı yüksek tutarsa ESP32-S3 ROM yükleme moduna giremeyebilir. [ESP32-S3 açılış modu](https://docs.espressif.com/projects/esptool/en/latest/esp32s3/advanced-topics/boot-mode-selection.html) · [SD pull-up gereksinimleri](https://docs.espressif.com/projects/esp-idf/en/release-v5.4/esp32s3/api-reference/peripherals/sd_pullup_requirements.html)
 
