@@ -14,9 +14,9 @@ Freslest OS for **ESP32-S3 N16R8** includes a graphical OS, NES and Doom, a file
 
 | File | Contents |
 | --- | --- |
-| [Freslest 1.5 test package](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42259066423/artifacts/13525375639) | USB update ZIPs, ARM64 and ARMv7 FreStore binaries, SHA-256 sums and test report |
-| [Windows x64 installer and USB Viewer](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42259066423/artifacts/13524597281) | Freslest Installer.exe and Freslest USB Viewer.exe |
-| [Build and test run](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42259066423) | ESP-IDF firmware builds, Go tests, and Windows build and launch checks |
+| [Freslest 1.5 test package](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42501554041/artifacts/13625832858) | USB update ZIPs, ARM64 and ARMv7 FreStore binaries, SHA-256 sums and test report |
+| [Windows x64 installer and USB Viewer](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42501554041/artifacts/13626355703) | Freslest Installer.exe and Freslest USB Viewer.exe |
+| [Build and test run](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42501554041) | ESP-IDF firmware builds, Go tests, and Windows build and launch checks |
 
 ## Firmware source code
 
@@ -136,7 +136,7 @@ An SD module that pulls GPIO46 high during reset can block ROM download mode. [E
 2. Select **ILI9488**, **ILI9341** or **VGA**, then choose the ESP32-S3 COM port.
 3. Review the flash warning and keep the board connected until installation finishes.
 
-Back up user files, ROMs and notes before initial installation. The Windows x64 installer and viewer passed launch and close checks. [Windows build](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42259066423)
+Back up user files, ROMs and notes before initial installation. The Windows x64 installer and viewer passed launch and close checks. [Windows build](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42501554041)
 
 ### USB update
 
