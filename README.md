@@ -114,7 +114,17 @@ Connect the battery sense input through the correctly oriented voltage divider a
 
 VGA targets 640×480 at 59.94 Hz and a 25.175 MHz pixel clock. Freslest Desktop uses a 640×480 canvas. VGA uses GPIO41/8/13/14/2/42/40/39 for D0–D7 and GPIO47/48 for HSYNC/VSYNC. Isolate shared LCD and SD lines in hardware as required by the wiring table. [VGA wiring and resistors](VGA_DISPLAY_TR.md)
 
-GPIO41 drives the VGA blue bit and the LCD backlight PWM in their respective modes. Using it as SPI SD MOSI conflicts with those display functions. Normal boot requires GPIO0 high at reset. FreStore uses a USB card reader for FAT microSD. [ESP32-S3 boot mode](https://docs.espressif.com/projects/esptool/en/latest/esp32s3/advanced-topics/boot-mode-selection.html)
+### microSD
+
+FreStore 1.5 reads FAT microSD cards through a USB card reader.
+
+| Reported SD-SPI signal | ESP32-S3 | Notes |
+| --- | --- | --- |
+| MOSI / DI | GPIO41 | Shared with VGA D0 and LCD backlight PWM |
+| MISO / DO | GPIO46 | Boot strapping pin |
+| CS | GPIO0 | High at reset for normal flash boot |
+
+An SD module that pulls GPIO46 high during reset can block ROM download mode. [ESP32-S3 boot mode](https://docs.espressif.com/projects/esptool/en/latest/esp32s3/advanced-topics/boot-mode-selection.html) · [SD pull-up requirements](https://docs.espressif.com/projects/esp-idf/en/release-v5.4/esp32s3/api-reference/peripherals/sd_pullup_requirements.html)
 
 ## Install and update
 

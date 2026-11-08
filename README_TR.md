@@ -31,7 +31,17 @@ Bu 1.5 derlemesini önce USB veya Installer ile yükle. FreStore’da Pi adresin
 
 ## Ekran ve SD bağlantıları
 
-VGA hedefi 640×480, 59,94 Hz ve 25.175 MHz RGB332. GPIO41 VGA’da mavi bit, LCD’de arka ışık PWM hattıdır. SD MOSI için aynı GPIO kullanılırsa ekranla çakışır. GPIO0 normal açılış için reset sırasında yüksek kalmalıdır. FreStore için FAT microSD’yi USB kart okuyucuya tak. [VGA pin ve direnç tablosu](VGA_DISPLAY_TR.md) · [ESP32-S3 açılış modu](https://docs.espressif.com/projects/esptool/en/latest/esp32s3/advanced-topics/boot-mode-selection.html)
+VGA hedefi 640×480, 59,94 Hz ve 25.175 MHz RGB332. [VGA pin ve direnç tablosu](VGA_DISPLAY_TR.md)
+
+FreStore 1.5 için FAT microSD’yi USB kart okuyucuya tak.
+
+| Bildirilen SD-SPI hattı | ESP32-S3 | Not |
+| --- | --- | --- |
+| MOSI / DI | GPIO41 | VGA D0 ve LCD arka ışık PWM hattıyla ortak |
+| MISO / DO | GPIO46 | Açılış modu pini |
+| CS | GPIO0 | Normal açılış için reset sırasında yüksek |
+
+SD modülü reset sırasında GPIO46’yı yüksek tutarsa ESP32-S3 ROM yükleme moduna giremeyebilir. [ESP32-S3 açılış modu](https://docs.espressif.com/projects/esptool/en/latest/esp32s3/advanced-topics/boot-mode-selection.html) · [SD pull-up gereksinimleri](https://docs.espressif.com/projects/esp-idf/en/release-v5.4/esp32s3/api-reference/peripherals/sd_pullup_requirements.html)
 
 ## Derleme
 

@@ -34,7 +34,7 @@ Display menüsü ILI9488 ve ILI9341’i ayrı satırlarda gösterir. `[loaded]` 
 
 Aynı rengin direnç çıkışları birleşir; GPIO uçları birbirine doğrudan bağlanmaz. VGA pin 9 kullanılmaz. Renkler, VGA girişinin 75 Ω sonlandırmasını kullanır.
 
-GPIO8 LCD RESET, GPIO41 LCD arka ışık MOSFET’i ve GPIO13 SD-MISO ile ortaktır. PCB/mod anahtarlaması bu uçları ayırmalıdır: yazılım PWM’i durdursa da VGA’nın GPIO41 verisi bağlı MOSFET’i fiziksel olarak sürebilir. Bu bağlantıyla LCD ve VGA eşzamanlı sürülmez; aynı framebuffer seçilen çıkışa gider. SD ve VGA da bu ortak hatla eşzamanlı kullanılamaz.
+GPIO8 LCD RESET ile ortaktır. GPIO41, LCD arka ışık MOSFET’i ve bildirilen SD MOSI hattıyla ortaktır. VGA sinyali GPIO41’e bağlı MOSFET’i fiziksel olarak sürebilir. SD MISO için GPIO13’ü kullanan kartlarda VGA D2 de SD hattıyla ortaktır. Paylaşılan hatları seçili çıkışa göre fiziksel olarak ayır. Framebuffer seçili ekrana gönderilir. [SD bağlantı tablosu](README_TR.md#ekran-ve-sd-bağlantıları)
 
 ## Doom renkleri ve ses
 

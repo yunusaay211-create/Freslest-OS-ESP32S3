@@ -19,7 +19,7 @@ Masaüstü kısayolları çift tıklamayla açılır. Başlık çubuğu sürükl
 
 FreStore, VGA Desktop ve klasik Apps menüsünden açılır. Ara, kategori, detay, yükleme, güncelleme ve kaldırma akışları vardır. Yüklü Uygulamalar listesi karttaki doğrulanmış paketleri açar. Bu ilk sürüm ESP32-S3 ABI 1 imzalı metin kartlarını destekler. Paket başına 4 KiB, katalogda ve kartta en fazla 16 uygulama kullanılır. İlk sürümde bağımlılık listesi boş olur.
 
-FreStore, mevcut USB FAT depolama servisini kullanır. FAT16/FAT32 microSD kartı USB kart okuyucuyla bağla. Doğrudan SD-SPI hattındaki GPIO13, VGA RGB332 ile ortaktır. İndirilen paketler kartta `FRESTORE` dizinine gider. Her uygulamada iki imzalı dosya konumu vardır. Kurulum tamamlanana kadar önceki doğrulanmış dosya durur.
+FreStore, mevcut USB FAT depolama servisini kullanır. FAT16/FAT32 microSD kartı USB kart okuyucuyla bağla. İndirilen paketler kartta `FRESTORE` dizinine gider. Her uygulamada iki imzalı dosya konumu vardır. Kurulum tamamlanana kadar önceki doğrulanmış dosya durur. [SD ve ekran bağlantıları](../README_TR.md#ekran-ve-sd-bağlantıları)
 
 ### Raspberry Pi 4B kurulumu
 
