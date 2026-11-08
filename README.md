@@ -120,7 +120,7 @@ FreStore 1.5 reads FAT microSD cards through a USB card reader.
 
 | Reported SD-SPI signal | ESP32-S3 | Notes |
 | --- | --- | --- |
-| MOSI / DI | GPIO41 | Shared with VGA D0 and LCD backlight PWM |
+| MOSI / DI | GPIO11 | Shared with TFT MOSI |
 | MISO / DO | GPIO46 | Boot strapping pin |
 | CS | GPIO0 | High at reset for normal flash boot |
 

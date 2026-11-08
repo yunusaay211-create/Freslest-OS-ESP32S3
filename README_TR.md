@@ -37,7 +37,7 @@ FreStore 1.5 için FAT microSD’yi USB kart okuyucuya tak.
 
 | Bildirilen SD-SPI hattı | ESP32-S3 | Not |
 | --- | --- | --- |
-| MOSI / DI | GPIO41 | VGA D0 ve LCD arka ışık PWM hattıyla ortak |
+| MOSI / DI | GPIO11 | TFT MOSI ile ortak |
 | MISO / DO | GPIO46 | Açılış modu pini |
 | CS | GPIO0 | Normal açılış için reset sırasında yüksek |
 
