@@ -215,7 +215,7 @@ static const char* appName(AppId a) {
     case APP_NES_PLAYER: return "NES";
     case APP_FRESLEST_UPDATE: return "Update";
     case APP_FRESTORE: return "FreStore";
-    case APP_FRESTORE_APPS: return "Yuklu Uyg.";
+    case APP_FRESTORE_APPS: return "Installed Apps";
     case APP_TERMINAL: return "Terminal";
     default: return "App";
   }

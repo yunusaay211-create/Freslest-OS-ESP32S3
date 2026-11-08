@@ -1,4 +1,5 @@
 #include "frestore_package.h"
+#include "frestore_starter.h"
 #include <mbedtls/sha256.h>
 #include <cassert>
 #include <cstring>
@@ -13,7 +14,7 @@ static std::string read(const char *file) {
 }
 
 int main(int argc, char **argv) {
-    assert(argc == 10);
+    assert(argc == 11);
     const auto key = read(argv[1]), catalog = read(argv[2]), package = read(argv[3]);
     const auto wrongTarget = read(argv[4]), wrongAbi = read(argv[5]), badDeps = read(argv[6]);
     frestore::App apps[frestore::MaxApps];
@@ -52,4 +53,17 @@ int main(int argc, char **argv) {
     assert(frestore::newerOsVersion("1.5.1", "1.5") && frestore::newerOsVersion("1.10", "1.9"));
     assert(!frestore::newerOsVersion("1.5", "1.5.0") && !frestore::newerOsVersion("1.4.9", "1.5") &&
            !frestore::newerOsVersion("1.05", "1.5"));
+
+    const std::string starter = argv[10];
+    assert(read((starter + "/publisher.pub").c_str()) == FreStoreStarter.key);
+    const auto starterCatalog = read((starter + "/catalog").c_str());
+    assert(frestore::parseCatalog(starterCatalog.data(), starterCatalog.size(), FreStoreStarter.key, apps, count) && count == 3);
+    for (unsigned i = 0; i < count; ++i) {
+        const auto &app = apps[i];
+        const auto asset = read((starter + "/packages/" + app.id + "/" + std::to_string(app.version)).c_str());
+        assert(frestore::matches(asset.data(), asset.size(), app));
+        assert(frestore::parseCard(asset.data(), asset.size(), FreStoreStarter.key, card));
+        assert(std::string(card.id) == app.id && std::string(card.name) == app.name && card.version == app.version);
+        assert(!frestore::parseCard(asset.data(), asset.size(), key.c_str(), card));
+    }
 }

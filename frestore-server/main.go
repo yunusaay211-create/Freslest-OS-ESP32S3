@@ -305,7 +305,11 @@ func loadStore(dir string) (map[string][]byte, error) {
 		list.Target != target || list.ABI != abi || len(list.Apps) > maxApps {
 		return nil, errors.New("invalid catalog")
 	}
-	routes := map[string][]byte{"/v1/catalog": envelope}
+	publisher, err := publicKey(pub)
+	if err != nil {
+		return nil, err
+	}
+	routes := map[string][]byte{"/v1/catalog": envelope, "/v1/publisher.pub": []byte(publisher)}
 	for _, item := range list.Apps {
 		if !appID.MatchString(item.ID) || item.Version < 1 || item.Version > 999999 {
 			return nil, errors.New("invalid package identity")

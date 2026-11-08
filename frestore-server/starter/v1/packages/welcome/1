@@ -1,0 +1,2 @@
+MEUCIBeSU1xiXMf+h9cFUV2ggBT40RZeoVKZu8eh+2sxnE9iAiEA/ruW7R4pSnrev2z09ENmGh+BTxGtEhWuVSTcY+7wcnE=
+{"format":"frestore-card-1","target":"esp32s3","abi":1,"id":"welcome","name":"Welcome to Freslest","version":1,"lines":["Welcome to Freslest OS 1.5!","","FreStore verified this signed download.","Your card is saved in internal flash.","Open it again from Installed Apps.","It also opens offline.","","Press BACK to return to FreStore."]}

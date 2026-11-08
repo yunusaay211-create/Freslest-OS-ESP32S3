@@ -1,11 +1,11 @@
 # Freslest OS 1.5
 
-Freslest OS for **ESP32-S3 N16R8** includes a graphical OS, NES and Doom, a file manager, USB and BLE input, and three display profiles. VGA opens the English Freslest Desktop. The SPI LCD profiles use the classic Freslest interface. [Türkçe README](README_TR.md)
+Freslest OS for **ESP32-S3 N16R8** includes a graphical OS, NES and Doom, a file manager, USB and BLE input, and three display profiles. VGA opens Freslest Desktop, and the SPI LCD profiles use the classic Freslest interface. All device menus are in English. [Türkçe README](README_TR.md)
 
 ## What's new in 1.5
 
 - **Freslest Desktop.** A 640×480 XP-inspired shell with a Start menu, taskbar and draggable windows. Files uses an Explorer-style task pane and Settings opens as a Control Panel. Calculator, Notepad, Paint, Clock and Browser retain their existing tool layouts.
-- **FreStore.** A Go HTTPS server on Raspberry Pi publishes signed app cards. The ESP32 verifies and stores them on a FAT microSD card over SD-SPI or in a USB reader.
+- **FreStore.** The built-in starter catalog offers three signed cards over HTTPS. Freslest installs verified downloads to internal flash. Add a personal Raspberry Pi HTTPS server from **Server → Add HTTPS server**.
 - **Bluetooth.** Freslest restores the enabled setting and remembered keyboards and mice after a restart. BLE waits for 2,500 KiB of free PSRAM before starting, then reconnects as the devices advertise.
 - **Wi-Fi Update.** Check for a newer signed OS image from the configured Pi. An optional Pi on a second routed network can mirror the signed release with `mirror-os`. After confirmation, the device verifies the image and writes it to the inactive OS slot for a trial boot.
 - **Display and input.** VGA frame submission handles delayed DMA without blocking the shell. USB Boot HID releases held keyboard and mouse input on disconnect.
@@ -117,7 +117,7 @@ VGA targets 640×480 at 59.94 Hz and a 25.175 MHz pixel clock. Freslest Desktop 
 
 ### microSD
 
-Insert the FAT16/FAT32 microSD before powering on. FreStore uses the SD-SPI card when it mounts at boot and falls back to a USB card reader otherwise.
+Insert a FAT16/FAT32 microSD before powering on to access older FreStore packages saved on SD-SPI. FreStore can also read those packages from a USB card reader. New installs go to internal flash.
 
 | SD-SPI signal | ESP32-S3 | Notes |
 | --- | --- | --- |

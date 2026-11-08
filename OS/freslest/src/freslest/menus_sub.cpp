@@ -4,7 +4,7 @@
 #include "settings.h"
 
 // ===== Apps menu =====
-static const char* APPS_ITEMS[] = { "Calculator", "Note", "Paint", "Clock", "Camera", "Files", "Browser", "Settings", "FreStore", "Yuklu Uygulamalar", "Wi-Fi Update" };
+static const char* APPS_ITEMS[] = { "Calculator", "Note", "Paint", "Clock", "Camera", "Files", "Browser", "Settings", "FreStore", "Installed Apps", "Wi-Fi Update" };
 static constexpr int APPS_COUNT = sizeof(APPS_ITEMS)/sizeof(APPS_ITEMS[0]);
 static int appsIndex = 0;
 static int appsTop = 0;

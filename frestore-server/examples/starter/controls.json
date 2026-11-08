@@ -1,0 +1,20 @@
+{
+  "id": "controls",
+  "name": "Controls Guide",
+  "developer": "Freslest",
+  "description": "A pocket reference for buttons, the desktop, and FreStore shortcuts.",
+  "version": 1,
+  "category": 2,
+  "lines": [
+    "Freslest controls",
+    "",
+    "Arrows move the selection.",
+    "OK opens the selected item.",
+    "BACK returns to the previous screen.",
+    "In FreStore, FIRE refreshes the list.",
+    "LEFT + FIRE opens server settings.",
+    "RIGHT + FIRE opens search.",
+    "",
+    "On Desktop, double-click a shortcut."
+  ]
+}

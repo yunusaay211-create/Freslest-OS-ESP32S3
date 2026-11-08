@@ -1,11 +1,11 @@
 # Freslest OS 1.5
 
-**ESP32-S3 N16R8** için Freslest OS. ILI9488 ve ILI9341 ekranlarda klasik arayüz, VGA’da İngilizce Freslest Desktop açılır. [English README](README.md)
+**ESP32-S3 N16R8** için Freslest OS. ILI9488 ve ILI9341 ekranlarda klasik arayüz, VGA’da Freslest Desktop açılır. Tüm cihaz menüleri İngilizcedir. [English README](README.md)
 
 ## 1.5 yenilikleri
 
 - **Freslest Desktop.** 640×480 VGA’da XP tarzı Start menüsü, görev çubuğu ve sürüklenebilir pencereler. Files, Explorer tarzı görev paneliyle açılır. Settings, Control Panel düzenini kullanır. Calculator, Notepad, Paint, Clock ve Browser mevcut araç düzenini kullanır.
-- **FreStore.** Raspberry Pi’deki Go HTTPS sunucusu imzalı uygulama kartları yayımlar. Freslest kartları doğrular ve SD-SPI veya USB okuyucu üzerinden FAT microSD’ye kaydeder.
+- **FreStore.** Hazır katalog üç imzalı İngilizce kart sunar. Freslest doğrulanan indirmeleri dahili flash’a kaydeder. Kendi Raspberry Pi sunucunu **Server → Add HTTPS server** ile ekleyebilirsin.
 - **Bluetooth.** Açık tercihi ve kayıtlı klavye ile fare resetten sonra geri yüklenir. BLE, başlamak için 2.500 KiB boş PSRAM bekler ve cihazlar yeniden ilan verdiğinde bağlanır.
 - **Wi-Fi Update.** İmzalı, daha yeni OS imajı erişilebilir Pi sunucusundan alınır. İkinci router arkasındaki Pi, `mirror-os` ile imzalı yayını kopyalayabilir. Kurulum onayla başlar ve A/B deneme açılışını kullanır.
 - **VGA ve USB.** Geciken VGA kareleri yeniden eşitlenir. USB klavye veya fare ayrılınca basılı girişler bırakılır. NES, Doom, ses ve Recovery yolları korunur.
@@ -34,7 +34,7 @@ Bu 1.5 derlemesini önce USB veya Installer ile yükle. FreStore’da Pi adresin
 
 VGA hedefi 640×480, 59,94 Hz ve 25.175 MHz RGB332. [VGA pin ve direnç tablosu](VGA_DISPLAY_TR.md)
 
-FAT16/FAT32 microSD’yi ESP32-S3’e güç vermeden önce tak. FreStore açılışta bağlanan SD-SPI kartı kullanır. Kart bağlanamazsa USB kart okuyucuya geçer.
+SD-SPI üzerinde saklanan eski FreStore paketleri için FAT16/FAT32 microSD’yi ESP32-S3’e güç vermeden önce tak. Eski paketleri USB kart okuyucudan da açabilirsin. Yeni kurulumlar dahili flash’a yazılır.
 
 | SD-SPI hattı | ESP32-S3 | Not |
 | --- | --- | --- |

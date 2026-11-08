@@ -29,7 +29,7 @@ func TestPublishAndServeTLS(t *testing.T) {
 	}
 	server := httptest.NewTLSServer(storeHandler(routes))
 	defer server.Close()
-	for _, route := range []string{"/v1/catalog", "/v1/packages/merhaba/1"} {
+	for _, route := range []string{"/v1/catalog", "/v1/packages/merhaba/1", "/v1/publisher.pub"} {
 		response, err := server.Client().Get(server.URL + route)
 		if err != nil {
 			t.Fatal(err)
@@ -40,7 +40,12 @@ func TestPublishAndServeTLS(t *testing.T) {
 			response.Header.Get("Content-Length") != strconv.Itoa(len(body)) || !bytes.Equal(body, routes[route]) {
 			t.Fatalf("invalid HTTPS response for %s", route)
 		}
-		if _, err := verify(&key.PublicKey, body); err != nil {
+		if route == "/v1/publisher.pub" {
+			encoded, err := publicKey(&key.PublicKey)
+			if err != nil || string(body) != encoded {
+				t.Fatal("wrong publisher key")
+			}
+		} else if _, err := verify(&key.PublicKey, body); err != nil {
 			t.Fatal(err)
 		}
 	}

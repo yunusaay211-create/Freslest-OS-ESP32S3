@@ -11,6 +11,7 @@ on:
       - 'tools/build_lcd_profiles.py'
       - 'viewer/**'
       - 'tests/**'
+      - 'frestore-server/**'
       - 'firmware-payload.zip'
       - 'firmware-payload/**'
       - 'audio-payload/**'
@@ -118,7 +119,7 @@ jobs:
           mkdir -p ../delivery/raspberry-pi/examples
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags '-s -w' -o ../delivery/raspberry-pi/frestore-linux-arm64 .
           CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -trimpath -ldflags '-s -w' -o ../delivery/raspberry-pi/frestore-linux-armv7 .
-          cp examples/merhaba.json ../delivery/raspberry-pi/examples/
+          cp -R examples/. ../delivery/raspberry-pi/examples/
       - name: Assemble and verify Freslest USB update ZIPs
         run: |
           python3 - <<'PY'
@@ -174,7 +175,8 @@ jobs:
               "Calculator, Notepad, Paint, Clock ve Browser mevcut araç düzenini kullanır.",
               "",
               "SD-SPI, TFT ile GPIO11 MOSI ve GPIO12 SCK hatlarını paylaşır. SD CS GPIO0, MISO GPIO46'dır.",
-              "FreStore açılışta SD-SPI kartı bağlar veya USB okuyucuyu kullanır.",
+              "FreStore hazır İngilizce katalogdan doğrulanan paketleri dahili flash'a yazar.",
+              "Kendi HTTPS sunucunu FreStore > Server > Add HTTPS server ile ekleyebilirsin.",
               "Bluetooth 2.500 KiB boş PSRAM bekler ve kayıtlı cihazlara yeniden bağlanır.",
               "Fiziksel ekran, SD kart, Bluetooth ve iki router arasında gerçek cihaz testi ayrıca yapılır.",
               "",

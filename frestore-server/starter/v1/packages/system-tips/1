@@ -1,0 +1,2 @@
+MEYCIQD37EvWhezv/rJWp4v5cLEY7fECsplBr95U6WbdOsDEWQIhAKJlo3pXNtELqm2fgjr+F4hjKsFrwoJoE2jyRVZi1Sya
+{"format":"frestore-card-1","target":"esp32s3","abi":1,"id":"system-tips","name":"System Tips","version":1,"lines":["Connect to Wi-Fi before downloading.","Let the clock sync for HTTPS.","","FreStore saves apps to internal flash.","Use Installed Apps to open or remove one.","","Bluetooth needs 2500 KiB of free PSRAM.","Wake your paired keyboard or mouse","after restarting to reconnect."]}

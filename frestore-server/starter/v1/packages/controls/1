@@ -1,0 +1,2 @@
+MEUCIDnT4/tZLFMMzC0xeXPtcIagr2oWWTd5Gd8j+drJfy6xAiEAvtP7/axF6YXvwkDXytnzAQAIVmCSSr/KhuhNlPx5EIA=
+{"format":"frestore-card-1","target":"esp32s3","abi":1,"id":"controls","name":"Controls Guide","version":1,"lines":["Freslest controls","","Arrows move the selection.","OK opens the selected item.","BACK returns to the previous screen.","In FreStore, FIRE refreshes the list.","LEFT + FIRE opens server settings.","RIGHT + FIRE opens search.","","On Desktop, double-click a shortcut."]}

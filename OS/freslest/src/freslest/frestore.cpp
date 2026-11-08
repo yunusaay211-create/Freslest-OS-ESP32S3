@@ -1,10 +1,10 @@
 #include "frestore.h"
 #include "frestore_package.h"
+#include "frestore_starter.h"
 #include "../../gfx.h"
 #include "../../input.h"
 #include "../../usb_input.h"
 #include "apps.h"
-#include "desktop.h"
 #include "storage_init.h"
 #include "system_status.h"
 #include "text_entry.h"
@@ -19,7 +19,7 @@
 #include <esp_crt_bundle.h>
 #include <esp_http_client.h>
 #include <esp_timer.h>
-#include <esp_vfs_fat.h>
+#include <esp_littlefs.h>
 #include <nvs.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -29,11 +29,14 @@ using namespace frestore;
 FreStoreTrust trust{CONFIG_FRESLEST_STORE_ORIGIN, CONFIG_FRESLEST_STORE_PUBLIC_KEY};
 FreStoreTrust candidate{};
 char keyFingerprint[17];
-bool trustLoaded = false;
+bool trustLoaded = false, useStarter = true;
+constexpr char FlashRoot[] = "/littlefs/FRESTORE";
+char flashDirectory[sizeof(FlashRoot) + 17];
 
-enum class Job { Scan, Catalog, Install, Remove, Open, Import };
-enum class View { List, Detail, Card, Trust };
-struct Installed { char id[25], name[35]; uint32_t version; };
+enum class Job { Scan, Catalog, Install, Remove, Open, Pair, Import };
+enum class View { List, Detail, Card, Servers, Trust };
+enum class Edit { None, Search, Address };
+struct Installed { char id[25], name[35]; uint32_t version; bool legacy; };
 struct Selection { App offer; Installed local; };
 EXT_RAM_BSS_ATTR App offers[MaxApps];
 EXT_RAM_BSS_ATTR Installed installed[MaxApps];
@@ -45,34 +48,29 @@ Selection target{};
 std::atomic<bool> cancelled{false}, completed{false};
 std::atomic<unsigned> percent{0};
 bool working = false; // Only the UI task starts jobs and consumes completions.
-struct StoreText {
-    const char *tr = "";
-    const char *en = "";
-    bool empty() const { return !en[0]; }
-    const char *label() const { return desktopHasWindow() ? en : tr; }
-};
-constexpr StoreText TrustRequired{"Magaza adresi ve yayin anahtari gerekli.", "Set the server URL and publisher key."};
-constexpr StoreText DiskRequired{"FAT SD kart takin veya USB okuyucu baglayin.", "Insert a FAT SD card or connect a USB reader."};
-StoreText message;
+const char *message = "";
 Job job;
 View view = View::List;
-bool installedOnly, editing;
-int selected, category, offset, cardTop;
+Edit editing = Edit::None;
+bool installedOnly;
+int selected, category, offset, cardTop, serverRow;
 unsigned shownProgress = 101;
 char query[35] = "";
-constexpr StoreText categories[] = {
-    {"Tum kategoriler", "All categories"}, {"Araclar", "Tools"}, {"Egitim", "Education"}, {"Medya", "Media"}
+constexpr const char *categories[] = {"All categories", "Tools", "Education", "Media"};
+constexpr const char *serverOptions[] = {
+    "Starter catalog", "Saved server", "Add HTTPS server", "Import previous SD settings"
 };
 
-class DiskAccess {
-    const bool usb = !freslestSdMounted();
+class LegacyAccess {
+    const bool usb;
 public:
-    const bool ok = !usb || usbStorageLock();
-    bool ready() const { return !usb || usbStorageInfo().state == UsbStorageState::Ready; }
-    ~DiskAccess() { if (usb && ok) usbStorageUnlock(); }
+    const bool ok;
+    explicit LegacyAccess(bool needed = true) : usb(needed && !freslestSdMounted()), ok(!usb || usbStorageLock()) {}
+    ~LegacyAccess() { if (usb && ok) usbStorageUnlock(); }
 };
 
-const char *diskRoot() { return freslestSdMounted() ? freslestSdRoot() : usbStorageRoot(); }
+const char *legacyRoot() { return freslestSdMounted() ? freslestSdRoot() : usbStorageRoot(); }
+void legacyDirectory(char (&out)[48]) { snprintf(out, sizeof(out), "%s/FRESTORE", legacyRoot()); }
 
 bool validOrigin(const char *origin) {
     if (strncmp(origin, "https://", 8) || !origin[8]) return false;
@@ -81,35 +79,52 @@ bool validOrigin(const char *origin) {
     return true;
 }
 bool configured() { return trust.key[0] && validOrigin(trust.origin); }
+const FreStoreTrust &activeStore() { return useStarter ? FreStoreStarter : trust; }
+void activateStore(bool starter) {
+    useStarter = starter || !configured();
+    char fingerprintHex[17];
+    flashDirectory[0] = 0;
+    if (fingerprint(activeStore().key, fingerprintHex))
+        snprintf(flashDirectory, sizeof(flashDirectory), "%s/%s", FlashRoot, fingerprintHex);
+    offerCount = installedCount = 0;
+    diskRevision = UINT32_MAX;
+}
 void loadTrust() {
     if (trustLoaded) return;
     trustLoaded = true;
     nvs_handle_t nvs;
-    if (nvs_open("fl_store", NVS_READONLY, &nvs) != ESP_OK) return;
-    size_t size = sizeof(candidate);
-    if (nvs_get_blob(nvs, "trust_v1", &candidate, &size) == ESP_OK && size == sizeof(candidate) &&
-        !candidate.origin[sizeof(candidate.origin) - 1] && !candidate.key[sizeof(candidate.key) - 1] &&
-        validOrigin(candidate.origin) && fingerprint(candidate.key, keyFingerprint)) trust = candidate;
-    nvs_close(nvs);
+    if (!configured() || !fingerprint(trust.key, keyFingerprint)) trust = {};
+    uint8_t starter = 0;
+    if (nvs_open("fl_store", NVS_READONLY, &nvs) == ESP_OK) {
+        size_t size = sizeof(candidate);
+        if (nvs_get_blob(nvs, "trust_v1", &candidate, &size) == ESP_OK && size == sizeof(candidate) &&
+            !candidate.origin[sizeof(candidate.origin) - 1] && !candidate.key[sizeof(candidate.key) - 1] &&
+            validOrigin(candidate.origin) && fingerprint(candidate.key, keyFingerprint)) trust = candidate;
+        nvs_get_u8(nvs, "use_starter", &starter);
+        nvs_close(nvs);
+    }
+    activateStore(starter != 0);
 }
-bool saveTrust() {
+bool saveSelection(bool starter, const FreStoreTrust *replacement = nullptr) {
     nvs_handle_t nvs;
     if (nvs_open("fl_store", NVS_READWRITE, &nvs) != ESP_OK) return false;
-    const bool saved = nvs_set_blob(nvs, "trust_v1", &candidate, sizeof(candidate)) == ESP_OK &&
-                       nvs_commit(nvs) == ESP_OK;
+    const bool saved = (!replacement || nvs_set_blob(nvs, "trust_v1", replacement, sizeof(trust)) == ESP_OK) &&
+                       nvs_set_u8(nvs, "use_starter", starter) == ESP_OK && nvs_commit(nvs) == ESP_OK;
     nvs_close(nvs);
-    if (saved) { trust = candidate; offerCount = installedCount = 0; diskRevision = UINT32_MAX; }
+    if (saved) {
+        if (replacement) trust = *replacement;
+        activateStore(starter);
+    }
     return saved;
 }
-bool fetch(const char *path, size_t capacity, size_t &length) {
+bool fetch(const char *origin, const char *path, size_t capacity, size_t &length) {
     length = 0;
-    if (!configured()) { message = TrustRequired; return false; }
-    if (WiFi.status() != WL_CONNECTED) { message = {"Once Wi-Fi agina baglanin.", "Connect to Wi-Fi first."}; return false; }
+    if (WiFi.status() != WL_CONNECTED) { message = "Connect to Wi-Fi first."; return false; }
     struct tm time{};
-    if (!rtcGetLocal(time)) { message = {"HTTPS icin saat esitlemesini bekleyin.", "Waiting for the clock to sync for HTTPS."}; return false; }
+    if (!rtcGetLocal(time)) { message = "Waiting for the clock to sync for HTTPS."; return false; }
     char url[256];
-    int n = snprintf(url, sizeof(url), "%s%s", trust.origin, path);
-    if (n < 0 || n >= (int)sizeof(url)) { message = {"Magaza adresi gecersiz.", "Invalid store URL."}; return false; }
+    int n = snprintf(url, sizeof(url), "%s%s", origin, path);
+    if (n < 0 || n >= (int)sizeof(url)) { message = "Invalid store URL."; return false; }
     esp_http_client_config_t config{};
     config.url = url;
     config.crt_bundle_attach = esp_crt_bundle_attach;
@@ -117,16 +132,15 @@ bool fetch(const char *path, size_t capacity, size_t &length) {
     config.timeout_ms = 4000;
     config.buffer_size = 1024;
     esp_http_client_handle_t client = esp_http_client_init(&config);
-    message = {"HTTPS baglantisi kurulamadi.", "HTTPS connection failed."};
+    message = "HTTPS connection failed.";
     if (!client) return false;
     bool ok = false;
     if (esp_http_client_open(client, 0) == ESP_OK) {
         const int64_t bytes = esp_http_client_fetch_headers(client);
         const int status = esp_http_client_get_status_code(client);
-        if (status != 200) message = status == 404 ? StoreText{"Surum sunucuda bulunamadi.", "Version not found on the server."}
-                                                   : StoreText{"Sunucu istegi basarisiz.", "Server request failed."};
+        if (status != 200) message = status == 404 ? "Content was not found on the server." : "Server request failed.";
         else if (bytes <= 0 || bytes > (int64_t)capacity || esp_http_client_is_chunked_response(client))
-            message = {"Sunucu dosya boyutu gecersiz.", "Invalid file size from the server."};
+            message = "Invalid file size from the server.";
         else {
             const int64_t deadline = esp_timer_get_time() + 25000000;
             while (!cancelled.load() && length < (size_t)bytes && esp_timer_get_time() < deadline) {
@@ -137,31 +151,29 @@ bool fetch(const char *path, size_t capacity, size_t &length) {
             }
             ok = !cancelled.load() && length == (size_t)bytes &&
                  esp_http_client_is_complete_data_received(client);
-            if (!ok) message = cancelled.load() ? StoreText{"Indirme iptal edildi.", "Download cancelled."}
-                                                : StoreText{"Indirme yarida kesildi. Tekrar deneyin.", "Download interrupted. Try again."};
+            if (!ok) message = cancelled.load() ? "Download cancelled." : "Download interrupted. Try again.";
         }
     }
     esp_http_client_cleanup(client);
     return ok;
 }
 
-void path(char (&out)[80], const char *id, char slot) {
-    snprintf(out, sizeof(out), "%s/FRESTORE/%s.%c", diskRoot(), id, slot);
+void path(char (&out)[80], const char *directory, const char *id, char slot) {
+    snprintf(out, sizeof(out), "%s/%s.%c", directory, id, slot);
 }
-void directory(char (&out)[48]) { snprintf(out, sizeof(out), "%s/FRESTORE", diskRoot()); }
-bool readSlot(const char *id, char slot, Card &out) {
-    char file[80]; path(file, id, slot);
+bool readSlot(const char *directory, const char *id, char slot, Card &out) {
+    char file[80]; path(file, directory, id, slot);
     FILE *f = fopen(file, "rb");
     if (!f) return false;
     size_t n = fread(fileData, 1, sizeof(fileData), f);
     bool complete = !ferror(f) && fgetc(f) == EOF && !ferror(f);
     fclose(f);
-    return complete && parseCard(fileData, n, trust.key, out) && !strcmp(out.id, id);
+    return complete && parseCard(fileData, n, activeStore().key, out) && !strcmp(out.id, id);
 }
 // The previous verified slot stays available while the next one is written.
-char newest(const char *id, Card &out) {
-    const bool a = readSlot(id, 'a', out);
-    const bool b = readSlot(id, 'b', parsedCard);
+char newest(const char *directory, const char *id, Card &out) {
+    const bool a = readSlot(directory, id, 'a', out);
+    const bool b = readSlot(directory, id, 'b', parsedCard);
     if (b && (!a || parsedCard.version > out.version)) { out = parsedCard; return 'b'; }
     return a ? 'a' : '\0';
 }
@@ -169,11 +181,9 @@ int localIndex(const char *id) {
     for (unsigned i = 0; i < installedCount; ++i) if (!strcmp(installed[i].id, id)) return i;
     return -1;
 }
-void scanLocked() {
-    installedCount = 0;
-    if (!trust.key[0]) return;
-    char root[48]; directory(root);
-    DIR *dir = opendir(root);
+void scanDirectory(const char *directory, bool legacy) {
+    if (!directory[0]) return;
+    DIR *dir = opendir(directory);
     if (!dir) return;
     for (unsigned inspected = 0; inspected < 128 && installedCount < MaxApps; ++inspected) {
         const dirent *entry = readdir(dir);
@@ -187,53 +197,70 @@ void scanLocked() {
         id[n-2] = 0;
         if (!validId(id) || localIndex(id) >= 0) continue;
         vTaskDelay(1);
-        if (!newest(id, card)) continue;
+        if (!newest(directory, id, card)) continue;
         auto &item = installed[installedCount++];
         strcpy(item.id, card.id);
         strcpy(item.name, card.name);
         item.version = card.version;
+        item.legacy = legacy;
     }
     closedir(dir);
 }
+void scan() {
+    installedCount = 0;
+    scanDirectory(flashDirectory, false);
+    if (!useStarter) {
+        LegacyAccess disk;
+        if (disk.ok) {
+            char directory[48]; legacyDirectory(directory);
+            scanDirectory(directory, true);
+        }
+    }
+}
 bool removeFile(const char *file) { return unlink(file) == 0 || errno == ENOENT; }
+bool makeDirectory(const char *directory) { return mkdir(directory, 0777) == 0 || errno == EEXIST; }
 void install(size_t length) {
     const App &offer = target.offer;
-    if (!matches(download, length, offer) || !parseCard(download, length, trust.key, card) ||
+    if (!matches(download, length, offer) || !parseCard(download, length, activeStore().key, card) ||
         strcmp(offer.id, card.id) || strcmp(offer.name, card.name) || offer.version != card.version) {
-        message = {"Paket imzasi, ozeti veya kimligi gecersiz.", "Invalid package signature, hash or ID."};
+        message = "Invalid package signature, hash or ID.";
         return;
     }
-    DiskAccess disk;
-    if (!disk.ok) { message = DiskRequired; return; }
-    char root[48]; directory(root);
-    if (mkdir(root, 0777) && errno != EEXIST) { message = {"SD kart dizini acilamadi.", "Cannot create the SD card folder."}; return; }
-    const char current = newest(offer.id, card);
-    if (current && card.version >= offer.version) { message = {"Bu surum zaten yuklu.", "This version is already installed."}; return; }
-    if (!current && installedCount >= MaxApps) { message = {"Yuklu uygulama sinirina ulasildi.", "Installed app limit reached."}; return; }
-    uint64_t total, available;
-    if (esp_vfs_fat_info(diskRoot(), &total, &available) != ESP_OK || available < length + 4096) {
-        message = {"SD kartta yeterli bos alan yok.", "Not enough free space on the SD card."};
+    size_t total, used;
+    if (!flashDirectory[0] || esp_littlefs_info("spiffs", &total, &used) != ESP_OK) {
+        message = "Internal flash is unavailable.";
         return;
     }
-    if (cancelled.load()) { message = {"Kurulum iptal edildi.", "Installation cancelled."}; return; }
+    const char current = newest(flashDirectory, offer.id, card);
+    if (current && card.version >= offer.version) { message = "This version is already installed."; return; }
+    if (!current && installedCount >= MaxApps && localIndex(offer.id) < 0) {
+        message = "Installed app limit reached.";
+        return;
+    }
+    if (used > total || total - used < length + 4096) { message = "Not enough free internal flash."; return; }
+    if (cancelled.load()) { message = "Installation cancelled."; return; }
+    if (!makeDirectory(FlashRoot) || !makeDirectory(flashDirectory)) {
+        message = "Cannot create the internal app folder.";
+        return;
+    }
     char pending[80], next[80];
-    path(pending, offer.id, 't');
-    path(next, offer.id, current == 'a' ? 'b' : 'a');
+    path(pending, flashDirectory, offer.id, 't');
+    path(next, flashDirectory, offer.id, current == 'a' ? 'b' : 'a');
     FILE *f = fopen(pending, "wb");
     bool saved = false;
     if (f) {
         saved = fwrite(download, 1, length, f) == length && fflush(f) == 0 && fsync(fileno(f)) == 0;
         if (fclose(f)) saved = false;
     }
-    saved = saved && disk.ready() && removeFile(next) && rename(pending, next) == 0;
+    saved = saved && !cancelled.load() && rename(pending, next) == 0;
     if (!saved) removeFile(pending);
-    message = saved ? StoreText{"Uygulama yuklendi.", "App installed."}
-                    : StoreText{"SD karta yazilamadi. Tekrar deneyin.", "Cannot write to the SD card. Try again."};
-    scanLocked();
+    message = saved ? "Installed to internal flash." :
+              cancelled.load() ? "Installation cancelled." : "Cannot write to internal flash. Try again.";
+    scan();
 }
 bool importTrust() {
     char filename[48];
-    snprintf(filename, sizeof(filename), "%s/FRESTORE.CFG", diskRoot());
+    snprintf(filename, sizeof(filename), "%s/FRESTORE.CFG", legacyRoot());
     FILE *f = fopen(filename, "r");
     if (!f) return false;
     candidate = {};
@@ -246,45 +273,54 @@ bool importTrust() {
     if (char *keyEnd = strpbrk(candidate.key, "\r\n")) *keyEnd = 0;
     return validOrigin(candidate.origin) && fingerprint(candidate.key, keyFingerprint);
 }
+void requestPublisher() {
+    size_t length;
+    if (!fetch(candidate.origin, "/v1/publisher.pub", sizeof(candidate.key) - 1, length)) return;
+    while (length && (download[length - 1] == '\r' || download[length - 1] == '\n')) --length;
+    if (!length || memchr(download, 0, length)) { message = "Invalid publisher key."; return; }
+    memcpy(candidate.key, download, length);
+    candidate.key[length] = 0;
+    message = fingerprint(candidate.key, keyFingerprint) ? "" : "Invalid publisher key.";
+}
 void worker(void *) {
     if (job == Job::Catalog) {
+        scan();
         size_t length;
-        if (fetch("/v1/catalog", CatalogBytes, length))
-            message = parseCatalog(download, length, trust.key, offers, offerCount) ?
-                      StoreText{"Katalog dogrulandi.", "Catalog verified."}
-                    : StoreText{"Katalog imzasi veya bicimi gecersiz.", "Invalid catalog signature or format."};
+        if (fetch(activeStore().origin, "/v1/catalog", CatalogBytes, length))
+            message = parseCatalog(download, length, activeStore().key, offers, offerCount) ?
+                      "Catalog verified." : "Invalid catalog signature or format.";
     } else if (job == Job::Install) {
         char route[80];
         snprintf(route, sizeof(route), "/v1/packages/%s/%lu", target.offer.id, (unsigned long)target.offer.version);
         size_t length;
-        if (fetch(route, target.offer.size, length)) install(length);
+        if (fetch(activeStore().origin, route, target.offer.size, length)) install(length);
+    } else if (job == Job::Scan) {
+        scan();
+        message = installedCount ? "Installed apps loaded." : "No installed apps yet.";
+    } else if (job == Job::Pair) {
+        requestPublisher();
+    } else if (job == Job::Import) {
+        LegacyAccess disk;
+        message = disk.ok && importTrust() ? "" : "No valid previous settings on SD or USB.";
     } else {
-        DiskAccess disk;
+        LegacyAccess disk(target.local.legacy);
+        char legacy[48]; legacyDirectory(legacy);
+        const char *directory = target.local.legacy ? legacy : flashDirectory;
         if (!disk.ok) {
-            if (job == Job::Scan) installedCount = 0;
-            message = DiskRequired;
-        } else if (job == Job::Scan) {
-            scanLocked();
-            message = installedCount ? StoreText{"Yuklu uygulamalar okundu.", "Installed apps loaded."}
-                                     : StoreText{"SD kart hazir.", "SD card ready."};
+            message = "Reconnect the storage containing this app.";
         } else if (job == Job::Open) {
-            message = newest(target.local.id, card) ? StoreText{} :
-                      StoreText{"Yuklu paket imzasi gecersiz.", "Installed package signature is invalid."};
-        } else if (job == Job::Import) {
-            message = importTrust() ? StoreText{} :
-                      StoreText{"SD kartta gecerli FRESTORE.CFG bulunamadi.", "No valid FRESTORE.CFG on the SD card."};
+            message = newest(directory, target.local.id, card) ? "" : "Installed package is missing or invalid.";
         } else {
             char old[80], active[80], pending[80];
-            const char current = newest(target.local.id, card);
-            path(old, target.local.id, current == 'a' ? 'b' : 'a');
-            path(active, target.local.id, current == 'a' ? 'a' : 'b');
-            path(pending, target.local.id, 't');
+            const char current = newest(directory, target.local.id, card);
+            path(old, directory, target.local.id, current == 'a' ? 'b' : 'a');
+            path(active, directory, target.local.id, current == 'a' ? 'a' : 'b');
+            path(pending, directory, target.local.id, 't');
             message = removeFile(pending) && removeFile(old) && removeFile(active) ?
-                      StoreText{"Uygulama kaldirildi.", "App removed."}
-                    : StoreText{"SD karttan silinemedi.", "Cannot remove app from the SD card."};
-            scanLocked();
+                      "App removed." : "Cannot remove the app.";
         }
     }
+    if (job == Job::Remove) scan();
     completed.store(true, std::memory_order_release);
     vTaskDelete(nullptr);
 }
@@ -298,7 +334,7 @@ void start(Job next) {
     shownProgress = 101;
     if (xTaskCreatePinnedToCore(worker, "frestore", 10240, nullptr, 2, nullptr, 0) != pdPASS) {
         working = false;
-        message = {"FreStore icin yeterli bellek yok.", "Not enough memory for FreStore."};
+        message = "Not enough memory for FreStore.";
     }
 }
 
@@ -329,26 +365,24 @@ void wrap(int x, int y, const char *text) {
         tft.printf("%.*s", columns, text + i);
     }
 }
-bool cancellable() { return job == Job::Catalog || job == Job::Install; }
+bool cancellable() { return job == Job::Catalog || job == Job::Install || job == Job::Pair; }
+bool canOpen() { return installedOnly || (!target.local.legacy && target.local.version >= target.offer.version); }
 void draw() {
     const int w = tft.width(), h = tft.height();
     tft.fillScreen(TH().bg);
-    const bool desktop = desktopHasWindow();
-    drawHeader(installedOnly ? (desktop ? "Installed Apps" : "Yuklu Uygulamalar") : "FreStore");
-    drawFooter(desktop ? "OK Select  FIRE Refresh" : "OK Sec  FIRE Yenile",
-               desktop ? "BACK Close / Up" : "BACK Geri");
+    drawHeader(installedOnly ? "Installed Apps" : "FreStore");
+    drawFooter("OK Select  FIRE Refresh", "BACK Close / Up");
     tft.setTextSize(1);
     tft.setTextColor(TH().text);
     if (working) {
         const unsigned progress = percent.load();
         shownProgress = progress;
-        label(12, 80, job == Job::Scan ? (desktop ? "Reading SD card..." : "SD kart okunuyor...")
-                                       : (desktop ? "Working..." : "FreStore islem yapiyor..."));
+        label(12, 80, job == Job::Scan ? "Reading installed apps..." : "Working...");
         if (cancellable()) {
             tft.drawRect(12, 100, w - 24, 14, TH().dim);
             tft.fillRect(14, 102, (w - 28) * progress / 100, 10, TH().accent);
             tft.setCursor(12, 124); tft.printf("%u%%", progress);
-            button(12, 146, 84, desktop ? "Cancel" : "Iptal");
+            button(12, 146, 84, "Cancel");
         }
         return;
     }
@@ -358,33 +392,39 @@ void draw() {
             label(12, 68 + i * 13, card.lines[i + cardTop]);
         return;
     }
-    if (view == View::Trust) {
-        label(12, 48, desktop ? "Trust this server and publisher key?" : "Bu sunucuya ve yayin anahtarina guvenilsin mi?");
+    if (view == View::Servers) {
+        for (int i = 0; i < 4; ++i) {
+            const int y = 53 + i * 26;
+            tft.fillRoundRect(12, y, w - 24, 22, 3, serverRow == i ? TH().selbg : TH().panel);
+            label(19, y + 7, serverOptions[i]);
+        }
+    } else if (view == View::Trust) {
+        label(12, 48, "Trust this server and publisher key?");
         wrap(12, 67, candidate.origin);
-        tft.setCursor(12, 117); tft.printf(desktop ? "SHA-256 / first 16: %s" : "SHA-256 / ilk 16: %s", keyFingerprint);
-        button(12, h - 76, 90, desktop ? "Confirm" : "Onayla");
+        tft.setCursor(12, 117); tft.printf("SHA-256 / first 16: %s", keyFingerprint);
+        label(12, 137, "This key also authorizes Wi-Fi Update.");
+        button(12, h - 76, 90, "Confirm");
     } else if (view == View::Detail) {
         const App &offer = target.offer;
         const auto &local = target.local;
         label(12, 48, installedOnly ? local.name : offer.name);
         tft.setCursor(12, 64);
-        if (installedOnly) tft.printf(desktop ? "Version %lu" : "Surum %lu", (unsigned long)local.version);
+        if (installedOnly) tft.printf("Version %lu", (unsigned long)local.version);
         else {
-            tft.printf(desktop ? "Version %lu  %lu B  ESP32-S3 / ABI 1" : "Surum %lu  %lu B  ESP32-S3 / ABI 1",
+            tft.printf("Version %lu  %lu B  ESP32-S3 / ABI 1",
                        (unsigned long)offer.version, (unsigned long)offer.size);
             label(12, 80, offer.developer);
             wrap(12, 98, offer.description);
         }
-        const StoreText action = installedOnly || local.version >= offer.version ? StoreText{"Ac", "Open"} :
-                                 local.version ? StoreText{"Guncelle", "Update"} : StoreText{"Yukle", "Install"};
-        button(12, h - 76, 84, action.label());
-        if (local.version) button(108, h - 76, 84, desktop ? "Remove" : "Kaldir");
+        const char *action = canOpen() ? "Open" : (local.version && !local.legacy ? "Update" : "Install");
+        button(12, h - 76, 84, action);
+        if (local.version) button(108, h - 76, 84, "Remove");
     } else {
-        button(12, 40, 52, desktop ? "Search" : "Ara");
-        button(70, 40, 60, desktop ? "Refresh" : "Yenile");
+        button(12, 40, 52, "Search");
+        button(70, 40, 60, "Refresh");
         if (!installedOnly) {
-            button(136, 40, 101, categories[category].label());
-            button(243, 40, 65, desktop ? "Server" : "Sunucu");
+            button(136, 40, 101, categories[category]);
+            button(243, 40, 65, "Server");
         }
         if (query[0]) label(12, 64, query);
         for (int i = 0; i < rows(); ++i) {
@@ -395,9 +435,9 @@ void draw() {
             label(18, y + 5, installedOnly ? installed[index].name : offers[index].name);
         }
     }
-    if (!message.empty()) {
+    if (message[0]) {
         tft.setCursor(12, h - 43);
-        tft.printf("%.*s", (w - 24) / 6, message.label());
+        tft.printf("%.*s", (w - 24) / 6, message);
     }
 }
 void detail(int index) {
@@ -427,17 +467,20 @@ void frestoreEnter(bool local) {
     view = View::List;
     selected = offset = category = 0;
     query[0] = 0;
-    editing = false;
-    if (!freslestSdMounted()) usbStorageBegin();
-    if (!working && !local && !offerCount) {
-        if (configured()) start(Job::Catalog);
-        else message = TrustRequired;
+    editing = Edit::None;
+    if (!useStarter && !freslestSdMounted()) {
+        usbStorageBegin();
+        diskRevision = usbStorageInfo().revision;
+    }
+    if (!working) {
+        if (local) start(Job::Scan);
+        else if (!offerCount) start(Job::Catalog);
     }
     draw();
 }
 void frestoreExit() {
-    if (editing) textEntryCancel();
-    editing = false;
+    if (editing != Edit::None) textEntryCancel();
+    editing = Edit::None;
 }
 void frestoreLoop() {
     if (working) {
@@ -447,8 +490,8 @@ void frestoreLoop() {
             return;
         }
         working = false;
-        if (job == Job::Open && view == View::Detail && message.empty()) { view = View::Card; cardTop = 0; }
-        if (job == Job::Import && message.empty() && !installedOnly) view = View::Trust;
+        if (job == Job::Open && view == View::Detail && !message[0]) { view = View::Card; cardTop = 0; }
+        if ((job == Job::Pair || job == Job::Import) && !message[0] && !installedOnly) view = View::Trust;
         if (job == Job::Install || job == Job::Remove || job == Job::Catalog) {
             view = View::List;
             selected = offset = 0;
@@ -456,32 +499,39 @@ void frestoreLoop() {
         draw();
         return;
     }
-    const bool nativeSd = freslestSdMounted();
-    const auto disk = nativeSd ? UsbStorageInfo{} : usbStorageInfo();
-    if (disk.revision != diskRevision && view != View::Trust) {
-        diskRevision = disk.revision;
-        if (nativeSd || disk.state == UsbStorageState::Ready) {
-            start(Job::Scan);
-            view = View::List;
-            draw();
-            return;
-        }
-        installedCount = 0;
-        if (installedOnly || view == View::Card) view = View::List;
-        target.local = {};
-        draw();
-    }
-    if (editing) {
-        const auto result = textEntryTakeResult(query, sizeof(query));
+    if (editing != Edit::None) {
+        char entered[sizeof(candidate.origin)];
+        const auto result = textEntryTakeResult(entered, sizeof(entered));
         if (result == TextEntryResult::None) return;
-        editing = false;
-        selected = offset = 0;
+        if (result == TextEntryResult::Accepted) {
+            if (editing == Edit::Search) {
+                strlcpy(query, entered, sizeof(query));
+                selected = offset = 0;
+            } else if (validOrigin(entered)) {
+                candidate = {};
+                strlcpy(candidate.origin, entered, sizeof(candidate.origin));
+                start(Job::Pair);
+            } else message = "Enter an HTTPS address without a path.";
+        }
+        editing = Edit::None;
         draw();
         return;
     }
+    if (!useStarter && !freslestSdMounted() && view != View::Trust && view != View::Servers) {
+        const auto disk = usbStorageInfo();
+        if (disk.revision != diskRevision) {
+            diskRevision = disk.revision;
+            view = View::List;
+            target.local = {};
+            start(Job::Scan);
+            draw();
+            return;
+        }
+    }
     if (bBack.pressed()) {
         if (view == View::Card) view = View::Detail;
-        else if (view == View::Detail || view == View::Trust) view = View::List;
+        else if (view == View::Trust) view = View::Servers;
+        else if (view == View::Detail || view == View::Servers) view = View::List;
         else { enterApp(APP_APPS); return; }
         draw();
         return;
@@ -491,11 +541,40 @@ void frestoreLoop() {
     const int h = tft.height();
     if (view == View::Trust) {
         if (bOk.pressed() || usbInputHit(12, h - 76, 90, 20)) {
-            message = saveTrust() ? StoreText{"Sunucu kaydedildi. Katalogu yenileyin.", "Server saved. Refresh the catalog."}
-                                  : StoreText{"Sunucu ayarlari kaydedilemedi.", "Cannot save server settings."};
-            view = View::List;
+            if (saveSelection(false, &candidate)) { frestoreEnter(false); return; }
+            message = "Cannot save server settings.";
             draw();
         }
+        return;
+    }
+    if (view == View::Servers) {
+        if (step) serverRow = (serverRow + step + 4) % 4;
+        bool choose = bOk.pressed();
+        for (int i = 0; i < 4; ++i) {
+            if (usbInputHit(12, 53 + i * 26, tft.width() - 24, 22)) {
+                serverRow = i;
+                choose = true;
+                break;
+            }
+        }
+        if (choose) {
+            if (serverRow == 2) {
+                textEntryBegin("HTTPS server address", configured() ? trust.origin : "https://",
+                               sizeof(candidate.origin) - 1);
+                editing = Edit::Address;
+                return;
+            }
+            if (serverRow == 3) {
+                if (!freslestSdMounted()) usbStorageBegin();
+                start(Job::Import);
+            } else if (serverRow == 1 && !configured()) {
+                message = "Add an HTTPS server first.";
+            } else if (saveSelection(serverRow == 0)) {
+                frestoreEnter(false);
+                return;
+            } else message = "Cannot save server settings.";
+        }
+        if (step || choose) draw();
         return;
     }
     if (view == View::Card) {
@@ -505,20 +584,22 @@ void frestoreLoop() {
     if (view == View::Detail) {
         if (target.local.version && (bFire.pressed() || usbInputHit(108, h - 76, 84, 20))) start(Job::Remove);
         else if (bOk.pressed() || usbInputHit(12, h - 76, 84, 20)) {
-            const bool open = installedOnly || target.local.version >= target.offer.version;
-            start(open ? Job::Open : Job::Install);
+            start(canOpen() ? Job::Open : Job::Install);
         } else return;
         draw();
         return;
     }
     if (usbInputHit(12, 40, 52, 20) || (bFire.pressed() && bRight.down())) {
-        textEntryBegin(desktopHasWindow() ? "Search FreStore" : "FreStore Ara", query, sizeof(query) - 1);
-        editing = true;
+        textEntryBegin("Search FreStore", query, sizeof(query) - 1);
+        editing = Edit::Search;
         return;
     }
     if (!installedOnly && (usbInputHit(243, 40, 65, 20) ||
-        (bFire.pressed() && (!configured() || bLeft.down())))) {
-        start(Job::Import); draw(); return;
+        (bFire.pressed() && bLeft.down()))) {
+        serverRow = useStarter ? 0 : 1;
+        view = View::Servers;
+        message = "";
+        draw(); return;
     }
     if (bFire.pressed() || usbInputHit(70, 40, 60, 20)) {
         start(installedOnly ? Job::Scan : Job::Catalog); draw(); return;

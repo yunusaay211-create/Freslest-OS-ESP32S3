@@ -4,7 +4,7 @@ config FRESLEST_STORE_ORIGIN
     default ""
     help
         Use a certificate that chains to the ESP-IDF root bundle.
-        The user can also import the store settings from a FAT card.
+        FreStore can also add a personal HTTPS server from its Server menu.
 
 config FRESLEST_STORE_PUBLIC_KEY
     string "Publisher ECDSA P-256 public key (base64 DER)"

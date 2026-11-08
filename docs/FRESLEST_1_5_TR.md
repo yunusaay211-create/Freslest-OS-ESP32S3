@@ -17,9 +17,9 @@ Masaüstü kısayolları çift tıklamayla açılır. Başlık çubuğu sürükl
 
 ## FreStore
 
-FreStore, VGA Desktop ve klasik Apps menüsünden açılır. Ara, kategori, detay, yükleme, güncelleme ve kaldırma akışları vardır. Yüklü Uygulamalar listesi karttaki doğrulanmış paketleri açar. Bu ilk sürüm ESP32-S3 ABI 1 imzalı metin kartlarını destekler. Paket başına 4 KiB, katalogda ve kartta en fazla 16 uygulama kullanılır. İlk sürümde bağımlılık listesi boş olur.
+FreStore, VGA Desktop ve klasik **Apps** menüsünden açılır. Wi-Fi’ye bağlanıp saat eşitlendikten sonra hazır katalogdaki **Welcome to Freslest**, **Controls Guide** ve **System Tips** kartlarından birini seç ve **Install**’a bas. **Installed Apps** ekranından çevrimdışı açabilir veya kaldırabilirsin. Hazır katalog adresi ve doğrulama anahtarı firmware’e dahildir. Bu sürüm ESP32-S3 ABI 1 imzalı metin kartlarını destekler. Paket başına 4 KiB, katalog ve kurulu liste başına 16 uygulama kullanılır.
 
-FreStore doğrudan bağlı FAT16/FAT32 microSD’yi açılışta SD-SPI üzerinden bağlar. Kart bağlanamazsa USB FAT depolama servisini kullanır. İndirilen paketler kartta `FRESTORE` dizinine gider. Her uygulamada iki imzalı dosya konumu vardır. Kurulum tamamlanana kadar önceki doğrulanmış dosya durur. [SD ve ekran bağlantıları](../README_TR.md#ekran-ve-sd-bağlantıları)
+Doğrulanan paketler dahili LittleFS’te yayıncıya ait `FRESTORE` dizinine yazılır. Yeni sürüm tamamlanana kadar önceki doğrulanmış dosya açılabilir. Eski SD ve USB paketleri ilgili kayıtlı sunucu seçildiğinde görünür. Mağazada tekrar **Install** seçerek aynı kartı dahili flash’a alabilirsin. [SD ve ekran bağlantıları](../README_TR.md#ekran-ve-sd-bağlantıları)
 
 ### Raspberry Pi 4B kurulumu
 
@@ -28,7 +28,7 @@ FreStore doğrudan bağlı FAT16/FAT32 microSD’yi açılışta SD-SPI üzerind
 
 ```sh
 ./frestore keygen -private publisher.pem
-./frestore publish -private publisher.pem -input examples -out published
+./frestore publish -private publisher.pem -input examples/starter -out published
 base64 -d published/publisher.pub | sha256sum
 ```
 
@@ -38,15 +38,8 @@ base64 -d published/publisher.pub | sha256sum
 ./frestore serve -dir published -addr :8443 -cert fullchain.pem -tls-key privkey.pem
 ```
 
-4. FAT kartın kökünde `FRESTORE.CFG` oluştur. İlk satıra kendi HTTPS sunucu adresini, ikinci satıra `published/publisher.pub` içeriğini yaz. Adreste yol ve sonda eğik çizgi kullanma.
-
-```text
-https://store.example.org:8443
-<tek satir Base64 yayin acik anahtari>
-```
-
-5. Cihazı Wi-Fi'ye bağla ve saatin eşitlenmesini bekle. Desktop'ta **FreStore → Server**, klasik LCD'de **FreStore → Sunucu** yolunu aç. Ekrandaki adresi ve SHA-256 parmak izinin ilk 16 karakterini yayıncı makinesindeki değerle karşılaştır. Onayladıktan sonra **Refresh** veya **Yenile** seç. Fare olmadan Sunucu için SOL+FIRE, Ara için SAĞ+FIRE kullanılır.
-6. Örnek **Merhaba Freslest** kartını yükle ve **My Apps** veya **Yüklü Uygulamalar** ekranından aç. Yeni içerik yayımlarken sürüm numarasını artır.
+4. Cihazı Wi-Fi’ye bağla ve saatin eşitlenmesini bekle. **FreStore → Server → Add HTTPS server** yolunda `https://store.example.org:8443` biçiminde adresi gir. FreStore açık anahtarı HTTPS üzerinden alır. Ekrandaki adresi ve SHA-256 parmak izinin ilk 16 karakterini yayıncı makinesindeki değerle karşılaştırıp **Confirm**’e bas. Fare olmadan sunucu menüsü için **LEFT + FIRE**, arama için **RIGHT + FIRE** kullanılır.
+5. **Install** ile bir kart indir ve **Installed Apps** ekranından aç. **Server → Starter catalog** hazır kataloğa döner. **Saved server** ile kayıtlı Pi’ye geçebilirsin. Önceki SD ayar dosyasını kullanıyorsan sunucu menüsünde **Import previous SD settings** seçeneği bulunur. Yeni içerik yayımlarken sürüm numarasını artır.
 
 Katalog ve paketler ayrı ECDSA P-256 imzası taşır. ESP32 paket boyutunu, SHA-256 özetini, yayın imzasını, kimliği, sürümü ve ABI'yi doğrular. Sunucu Go ile yazıldı ve katalog imzalı bir dosyada tutuluyor. Gönüllü P2P dağıtımı ayrı fazdır.
 
@@ -67,7 +60,7 @@ Yayıncı Pi'de kendi FreStore anahtarınla, kurulu profil için daha yeni bir `
 ./frestore serve -dir published -addr :8443 -cert fullchain.pem -tls-key privkey.pem
 ```
 
-`mirror-os`, ilk Pi'nin HTTPS sertifikasını ve imzayı kontrol eder, dosyayı doğrular ve yalnızca tamamlanan kopyayı yayımlar. Her yeni yayın veya kopyadan sonra çalışan `serve` işlemini yeniden başlat. Alıcı Pi için kendi HTTPS adını ve ilk yayıncının açık anahtarını `FRESTORE.CFG` dosyasına yaz. Ağlar arası yönlendirme ve DNS, kullanılan Pi adresine erişim sağlamalıdır. Router'lar trafiği taşır. İmzalı kopyalamayı Pi'ler çalıştırır.
+`mirror-os`, ilk Pi'nin HTTPS sertifikasını ve imzayı kontrol eder, dosyayı doğrular ve yalnızca tamamlanan kopyayı yayımlar. Her yeni yayın veya kopyadan sonra çalışan `serve` işlemini yeniden başlat. Alıcı Pi’yi **Add HTTPS server** ile eklerken sunulan açık anahtarı ilk yayıncının parmak iziyle karşılaştır. Ağlar arası yönlendirme ve DNS, kullanılan Pi adresine erişim sağlamalıdır. Router'lar trafiği taşır. İmzalı kopyalamayı Pi'ler çalıştırır.
 
 **Wi-Fi Update → Check for updates** ekranı yeni sürümü, sunucu adresini ve yayıncı parmak izini gösterir. **Install and restart** ile açık onay ver. İmaj PSRAM'e alınır, imzalı SHA-256 değeri ve ESP imajı doğrulanır, etkin olmayan OS yuvasına yazılır ve geri okunur. İlk açılış sağlık kontrolü mevcut A/B geri alma mekanizmasını kullanır. Yalnız kendi OS yayınlarını onayladığın FreStore anahtarını bu işlem için kullan.
 

@@ -1,0 +1,18 @@
+{
+  "id": "welcome",
+  "name": "Welcome to Freslest",
+  "developer": "Freslest",
+  "description": "Open this welcome card from Installed Apps after your first FreStore download.",
+  "version": 1,
+  "category": 2,
+  "lines": [
+    "Welcome to Freslest OS 1.5!",
+    "",
+    "FreStore verified this signed download.",
+    "Your card is saved in internal flash.",
+    "Open it again from Installed Apps.",
+    "It also opens offline.",
+    "",
+    "Press BACK to return to FreStore."
+  ]
+}

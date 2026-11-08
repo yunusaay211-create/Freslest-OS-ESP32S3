@@ -1,0 +1,19 @@
+{
+  "id": "system-tips",
+  "name": "System Tips",
+  "developer": "Freslest",
+  "description": "Quick help with Wi-Fi, downloads, and Bluetooth input.",
+  "version": 1,
+  "category": 1,
+  "lines": [
+    "Connect to Wi-Fi before downloading.",
+    "Let the clock sync for HTTPS.",
+    "",
+    "FreStore saves apps to internal flash.",
+    "Use Installed Apps to open or remove one.",
+    "",
+    "Bluetooth needs 2500 KiB of free PSRAM.",
+    "Wake your paired keyboard or mouse",
+    "after restarting to reconnect."
+  ]
+}

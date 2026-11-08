@@ -61,6 +61,7 @@ with tempfile.TemporaryDirectory() as tmp:
                     "-I", tls / "include", "-I", cjson, "-I", app, "-I", root / "common/usb_update",
                     root / "tests/test_frestore_package.cpp",
                     app / "frestore_package.cpp", obj, build / "library/libmbedcrypto.a", "-o", exe], check=True)
-    subprocess.run([exe, published / "publisher.pub", catalogue, package, *negative, os_manifest, image],
+    subprocess.run([exe, published / "publisher.pub", catalogue, package, *negative, os_manifest, image,
+                    root / "frestore-server/starter/v1"],
                    check=True, env={**os.environ, "ASAN_OPTIONS": "detect_leaks=0"})
-print("PASS: Go/C++ signed app and OS manifests, SHA-256, tamper and compatibility rejection")
+print("PASS: Go/C++ signed starter cards, personal store and OS manifests, SHA-256, tamper and compatibility rejection")
