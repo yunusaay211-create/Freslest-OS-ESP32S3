@@ -71,5 +71,5 @@ int main(){
 '''
 with tempfile.TemporaryDirectory() as tmp:
  p=Path(tmp)/'launch.cpp';p.write_text(pre+code+test);exe=p.with_suffix('')
- subprocess.run(['g++','-std=c++17','-g','-Wall','-Wextra','-Werror','-fsanitize=address,undefined',str(p),'-o',str(exe)],check=True)
+ subprocess.run(['g++','-std=c++17','-g','-Os','-Wall','-Wextra','-Werror','-fsanitize=address,undefined',str(p),'-o',str(exe)],check=True)
  subprocess.run([str(exe)],check=True,env={**os.environ,'ASAN_OPTIONS':'detect_leaks=0'})

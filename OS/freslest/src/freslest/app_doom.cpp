@@ -59,7 +59,7 @@ static void exportDoomSaves(int choice) {
   if (usb) usbStorageUnlock();
   if (result.copied) {
     const char *relative=strchr(folder+1,'/');
-    snprintf(status,sizeof(status),"Exported %u, failed %u: %s",result.copied,result.failed,relative?relative+1:folder);
+    snprintf(status,sizeof(status),"Exported %u, failed %u: %.32s",result.copied,result.failed,relative?relative+1:folder);
     doomStatus(status,result.failed!=0);
   } else doomStatus(result.failed?"Save export failed. Original saves kept.":"No Doom saves found.",result.failed!=0);
 }
