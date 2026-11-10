@@ -40,6 +40,7 @@ jobs:
           python -m unittest discover -s tests -p test_vga_transition.py -v
           python tests/run_desktop_tests.py
           python tests/run_ble_callback_tests.py
+          python tests/run_doom_launch_tests.py
       - name: Build ILI9488, ILI9341 and VGA OS and Doom firmware
         shell: bash
         run: |
@@ -175,9 +176,10 @@ jobs:
               "Calculator, Notepad, Paint, Clock ve Browser mevcut araç düzenini kullanır.",
               "",
               "SD-SPI, TFT ile GPIO11 MOSI ve GPIO12 SCK hatlarını paylaşır. SD CS GPIO0, MISO GPIO46'dır.",
-              "FreStore hazır İngilizce katalogdan doğrulanan paketleri dahili flash'a yazar.",
+              "FreStore imzalı paketleri dahili flash, SD veya USB'ye yazar. Ek veri parçalı aktarılır.",
               "Kendi HTTPS sunucunu FreStore > Server > Add HTTPS server ile ekleyebilirsin.",
-              "Bluetooth 2.500 KiB boş PSRAM bekler ve kayıtlı cihazlara yeniden bağlanır.",
+              "Bluetooth 2.500 KiB boş PSRAM bekler, bağlantı öncesi dahili RAM'i kontrol eder ve kayıtlı cihazlara yeniden bağlanır.",
+              "Doom başlatıcısı kayıtları SD, USB veya native USB üzerinden PC'ye aktarır.",
               "Fiziksel ekran, SD kart, Bluetooth ve iki router arasında gerçek cihaz testi ayrıca yapılır.",
               "",
               "[Pi kurulumu ve ağ OTA komutları](" + docs + ")",

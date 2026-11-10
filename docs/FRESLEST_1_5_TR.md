@@ -17,9 +17,11 @@ Masaüstü kısayolları çift tıklamayla açılır. Başlık çubuğu sürükl
 
 ## FreStore
 
-FreStore, VGA Desktop ve klasik **Apps** menüsünden açılır. Wi-Fi’ye bağlanıp saat eşitlendikten sonra hazır katalogdaki **Welcome to Freslest**, **Controls Guide** ve **System Tips** kartlarından birini seç ve **Install**’a bas. **Installed Apps** ekranından çevrimdışı açabilir veya kaldırabilirsin. Hazır katalog adresi ve doğrulama anahtarı firmware’e dahildir. Bu sürüm ESP32-S3 ABI 1 imzalı metin kartlarını destekler. Paket başına 4 KiB, katalog ve kurulu liste başına 16 uygulama kullanılır.
+FreStore, VGA Desktop ve klasik **Apps** menüsünden açılır. Wi-Fi’ye bağlanıp saat eşitlendikten sonra **Install** ile **Internal flash**, **SD card** veya **USB drive** seç. **Installed Apps** ekranı kurulum yerini gösterir. Kartları buradan çevrimdışı açabilir veya kaldırabilirsin. Hazır katalog adresi ve doğrulama anahtarı firmware’e dahildir.
 
-Doğrulanan paketler dahili LittleFS’te yayıncıya ait `FRESTORE` dizinine yazılır. Yeni sürüm tamamlanana kadar önceki doğrulanmış dosya açılabilir. Eski SD ve USB paketleri ilgili kayıtlı sunucu seçildiğinde görünür. Mağazada tekrar **Install** seçerek aynı kartı dahili flash’a alabilirsin. [SD ve ekran bağlantıları](../README_TR.md#ekran-ve-sd-bağlantıları)
+İmzalı kart üstverisi 4 KiB’ye kadar olabilir. Bir kartın imzalı ek veri dosyası HTTPS üzerinden parça parça yazılır. Dahili flash için paket başına üst sınır 500 KiB’dir. Bu kartta ROM’larla paylaşılan LittleFS bölümü toplam 320 KiB olduğundan dahili kurulum gerçek boş alanla sınırlıdır. SD ve USB için boş alan ve FAT dosya boyutu geçerlidir. Katalog başına 16 kart listelenir.
+
+Doğrulanan kart ve veri dosyası, seçili diskte yayıncıya ait `FRESTORE` dizinine yazılır. Yeni sürüm tamamlanana kadar önceki doğrulanmış dosya açılabilir. Eski SD ve USB paketleri ilgili kayıtlı sunucu seçildiğinde görünür. [SD ve ekran bağlantıları](../README_TR.md#ekran-ve-sd-bağlantıları)
 
 ### Raspberry Pi 4B kurulumu
 
@@ -42,6 +44,20 @@ base64 -d published/publisher.pub | sha256sum
 5. **Install** ile bir kart indir ve **Installed Apps** ekranından aç. **Server → Starter catalog** hazır kataloğa döner. **Saved server** ile kayıtlı Pi’ye geçebilirsin. Önceki SD ayar dosyasını kullanıyorsan sunucu menüsünde **Import previous SD settings** seçeneği bulunur. Yeni içerik yayımlarken sürüm numarasını artır.
 
 Katalog ve paketler ayrı ECDSA P-256 imzası taşır. ESP32 paket boyutunu, SHA-256 özetini, yayın imzasını, kimliği, sürümü ve ABI'yi doğrular. Sunucu Go ile yazıldı ve katalog imzalı bir dosyada tutuluyor. Gönüllü P2P dağıtımı ayrı fazdır.
+
+Bir karta veri dosyası eklemek için JSON’a `"asset": "sample.bin"` alanı koy ve dosyayı JSON ile aynı klasöre yerleştir. `publish` dosyanın boyutunu ve SHA-256 özetini imzalar. `serve` yayımlanan `.fsp.dat` dosyasını diskten okur. Kart görünümü metni gösterir ve ek veri, seçilen diskte kartla birlikte saklanır.
+
+## Doom kayıtlarını dışa aktarma
+
+**Games → Doom** menüsünde **Start Doom** altında üç seçenek bulunur.
+
+| Seçenek | Dosyaların konumu |
+| --- | --- |
+| **Export saves to SD card** | FAT microSD’de `DOOM/BACKUP001` ve sonraki numaralı klasörler |
+| **Export saves to USB drive** | USB/OTG’ye takılan FAT bellekte aynı klasör yapısı |
+| **Export saves to PC** | Yeniden başlatma sonrası native USB/OTG üzerinden **FRESLEST** adlı geçici, salt okunur disk |
+
+PC’ye aktarırken `.dsg` dosyalarını kopyala ve diski çıkar. Sonra cihazda **OK** ile Doom menüsüne dön. Dışa aktarma, dahili kayıtların bütünlüğünü denetler ve kopyalarını oluşturur.
 
 ## Wi-Fi OTA ve iki router arasında kopyalama
 

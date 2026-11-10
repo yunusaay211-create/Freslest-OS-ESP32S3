@@ -5,8 +5,9 @@ Freslest OS for **ESP32-S3 N16R8** includes a graphical OS, NES and Doom, a file
 ## What's new in 1.5
 
 - **Freslest Desktop.** A 640×480 XP-inspired shell with a Start menu, taskbar and draggable windows. Files uses an Explorer-style task pane and Settings opens as a Control Panel. Calculator, Notepad, Paint, Clock and Browser retain their existing tool layouts.
-- **FreStore.** The built-in starter catalog offers three signed cards over HTTPS. Freslest installs verified downloads to internal flash. Add a personal Raspberry Pi HTTPS server from **Server → Add HTTPS server**.
-- **Bluetooth.** Freslest restores the enabled setting and remembered keyboards and mice after a restart. BLE waits for 2,500 KiB of free PSRAM before starting, then reconnects as the devices advertise.
+- **FreStore.** Install signed cards and their data to internal flash, SD card or a USB drive. The built-in starter catalog works over HTTPS. Add a personal Raspberry Pi HTTPS server from **Server → Add HTTPS server**.
+- **Bluetooth.** BLE stores HID maps and bond-list buffers in PSRAM and checks the remaining internal RAM before pairing. It waits for 2,500 KiB of free PSRAM at startup and reconnects to remembered keyboards and mice.
+- **Doom saves.** The Doom launcher exports verified `.dsg` saves to an SD card, USB drive or a PC over native USB. The original saves stay available in Doom.
 - **Wi-Fi Update.** Check for a newer signed OS image from the configured Pi. An optional Pi on a second routed network can mirror the signed release with `mirror-os`. After confirmation, the device verifies the image and writes it to the inactive OS slot for a trial boot.
 - **Display and input.** VGA frame submission handles delayed DMA without blocking the shell. USB Boot HID releases held keyboard and mouse input on disconnect.
 
@@ -117,7 +118,7 @@ VGA targets 640×480 at 59.94 Hz and a 25.175 MHz pixel clock. Freslest Desktop 
 
 ### microSD
 
-Insert a FAT16/FAT32 microSD before powering on to access older FreStore packages saved on SD-SPI. FreStore can also read those packages from a USB card reader. New installs go to internal flash.
+Insert a FAT16/FAT32 microSD before powering on to install from FreStore or export Doom saves. FreStore also reads earlier packages saved on SD-SPI or USB.
 
 | SD-SPI signal | ESP32-S3 | Notes |
 | --- | --- | --- |

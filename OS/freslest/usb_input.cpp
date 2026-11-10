@@ -18,6 +18,7 @@ namespace {
 freslest_hid_state_t pcInput{};
 bool viewerMode=false;
 bool deviceMode = false, resumeNes = false, textMode = false, tasks = false;
+bool doomExportMode = false, resumeDoom = false;
 uint8_t held = 0, pressed = 0, previous = 0, nesPending = 0;
 uint32_t repeatAt = 0, charRepeatAt = 0;
 uint32_t lastActivity = 0;
@@ -130,7 +131,9 @@ void usbInputBegin() {
     nvs_get_u8(n, "nes", &resume);
     nvs_get_u8(n,"screen",&screen);
     deviceMode = pc;viewerMode=!pc&&screen;
-    resumeNes = resume;
+    doomExportMode = pc == 2;
+    resumeNes = resume == 1;
+    resumeDoom = resume == 2;
     if (resume) {
       nvs_set_u8(n, "nes", 0);
       nvs_commit(n);
@@ -157,16 +160,18 @@ bool usbInputSwitchViewer(bool enabled){
 }
 bool usbInputDeviceMode() { return deviceMode; }
 bool usbInputResumeNes() { return resumeNes; }
-bool usbInputSwitchMode(bool pc) {
-  if (pc == deviceMode && !viewerMode)
+bool usbInputDoomExportMode() { return doomExportMode; }
+bool usbInputResumeDoom() { return resumeDoom; }
+static bool switchMode(bool pc, bool nextDoom) {
+  if (pc == deviceMode && nextDoom == doomExportMode && !viewerMode)
     return true;
   nvs_handle_t n;
   esp_err_t e = nvs_open("fl_usb", NVS_READWRITE, &n);
   if (e == ESP_OK) {
-    e = nvs_set_u8(n,"screen",0);
-    if(e==ESP_OK)e = nvs_set_u8(n, "pc", pc ? 1 : 0);
+    if (!nextDoom && !doomExportMode) e = nvs_set_u8(n,"screen",0);
+    if(e==ESP_OK)e = nvs_set_u8(n, "pc", nextDoom ? 2 : pc ? 1 : 0);
     if (e == ESP_OK)
-      e = nvs_set_u8(n, "nes", (!pc&&deviceMode) ? 1 : 0);
+      e = nvs_set_u8(n, "nes", (!pc&&deviceMode) ? (doomExportMode ? 2 : 1) : 0);
     if (e == ESP_OK)
       e = nvs_commit(n);
     nvs_close(n);
@@ -185,13 +190,15 @@ bool usbInputSwitchMode(bool pc) {
   tft.setTextSize(1);
   tft.setCursor(24, 142);
   tft.print(pc ? "Connect USB/OTG to PC. UART keeps power."
-               : "Reconnect keyboard / mouse to USB/OTG.");
+               : "Restoring the previous USB mode...");
   audioStop();
   gfxPresent();
   delay(300);
   ESP.restart();
   return false;
 }
+bool usbInputSwitchMode(bool pc) { return switchMode(pc, false); }
+bool usbInputSwitchDoomExport() { return switchMode(true, true); }
 void usbInputUpdate(uint32_t now) {
   freslest_hid_snapshot_t s{};
   mergedInput(&s,true);

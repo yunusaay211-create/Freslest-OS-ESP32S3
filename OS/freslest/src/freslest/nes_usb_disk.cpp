@@ -7,7 +7,7 @@ static uint16_t u16(const uint8_t* p) {return (uint16_t)(p[0]|(p[1]<<8));}
 static uint32_t u32(const uint8_t* p) {return (uint32_t)u16(p)|((uint32_t)u16(p+2)<<16);}
 static void put16(uint8_t* p,uint16_t n) {p[0]=n;p[1]=n>>8;}
 static void put32(uint8_t* p,uint32_t n) {put16(p,n);put16(p+2,n>>16);}
-bool format(uint8_t* disk,size_t size,void (*cooperate)()) {
+bool format(uint8_t* disk,size_t size,void (*cooperate)(),bool doom) {
   if(!disk||(size!=DISK_SIZE&&size!=2*1024*1024&&size!=1024*1024))return false;
   bool fat12=size!=DISK_SIZE;unsigned fatSectors=size==DISK_SIZE?32:size==2*1024*1024?12:6;
   for(size_t offset=0;offset<size;offset+=65536) {
@@ -34,8 +34,49 @@ bool format(uint8_t* disk,size_t size,void (*cooperate)()) {
     "Available flash space is shown on the screen.\r\n"
     "Folders and non-NES files are ignored.\r\n"
     "Keep the device powered during import.\r\n";
-  root+=32;memcpy(root,"README  TXT",11);root[11]=0x20;put16(root+26,2);put32(root+28,sizeof(instructions)-1);
-  memcpy(disk+(17+2*fatSectors)*512,instructions,sizeof(instructions)-1);
+  const char* readme=doom?
+    "FRESLEST DOOM SAVE EXPORT\r\n\r\nCopy the .DSG files to your PC, then eject this drive.\r\n"
+    "This read-only drive is temporary. The original saves remain on the ESP32-S3.\r\n":
+    instructions;
+  const size_t readmeSize=strlen(readme);
+  root+=32;memcpy(root,"README  TXT",11);root[11]=0x20;put16(root+26,2);put32(root+28,readmeSize);
+  memcpy(disk+(17+2*fatSectors)*512,readme,readmeSize);
+  return true;
+}
+bool appendFile(uint8_t *disk, size_t size, const char (&shortName)[12], size_t length,
+                int (*readFile)(const char *, void *, size_t), const char *path) {
+  if (!disk || (size != 1024*1024 && size != 2*1024*1024 && size != DISK_SIZE) ||
+      !length || length > size || !readFile) return false;
+  const bool fat12 = size != DISK_SIZE;
+  const unsigned fatSectors = u16(disk + 22);
+  if (fatSectors != (fat12 ? (size == 1024*1024 ? 6 : 12) : 32)) return false;
+  uint8_t *root = disk + (1 + 2 * fatSectors) * SECTOR_SIZE;
+  uint8_t *data = root + 16 * SECTOR_SIZE;
+  unsigned first = 2;
+  unsigned index = 1; // Skip the volume label.
+  for (; index < 256 && root[index * 32]; ++index) {
+    const uint8_t *entry = root + index * 32;
+    const uint32_t bytes = u32(entry + 28);
+    if (bytes > size || u16(entry + 26) != first || !memcmp(entry, shortName, 11)) return false;
+    first += (bytes + SECTOR_SIZE - 1) / SECTOR_SIZE;
+  }
+  const unsigned clusters = (length + SECTOR_SIZE - 1) / SECTOR_SIZE;
+  if (index == 256 || first - 2u + clusters > (size - (data - disk)) / SECTOR_SIZE) return false;
+  if (!readFile(path, data + (first - 2u) * SECTOR_SIZE, length)) return false;
+  for (unsigned copy = 0; copy < 2; ++copy) {
+    uint8_t *fat = disk + (1 + copy * fatSectors) * SECTOR_SIZE;
+    for (uint16_t cluster = first; cluster < first + clusters; ++cluster) {
+      const uint16_t next = cluster + 1u < first + clusters ? cluster + 1 : 0xffff;
+      if (fat12) {
+        uint8_t *entry = fat + cluster + cluster / 2;
+        put16(entry, cluster & 1 ? (u16(entry) & 0x000f) | (next << 4) :
+                                  (u16(entry) & 0xf000) | (next & 0x0fff));
+      } else put16(fat + cluster * 2, next);
+    }
+  }
+  uint8_t *entry = root + index * 32;
+  memcpy(entry, shortName, 11); entry[11] = 0x21; entry[12] = 0x18;
+  put16(entry + 26, first); put32(entry + 28, length);
   return true;
 }
 bool Volume::mount(const uint8_t* disk,size_t size) {

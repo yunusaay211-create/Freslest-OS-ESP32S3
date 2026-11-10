@@ -37,7 +37,7 @@ func TestPublishAndServeTLS(t *testing.T) {
 		body, readErr := io.ReadAll(response.Body)
 		response.Body.Close()
 		if readErr != nil || response.StatusCode != 200 || response.TLS == nil ||
-			response.Header.Get("Content-Length") != strconv.Itoa(len(body)) || !bytes.Equal(body, routes[route]) {
+			response.Header.Get("Content-Length") != strconv.Itoa(len(body)) || !bytes.Equal(body, routes.documents[route]) {
 			t.Fatalf("invalid HTTPS response for %s", route)
 		}
 		if route == "/v1/publisher.pub" {
@@ -64,7 +64,7 @@ func TestPublishAndServeTLS(t *testing.T) {
 		}
 	}
 	path := filepath.Join(dir, packageName("merhaba", 1))
-	original := routes["/v1/packages/merhaba/1"]
+	original := routes.documents["/v1/packages/merhaba/1"]
 	if err := publish("examples", dir, key); err != nil {
 		t.Fatal(err)
 	}
@@ -81,6 +81,56 @@ func TestPublishAndServeTLS(t *testing.T) {
 	}
 	if err := publish("examples", dir, key); err == nil {
 		t.Fatal("rewrote a conflicting version")
+	}
+}
+
+func TestStreamSignedAsset(t *testing.T) {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, dir := t.TempDir(), t.TempDir()
+	data := bytes.Repeat([]byte{0, 128, 255}, 210000)
+	asset := filepath.Join(input, "sample.bin")
+	if err := os.WriteFile(asset, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	json := []byte(`{"id":"sample","name":"Sample","developer":"Freslest","description":"Large app data","version":1,"category":1,"lines":["Sample card"],"asset":"sample.bin"}`)
+	if err := os.WriteFile(filepath.Join(input, "sample.json"), json, 0600); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		if err := publish(input, dir, key); err != nil {
+			t.Fatal(err)
+		}
+	}
+	routes, err := loadStore(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewTLSServer(storeHandler(routes))
+	defer server.Close()
+	response, err := server.Client().Get(server.URL + "/v1/packages/sample/1/asset")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil || response.StatusCode != 200 || response.ContentLength != int64(len(data)) || !bytes.Equal(body, data) {
+		t.Fatal("large app data did not stream intact")
+	}
+	data[0] ^= 1
+	if err := os.WriteFile(asset, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := publish(input, dir, key); err == nil {
+		t.Fatal("changed app data reused the same version")
+	}
+	if err := os.WriteFile(filepath.Join(dir, "sample.1.fsp.dat"), data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadStore(dir); err == nil {
+		t.Fatal("changed published app data was accepted")
 	}
 }
 

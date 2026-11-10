@@ -1,5 +1,6 @@
 #include "nes_usb.h"
 #include "nes_usb_disk.h"
+#include "doom_save_export.h"
 #include "storage_init.h"
 #include "ines_header.h"
 #ifdef FRESLEST_USB_HOST_TEST
@@ -31,6 +32,8 @@ SemaphoreHandle_t diskMutex=nullptr;
 uint8_t* disk=nullptr;
 size_t diskBytes=0;
 bool accepting=false,usbStarted=false,fullScreen=true;
+bool doomTransfer=false;
+DoomSaveExport doomSaves{};
 std::atomic<bool> ejectRequested{false};
 std::atomic<uint32_t> bytesWritten{0};
 enum State {INACTIVE,TRANSFERRING,QUIESCING,IMPORTING,DONE,FAILED};
@@ -69,15 +72,29 @@ bool startStop(uint8_t,bool start,bool eject) {
   return true;
 }
 void drawWrites() {
-  if(!fullScreen||state!=TRANSFERRING)return;
+  if(!fullScreen||state!=TRANSFERRING||doomTransfer)return;
   tft.fillRect(22,173,436,16,TH().bg);
   tft.setTextSize(1);tft.setTextColor(TH().text,TH().bg);tft.setCursor(22,178);
   tft.printf("Transfer writes: %lu KB",(unsigned long)(bytesWritten.load()/1024));
 }
 void draw() {
   if(!fullScreen)return;
-  tft.fillScreen(TH().bg);drawHeader("NES USB Transfer");clearBody();
+  tft.fillScreen(TH().bg);drawHeader(doomTransfer?"Doom Save Export":"NES USB Transfer");clearBody();
   cooperate();
+  if (doomTransfer) {
+    drawFooter(state == TRANSFERRING ? "PC Eject / OK Done" : "OK Return", "BACK Return");
+    tft.setTextSize(1);
+    tft.setTextColor(TH().text, TH().bg);
+    tft.setCursor(22, 70);
+    if (state == TRANSFERRING) {
+      tft.print("Connect the native USB/OTG port to your PC.");
+      tft.setCursor(22, 96); tft.print("Copy the .DSG files from the FRESLEST drive.");
+      tft.setCursor(22, 122); tft.print("Eject the drive on your PC when finished.");
+      tft.setCursor(22, 152);
+      tft.printf("Saves ready: %u   Failed: %u", doomSaves.copied, doomSaves.failed);
+    } else tft.print(detail);
+    return;
+  }
   drawFooter(state==TRANSFERRING?"PC Eject / OK Import":"OK Return",state==TRANSFERRING?"BACK Cancel":"BACK Library");
   tft.setTextColor(TH().text,TH().bg);tft.setTextSize(2);tft.setCursor(22,62);
   tft.print(state==TRANSFERRING?"FRESLEST USB DRIVE":state==QUIESCING?"FINISHING USB TRANSFER":state==IMPORTING?"IMPORTING ROMS":state==DONE?"TRANSFER COMPLETE":"USB TRANSFER ERROR");
@@ -184,35 +201,49 @@ void nesUsbEnter(bool showScreen) {
   // Only an explicit reconnect (FIRE inside details) starts a fresh disk.
   if(state!=INACTIVE) {draw();return;}
   nesUsbExit();nesPlayerExit();audioStop();imported=unchanged=rejected=0;detail[0]=0;bytesWritten.store(0);
+#ifndef FRESLEST_USB_HOST_TEST
+  doomTransfer = usbInputDoomExportMode();
+#endif
   // Drain the disconnected session before publishing a new disk to callbacks.
   if(usbStarted)delay(300);
   cacheFreeSpace();
   if(!diskMutex)diskMutex=xSemaphoreCreateMutex();
   if(!diskMutex) {state=FAILED;snprintf(detail,sizeof(detail),"E202: USB disk mutex unavailable");draw();return;}
-  uint8_t* memory=nullptr;size_t capacity=NesUsbDisk::DISK_SIZE;
+  uint8_t* memory=nullptr;size_t capacity=doomTransfer?2*1024*1024:NesUsbDisk::DISK_SIZE;
   for(;capacity>=1024*1024;capacity/=2) {
     memory=(uint8_t*)heap_caps_malloc(capacity,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);if(memory)break;
   }
-  if(!memory||!NesUsbDisk::format(memory,capacity,cooperate)) {
+  if(!memory||!NesUsbDisk::format(memory,capacity,cooperate,doomTransfer)) {
     if(memory)heap_caps_free(memory);
     state=FAILED;
     snprintf(detail,sizeof(detail),"E203: Cannot allocate a 1-4 MB USB disk");draw();return;
   }
-  xSemaphoreTake(diskMutex,portMAX_DELAY);disk=memory;diskBytes=capacity;ejectRequested.store(false);accepting=true;xSemaphoreGive(diskMutex);
-  storage().vendorID("FRESLEST");storage().productID("NES TRANSFER");storage().productRevision("1.0");
-  storage().onRead(readDisk);storage().onWrite(writeDisk);storage().onStartStop(startStop);storage().isWritable(true);storage().mediaPresent(true);
+#ifndef FRESLEST_USB_HOST_TEST
+  if (doomTransfer) {
+    doomSaves = doomSaveExportDisk(memory, capacity);
+    if (!doomSaves.copied) {
+      heap_caps_free(memory);
+      state=FAILED;
+      snprintf(detail,sizeof(detail),"%s",doomSaves.failed?"Cannot read Doom saves.":"No Doom saves found.");
+      draw();return;
+    }
+  }
+#endif
+  xSemaphoreTake(diskMutex,portMAX_DELAY);disk=memory;diskBytes=capacity;ejectRequested.store(false);accepting=!doomTransfer;xSemaphoreGive(diskMutex);
+  storage().vendorID("FRESLEST");storage().productID(doomTransfer?"DOOM SAVES":"NES TRANSFER");storage().productRevision("1.0");
+  storage().onRead(readDisk);storage().onWrite(writeDisk);storage().onStartStop(startStop);storage().isWritable(!doomTransfer);storage().mediaPresent(true);
   bool ok=storage().begin(diskBytes/512,512);
   if(ok&&!usbStarted) {
     // A pure MSC device uses per-interface class descriptors, rather than the
     // Arduino default IAD/composite class. UART logging stays on the other port.
     USB.usbClass(0);USB.usbSubClass(0);USB.usbProtocol(0);
-    USB.productName("Freslest NES Transfer");USB.manufacturerName("Freslest");
+    USB.productName(doomTransfer?"Freslest Doom Saves":"Freslest NES Transfer");USB.manufacturerName("Freslest");
     USB.firmwareVersion(0x0601);usbStarted=USB.begin();ok=usbStarted;
   } else if(ok) {ok=tud_connect();}
   if(!ok) {nesUsbExit();state=FAILED;snprintf(detail,sizeof(detail),"E205: USB init failed. Use native USB/OTG.");}
   else state=TRANSFERRING;
   lastDraw=millis();draw();
-  Serial.printf("NES USB: %s. Native USB D-19 / D+20; programming port stays serial.\n",ok?"MSC enabled":"initialization failed");
+  Serial.printf("%s USB: %s. Native USB D-19 / D+20; programming port stays serial.\n",doomTransfer?"Doom":"NES",ok?"MSC enabled":"initialization failed");
 }
 bool nesUsbPoll() {
   if(state==TRANSFERRING&&ejectRequested.exchange(false)) {
@@ -221,7 +252,13 @@ bool nesUsbPoll() {
     state=QUIESCING;storage().mediaPresent(false);importAt=millis()+200;draw();
   }
   if(state==QUIESCING&&(int32_t)(millis()-importAt)>=0) {
-    tud_disconnect();cooperate();importRoms();draw();return true;
+    tud_disconnect();cooperate();
+    if (doomTransfer) {
+      nesUsbExit();
+      state=DONE;
+      snprintf(detail,sizeof(detail),"PC transfer ended. Press OK to return.");
+    } else importRoms();
+    draw();return true;
   }
   return false;
 }

@@ -12,12 +12,15 @@
 #include <freslest_hid_map.h>
 using esp_err_t=int;using esp_event_base_t=const char*;using nvs_handle_t=int;using portMUX_TYPE=int;
 constexpr int ESP_OK=0,portMUX_INITIALIZER_UNLOCKED=0,pdTRUE=1,pdPASS=1,NVS_READONLY=0,NVS_READWRITE=1;
+constexpr int ESP_ERR_NO_MEM=-2;
+#define EXT_RAM_BSS_ATTR
 inline int critical=0;inline uint32_t fakeNow=100;inline bool nvsFail=false;inline std::vector<uint8_t> nvsBytes;
 constexpr int MALLOC_CAP_INTERNAL=1,MALLOC_CAP_8BIT=2,MALLOC_CAP_SPIRAM=4;
 inline size_t internalFree=131072,internalLargest=65536,freePsram=8u*1024u*1024u;
 inline unsigned sdkStarts=0;
 inline size_t heap_caps_get_free_size(int caps){return caps&MALLOC_CAP_SPIRAM?freePsram:internalFree;}
 inline size_t heap_caps_get_largest_free_block(int){return internalLargest;}
+inline void* heap_caps_calloc(size_t count,size_t size,int caps){assert(caps==(MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT));return calloc(count,size);}
 #define portENTER_CRITICAL(x) (++critical)
 #define portEXIT_CRITICAL(x) (--critical)
 #define pdMS_TO_TICKS(x) (x)
@@ -36,11 +39,19 @@ inline int nvs_get_blob(int,const char*,void*p,size_t*n){if(nvsBytes.size()!=*n)
 inline int nvs_set_blob(int,const char*,const void*p,size_t n){nvsBytes.assign((uint8_t*)p,(uint8_t*)p+n);return nvsFail?-1:0;}
 inline int nvs_commit(int){return nvsFail?-1:0;}inline void nvs_close(int){}
 enum {ESP_BT_STATUS_SUCCESS,ESP_BT_CONTROLLER_STATUS_IDLE,ESP_BT_CONTROLLER_STATUS_ENABLED,ESP_BLUEDROID_STATUS_UNINITIALIZED,ESP_BLUEDROID_STATUS_ENABLED,ESP_BT_MODE_BLE,ESP_LE_AUTH_BOND,ESP_IO_CAP_OUT,ESP_BLE_ENC_KEY_MASK=1,ESP_BLE_ID_KEY_MASK=2,ESP_BLE_SM_AUTHEN_REQ_MODE,ESP_BLE_SM_IOCAP_MODE,ESP_BLE_SM_SET_INIT_KEY,ESP_BLE_SM_SET_RSP_KEY,ESP_BLE_SM_MAX_KEY_SIZE,ESP_HID_TRANSPORT_BLE,BLE_ADDR_TYPE_RPA_PUBLIC,BLE_ADDR_TYPE_PUBLIC,BLE_SCAN_TYPE_ACTIVE,BLE_SCAN_FILTER_ALLOW_ALL,BLE_SCAN_DUPLICATE_DISABLE};
+constexpr int ESP_BT_CONTROLLER_STATUS_INITED=40,ESP_BLUEDROID_STATUS_INITIALIZED=41,BLE_SCAN_DUPLICATE_ENABLE=1;
 struct esp_bt_controller_config_t{};
 #define BT_CONTROLLER_INIT_CONFIG_DEFAULT() esp_bt_controller_config_t{}
-inline int esp_bt_controller_get_status(){return ESP_BT_CONTROLLER_STATUS_ENABLED;}inline int esp_bt_controller_init(esp_bt_controller_config_t*){return 0;}inline int esp_bt_controller_enable(int){return 0;}
+inline int controllerState=ESP_BT_CONTROLLER_STATUS_IDLE;
+inline int esp_bt_controller_get_status(){return controllerState;}
+inline int esp_bt_controller_init(esp_bt_controller_config_t*){controllerState=ESP_BT_CONTROLLER_STATUS_INITED;return 0;}
+inline int esp_bt_controller_enable(int){controllerState=ESP_BT_CONTROLLER_STATUS_ENABLED;return 0;}
+inline int esp_bt_controller_disable(){controllerState=ESP_BT_CONTROLLER_STATUS_INITED;return 0;}
+inline int esp_bt_controller_deinit(){controllerState=ESP_BT_CONTROLLER_STATUS_IDLE;return 0;}
 inline int bluedroidState=ESP_BLUEDROID_STATUS_ENABLED;inline size_t freeAfterInit=131072;inline unsigned bluedroidEnables=0;
-inline int esp_bluedroid_get_status(){return bluedroidState;}inline int esp_bluedroid_init(){internalFree=freeAfterInit;return 0;}inline int esp_bluedroid_enable(){++bluedroidEnables;bluedroidState=ESP_BLUEDROID_STATUS_ENABLED;return 0;}
+inline int esp_bluedroid_get_status(){return bluedroidState;}inline int esp_bluedroid_init(){internalFree=freeAfterInit;bluedroidState=ESP_BLUEDROID_STATUS_INITIALIZED;return 0;}inline int esp_bluedroid_enable(){++bluedroidEnables;bluedroidState=ESP_BLUEDROID_STATUS_ENABLED;return 0;}
+inline int esp_bluedroid_disable(){bluedroidState=ESP_BLUEDROID_STATUS_INITIALIZED;return 0;}
+inline int esp_bluedroid_deinit(){bluedroidState=ESP_BLUEDROID_STATUS_UNINITIALIZED;return 0;}
 struct esp_ble_bond_dev_t{uint8_t bd_addr[6],bd_addr_type;};inline std::vector<esp_ble_bond_dev_t> bonds;
 inline int esp_ble_get_bond_device_num(){return bonds.size();}
 inline int esp_ble_get_bond_device_list(int*n,esp_ble_bond_dev_t*b){memcpy(b,bonds.data(),*n*sizeof(*b));return 0;}
@@ -70,6 +81,7 @@ struct esp_hidh_dev_t {uint8_t address[6];esp_hid_raw_report_map_t maps[2];unsig
 struct esp_hidh_event_data_t{struct{esp_hidh_dev_t*dev;int status;}open;struct{esp_hidh_dev_t*dev;unsigned map_index,report_id,length;uint8_t*data;}input;struct{esp_hidh_dev_t*dev;int reason;}close;};
 struct esp_hidh_config_t{void(*callback)(void*,esp_event_base_t,int32_t,void*);unsigned event_stack_size;};
 inline int esp_hidh_init(esp_hidh_config_t*){return 0;}inline void esp_hidh_gattc_event_handler(){}inline int esp_ble_gattc_register_callback(void(*)()){return 0;}
+inline int esp_hidh_deinit(){return 0;}
 inline std::function<esp_hidh_dev_t*(uint8_t*,int)> openHook;
 inline esp_hidh_dev_t* esp_hidh_dev_open(uint8_t*b,int,int type){assert(!critical);++opens;return openHook?openHook(b,type):nullptr;}
 inline const uint8_t* esp_hidh_dev_bda_get(esp_hidh_dev_t*d){assert(!critical&&!d->freed);return d->address;}

@@ -2,7 +2,8 @@
 file(GLOB_RECURSE ui_srcs "../freslest/*.cpp")
 # Ignore a removed Touch app if a previous package was extracted over this one.
 list(FILTER ui_srcs EXCLUDE REGEX "/app_touch\\.cpp$")
-idf_component_register(SRCS "entry.cpp" ${ui_srcs} "../../common/usb_update/freslest_update.c" "../../common/usb_update/freslest_update_package.c" INCLUDE_DIRS "../../common/usb_update" "../freslest" "../freslest/src/freslest" REQUIRES arduino arduino_tinyusb LovyanGFX TJpgDecoder nofrendo joltwallet__littlefs app_update esp_http_client bt esp_hid esp_timer esp_driver_ledc freslest_ota freslest_hid freslest_video usb_host_msc json mbedtls bootloader_support)
+set(doom_save_dir "../../Doom/components/prboom-esp32-compat")
+idf_component_register(SRCS "entry.cpp" ${ui_srcs} "../../common/usb_update/freslest_update.c" "../../common/usb_update/freslest_update_package.c" "${doom_save_dir}/freslest_save.c" INCLUDE_DIRS "../../common/usb_update" "../freslest" "../freslest/src/freslest" "${doom_save_dir}/include" REQUIRES arduino arduino_tinyusb LovyanGFX TJpgDecoder nofrendo joltwallet__littlefs app_update esp_http_client bt esp_hid esp_timer esp_driver_ledc freslest_ota freslest_hid freslest_video usb_host_msc json mbedtls bootloader_support)
 target_compile_definitions(${COMPONENT_LIB} PUBLIC BOARD_HAS_PSRAM=1)
 include("${CMAKE_CURRENT_LIST_DIR}/../../common/lcd_profile.cmake")
 if(FRESLEST_VGA_PROFILE STREQUAL "vga")

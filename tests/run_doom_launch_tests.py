@@ -17,11 +17,12 @@ pre=r'''
 using esp_err_t=int;
 struct esp_partition_t{int address=0x20000;}partition;
 struct esp_app_desc_t{char project_name[32];};
-static bool ready,present=true,rightProject=true,hit;
+static bool ready,present=true,rightProject=true,diskReady=true;
+static int hit=-1, exports, usbSwitches;
 static int descriptorError,bootError,bootCalls,descriptorCalls,restarts,stops,updates,unmounts,presents;
 static std::string status;
-struct {bool edge=false;bool pressed(){return edge;}}bOk;
-struct Theme{int bg=0,text=1,selbg=2;};Theme& TH(){static Theme t;return t;}
+struct {bool edge=false;bool pressed(){return edge;}}bOk,bUp,bDown;
+struct Theme{int bg=0,text=1,selbg=2,panel=3;};Theme& TH(){static Theme t;return t;}
 struct {void fillScreen(int){}void fillRect(int,int,int,int,int){}void fillRoundRect(int,int,int,int,int,int){}
  void setTextSize(int){}void setTextColor(int,int){}void setCursor(int,int){}void print(const char*s){status=s;}void endWrite(){}}tft;
 struct {void printf(const char*,...){}}Serial;
@@ -31,7 +32,16 @@ void drawHeader(const char*){}void clearBody(){}void drawFooter(const char*,cons
 unsigned millis(){return 100;}
 void delay(int ms){assert(ms==110);}
 void audioUpdate(unsigned){updates++;}void audioStop(){stops++;}void gfxPresent(){presents++;}
-bool usbInputHit(int x,int y,int w,int h){assert(x==100&&y==210&&w==280&&h==60);bool v=hit;hit=false;return v;}
+bool usbInputHit(int x,int y,int w,int h){assert(x==30&&w==420&&h==24);if(y!=101+hit*28)return false;hit=-1;return true;}
+struct DoomSaveExport{unsigned copied,failed;};
+bool usbStorageBegin(){return true;}bool usbStorageLock(){return diskReady;}void usbStorageUnlock(){}
+bool freslestSdMounted(){return diskReady;}
+const char* usbStorageRoot(){return "/usb";}const char* freslestSdRoot(){return "/sd";}
+bool usbInputSwitchDoomExport(){++usbSwitches;return true;}
+DoomSaveExport doomSaveExportFiles(const char* root,char(&folder)[48]){
+ assert(!strcmp(root,"/usb")||!strcmp(root,"/sd"));++exports;
+ snprintf(folder,sizeof(folder),"%s/DOOM/BACKUP001",root);return {2,0};
+}
 bool freslest_ota_ready(){return ready;}
 const char* esp_err_to_name(esp_err_t){return "ERROR";}
 const esp_partition_t* esp_partition_find_first(int type,int sub,const char*name){assert(type==0&&sub==18&&!strcmp(name,"doom"));return present?&partition:nullptr;}
@@ -44,12 +54,18 @@ int main(){
  bOk.edge=true;doomLoop(1);bOk.edge=false;assert(doomRequested&&!bootCalls&&status.find("Checking startup")!=std::string::npos);
  doomLoop(2);assert(!bootCalls);
  ready=true;doomLoop(3);assert(bootCalls==1&&descriptorCalls==1&&restarts==1&&presents==2&&stops==1&&updates==14&&unmounts==1&&!doomRequested);
- ready=false;doomEnter();hit=true;doomLoop(4);assert(doomRequested);doomEnter();ready=true;doomLoop(5);assert(bootCalls==1&&!doomRequested);
+ ready=false;doomEnter();hit=0;doomLoop(4);assert(doomRequested);doomEnter();ready=true;doomLoop(5);assert(bootCalls==1&&!doomRequested);
  present=false;bOk.edge=true;doomLoop(6);assert(bootCalls==1&&restarts==1&&status.find("partition missing")!=std::string::npos);
  present=true;rightProject=false;doomLoop(7);assert(bootCalls==1&&restarts==1);
  rightProject=true;descriptorError=9;doomLoop(8);assert(bootCalls==1);
  descriptorError=0;bootError=8;doomLoop(9);assert(bootCalls==2&&restarts==1&&stops==1);
  bootError=0;doomLoop(10);assert(bootCalls==3&&restarts==2&&stops==2);
+ bOk.edge=false;
+ hit=1;doomLoop(11);assert(exports==1&&status.find("DOOM/BACKUP001")!=std::string::npos);
+ hit=2;diskReady=false;doomLoop(12);assert(exports==1&&status.find("USB drive")!=std::string::npos);
+ hit=2;diskReady=true;doomLoop(13);assert(exports==2);
+ hit=3;ready=false;doomLoop(14);assert(!usbSwitches);
+ hit=3;ready=true;doomLoop(15);assert(usbSwitches==1&&bootCalls==3);
  puts("PASS: actual OS Doom launcher queues early input, cancels on re-entry, checks image identity, reports missing/corrupt/boot errors, presents loading status and preserves audio/filesystem shutdown");
 }
 '''

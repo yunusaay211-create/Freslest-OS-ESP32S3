@@ -4,16 +4,20 @@
 
 namespace frestore {
 constexpr unsigned MaxApps = 16, CatalogBytes = 12288, PackageBytes = 4096;
+constexpr uint32_t MaxAssetBytes = UINT32_MAX - PackageBytes;
+constexpr uint32_t InternalPackageLimit = 500 * 1024;
 constexpr unsigned OsManifestBytes = 768;
 constexpr unsigned MaxLines = 20, LineBytes = 45;
 struct App {
     char id[25], name[35], developer[30], description[97];
-    uint32_t version, size;
+    uint32_t version, size, assetSize;
     uint8_t category, digest[32];
 };
 struct Card {
     char id[25], name[35];
     uint32_t version;
+    uint32_t assetSize;
+    uint8_t assetDigest[32];
     unsigned count;
     char lines[MaxLines][LineBytes + 1];
 };

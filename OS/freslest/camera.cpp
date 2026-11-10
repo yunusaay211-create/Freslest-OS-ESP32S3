@@ -1,5 +1,6 @@
 #include <WiFi.h>
 #include <TJpg_Decoder.h>
+#include <esp_heap_caps.h>
 #include "gfx.h"
 #include "src/freslest/apps.h"
 #include "input.h"
@@ -12,7 +13,8 @@ static const uint16_t CAM_PORT = 80;
 static WiFiClient client;
 
 // ================= BUFFER =================
-static uint8_t jpgBuf[60000];
+static constexpr size_t JpegCapacity = 60000;
+static uint8_t *jpgBuf = nullptr;
 
 // ================= DRAW =================
 static int drawX = 0;
@@ -87,6 +89,7 @@ static void cameraRestartTcp()
 }
 void cameraExit()
 {
+  if (!jpgBuf) return;
   Serial.println("📴 CAMERA FULL EXIT");
 
   // 🔌 TCP kapat
@@ -103,7 +106,8 @@ void cameraExit()
   jpgRead = 0;
 
   // 🧼 buffer temizle
-  memset(jpgBuf, 0, sizeof(jpgBuf));
+  heap_caps_free(jpgBuf);
+  jpgBuf = nullptr;
 
   // 🎥 decoder reset (opsiyonel ama iyi)
   TJpgDec.setCallback(nullptr);
@@ -117,6 +121,14 @@ void cameraExit()
 // ================= ENTER =================
 void cameraEnter()
 {
+  if (jpgBuf) cameraExit();
+  jpgBuf = static_cast<uint8_t *>(heap_caps_malloc(JpegCapacity, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  if (!jpgBuf) {
+    cameraDrawStatus("Camera needs free PSRAM.");
+    return;
+  }
+  cameraResetFrameRead();
+  uiDrawn = false;
   Serial.begin(115200);
 
   WiFi.mode(WIFI_STA);
@@ -147,6 +159,7 @@ static bool cameraDecodeFrame(){
 // ================= LOOP =================
 void cameraLoop(uint32_t now)
 {
+  if (!jpgBuf) return;
   static uint32_t lastDebug = 0;
   // 🔆 LED KONTROL (gönderilecek)
   if (bUp.pressed())
@@ -271,7 +284,7 @@ void cameraLoop(uint32_t now)
       Serial.print("📦 FRAME LEN: ");
       Serial.println(frameLen);
 
-      if (frameLen < 1000 || frameLen > sizeof(jpgBuf))
+      if (frameLen < 1000 || frameLen > JpegCapacity)
       {
         Serial.print("❌ BAD LEN: ");
         Serial.println(frameLen);

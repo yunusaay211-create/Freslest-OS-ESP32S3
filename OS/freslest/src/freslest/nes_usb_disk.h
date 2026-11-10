@@ -6,7 +6,10 @@ namespace NesUsbDisk {
 constexpr size_t SECTOR_SIZE=512;
 constexpr size_t DISK_SIZE=4*1024*1024;
 struct RomFile {char name[49];uint32_t size;uint16_t cluster;};
-bool format(uint8_t* disk,size_t size,void (*cooperate)()=nullptr);
+bool format(uint8_t* disk,size_t size,void (*cooperate)()=nullptr,bool doom=false);
+// Append a contiguous 8.3 file to a disk created by format(), before USB mounts it.
+bool appendFile(uint8_t *disk, size_t size, const char (&shortName)[12], size_t length,
+                int (*readFile)(const char *, void *, size_t), const char *path);
 class Volume {
  public:
   bool mount(const uint8_t* disk,size_t size);

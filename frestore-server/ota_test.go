@@ -89,22 +89,22 @@ func TestPublishOSOnHTTPS(t *testing.T) {
 		t.Fatal(err)
 	}
 	mirrored, err := loadStore(mirror)
-	if err != nil || !bytes.Equal(mirrored[base+hash], image) ||
-		!bytes.Equal(mirrored[base+"manifest"], routes[base+"manifest"]) {
+	if err != nil || !bytes.Equal(mirrored.documents[base+hash], image) ||
+		!bytes.Equal(mirrored.documents[base+"manifest"], routes.documents[base+"manifest"]) {
 		t.Fatal("mirror did not preserve the signed release")
 	}
 	changed := append([]byte(nil), image...)
 	changed[len(changed)-1] ^= 1
-	invalid := httptest.NewTLSServer(storeHandler(map[string][]byte{
-		base + "manifest": routes[base+"manifest"],
+	invalid := httptest.NewTLSServer(storeHandler(&storeRoutes{documents: map[string][]byte{
+		base + "manifest": routes.documents[base+"manifest"],
 		base + hash:       changed,
-	}))
+	}}))
 	defer invalid.Close()
 	if err := mirrorOS(invalid.Client(), invalid.URL, "ili9488", mirror); err == nil {
 		t.Fatal("mirror accepted a corrupted image")
 	}
 	stillValid, err := loadStore(mirror)
-	if err != nil || !bytes.Equal(stillValid[base+hash], image) {
+	if err != nil || !bytes.Equal(stillValid.documents[base+hash], image) {
 		t.Fatal("failed mirror replaced the last published image")
 	}
 	if err := mirrorOS(&http.Client{}, "http://127.0.0.1:1", "ili9488", mirror); err == nil {

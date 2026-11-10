@@ -9,11 +9,36 @@ static void put32(uint8_t* p,unsigned n){put16(p,n);put16(p+2,n>>16);}
 static void fat(std::vector<uint8_t>& disk,unsigned cluster,unsigned next){for(unsigned table=0;table<2;table++)put16(disk.data()+(1+table*32)*512+cluster*2,next);}
 static unsigned formatYields=0;
 static void formatYield(){++formatYields;}
+static int saveData(const char *value, void *out, size_t size) {
+ if(!value[0])return 0;
+ memset(out,value[0],size);return 1;
+}
 int main(){
  for(size_t capacity: {DISK_SIZE,size_t(2*1024*1024),size_t(1024*1024)}) {
   std::vector<uint8_t> staged(capacity,0xa5);formatYields=0;
   assert(format(staged.data(),capacity,formatYield));assert(formatYields==capacity/65536);
   Volume formatted;assert(formatted.mount(staged.data(),capacity));assert(staged.back()==0);
+ }
+ {
+  std::vector<uint8_t> saves(2*1024*1024);
+  assert(format(saves.data(),saves.size(),nullptr,true));
+  constexpr size_t slotSize=0x3f000;
+  assert(!appendFile(saves.data(),saves.size(),"PRBMSAV0DSG",slotSize,saveData,""));
+  for(unsigned slot=0;slot<8;++slot) {
+   char filename[]="PRBMSAV0DSG", content[]="0";
+   filename[7]=content[0]='0'+slot;
+   assert(appendFile(saves.data(),saves.size(),filename,slotSize,saveData,content));
+   assert(!appendFile(saves.data(),saves.size(),filename,slotSize,saveData,content));
+   const auto *entry=saves.data()+25*512+(slot+2)*32;
+   assert(!memcmp(entry,filename,11));
+   unsigned cluster=entry[26]|entry[27]<<8;
+   assert(cluster==3+slot*slotSize/512);
+   RomFile file{};file.cluster=cluster;file.size=slotSize;
+   Volume volume;assert(volume.mount(saves.data(),saves.size())&&volume.validChain(file));
+   char last=0;assert(volume.read(file,slotSize-1,&last,1)&&last==content[0]);
+  }
+  assert(!memcmp(saves.data()+512,saves.data()+13*512,12*512));
+  assert(!appendFile(saves.data(),saves.size(),"NOSPACE DSG",slotSize,saveData,"9"));
  }
  std::vector<uint8_t> disk(DISK_SIZE);assert(format(disk.data(),disk.size()));Volume volume;assert(volume.mount(disk.data(),disk.size()));unsigned index=0;RomFile rom;assert(!volume.nextRom(index,rom));
  uint8_t* entry=disk.data()+65*512+64;memcpy(entry,"MARIO   NES",11);entry[11]=0x20;put16(entry+26,3);put32(entry+28,700);

@@ -37,6 +37,10 @@ int main(){
  nvsFail=true;assert(!usbInputSwitchViewer(true));nvsFail=false;
  try{usbInputSwitchViewer(true);assert(false);}catch(const Restart&){}
  assert(savedScreen==1&&!savedPc&&!savedNes);usbInputBegin();assert(usbInputViewerMode()&&!usbInputDeviceMode()&&!usbInputHostMode());
+ try{usbInputSwitchDoomExport();assert(false);}catch(const Restart&){}
+ usbInputBegin();assert(usbInputDoomExportMode()&&usbInputDeviceMode()&&savedPc==2&&savedScreen==1);
+ try{usbInputSwitchMode(false);assert(false);}catch(const Restart&){}
+ usbInputBegin();assert(usbInputViewerMode()&&usbInputResumeDoom()&&!usbInputResumeNes()&&!savedPc&&!savedNes);
  try{usbInputSwitchMode(false);assert(false);}catch(const Restart&){}
  usbInputBegin();assert(usbInputHostMode()&&!usbInputResumeNes());
  try{usbInputSwitchViewer(true);assert(false);}catch(const Restart&){}

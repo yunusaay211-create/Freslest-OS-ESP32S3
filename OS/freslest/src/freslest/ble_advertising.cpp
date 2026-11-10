@@ -5,6 +5,7 @@
 #include "ble_host_platform.h"
 #else
 #include <Arduino.h>
+#include <esp_attr.h>
 #include <esp_bt.h>
 #include <esp_bt_main.h>
 #include <esp_gap_ble_api.h>
@@ -26,7 +27,7 @@ struct Peer {
   freslest_hid_map_t maps[2];
   uint8_t kinds[2];
 };
-Peer peers[2]{};
+EXT_RAM_BSS_ATTR Peer peers[2]{};
 struct Saved {
   uint8_t address[6], type, kind;
   char name[38];
@@ -174,8 +175,8 @@ void loadSaved() {
     data = {saved.magic, 1, 0, {}};
     int count = esp_ble_get_bond_device_num();
     if (count > 0 && count <= 32) {
-      auto *b = (esp_ble_bond_dev_t *)calloc((size_t)count,
-                                             sizeof(esp_ble_bond_dev_t));
+      auto *b = static_cast<esp_ble_bond_dev_t *>(heap_caps_calloc(
+          count, sizeof(esp_ble_bond_dev_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
       if (b) {
         if (esp_ble_get_bond_device_list(&count, b) == ESP_OK)
           for (int j = 0; j < count && data.count < 2; j++) {
@@ -502,27 +503,26 @@ void hid(void *, esp_event_base_t, int32_t event, void *arg) {
     // pointer.
   }
 }
-bool memoryReady(size_t minimum,size_t block) {
+bool internalMemory(size_t minimum, size_t block, const char *stage) {
   // BTU creates internal-RAM FreeRTOS tasks/queues even with PSRAM enabled.
   // IDF 5.4.4's allocation-failure cleanup can iterate an uninitialized
   // L2CAP pool (list_begin(NULL)); reject pressure before entering that path.
   size_t freeInternal=heap_caps_get_free_size(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT);
   size_t largest=heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT);
-  Serial.printf("BLE memory: INTERNAL free=%u largest=%u; PSRAM free=%u\n",(unsigned)freeInternal,(unsigned)largest,
+  Serial.printf("BLE memory (%s): INTERNAL free=%u largest=%u; PSRAM free=%u\n",stage,(unsigned)freeInternal,(unsigned)largest,
     (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT));
-  if(freeInternal<minimum || largest<block){
-    portENTER_CRITICAL(&mux);info.enabled=false;info.ready=false;++info.revision;portEXIT_CRITICAL(&mux);
-    status("Low internal RAM. Close apps or restart, then retry Bluetooth.");
-    return false;
-  }
-  return true;
+  return freeInternal >= minimum && largest >= block;
 }
 bool psramReady() {
   return heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT) >= MinFreePsram;
 }
 bool initialize() {
   if(initialized)return true;
-  if(!memoryReady(65536u,12288u))return false;
+  if (!internalMemory(65536u, 12288u, "before start")) {
+    portENTER_CRITICAL(&mux); info.enabled = false; ++info.revision; portEXIT_CRITICAL(&mux);
+    status("Low internal RAM. Close apps or restart, then retry Bluetooth.");
+    return false;
+  }
   esp_err_t e = ESP_OK;
   if (esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_IDLE) {
     esp_bt_controller_config_t c = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
@@ -536,8 +536,8 @@ bool initialize() {
     e = esp_bluedroid_init();
   if (e == ESP_OK && esp_bluedroid_get_status() != ESP_BLUEDROID_STATUS_ENABLED) {
     // Recheck after controller/BTC allocations, immediately before BTU starts.
-    if(!memoryReady(32768u,8192u))return false;
-    e = esp_bluedroid_enable();
+    e = internalMemory(32768u, 8192u, "before host enable") ?
+        esp_bluedroid_enable() : ESP_ERR_NO_MEM;
   }
   if (e == ESP_OK)
     e = esp_ble_gap_register_callback(gap);
@@ -545,9 +545,10 @@ bool initialize() {
     e = esp_ble_gattc_register_callback(esp_hidh_gattc_event_handler);
   esp_hidh_config_t c = {};
   c.callback = hid;
-  c.event_stack_size = 8192;
+  c.event_stack_size = 6144;
   if (e == ESP_OK)
     e = esp_hidh_init(&c);
+  const bool hidStarted = e == ESP_OK;
   uint8_t auth = ESP_LE_AUTH_BOND, io = ESP_IO_CAP_OUT,
           key = ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK, keySize = 16;
   if (e == ESP_OK)
@@ -562,10 +563,18 @@ bool initialize() {
     e = esp_ble_gap_set_security_param(ESP_BLE_SM_MAX_KEY_SIZE, &keySize, 1);
   if (e != ESP_OK) {
     Serial.printf("BLE HID init: %s\n", esp_err_to_name(e));
-    status("BLE init failed. Restart to retry.");
+    if (hidStarted) esp_hidh_deinit();
+    if (esp_bluedroid_get_status() == ESP_BLUEDROID_STATUS_ENABLED) esp_bluedroid_disable();
+    if (esp_bluedroid_get_status() == ESP_BLUEDROID_STATUS_INITIALIZED) esp_bluedroid_deinit();
+    if (esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_ENABLED) esp_bt_controller_disable();
+    if (esp_bt_controller_get_status() == ESP_BT_CONTROLLER_STATUS_INITED) esp_bt_controller_deinit();
+    portENTER_CRITICAL(&mux); info.enabled = false; ++info.revision; portEXIT_CRITICAL(&mux);
+    status(e == ESP_ERR_NO_MEM ? "Low internal RAM. Close apps and retry Bluetooth." :
+                              "Bluetooth setup failed. Turn it on to retry.");
     return false;
   }
   initialized = true;
+  internalMemory(0, 0, "ready");
   loadSaved();
   if (esp_ble_gap_config_local_privacy(true) != ESP_OK)
     privacyReady = true;
@@ -595,7 +604,7 @@ void scan(bool manual = false) {
   p.scan_filter_policy = BLE_SCAN_FILTER_ALLOW_ALL;
   p.scan_interval = 0x80;
   p.scan_window = 0x20;
-  p.scan_duplicate = BLE_SCAN_DUPLICATE_DISABLE;
+  p.scan_duplicate = BLE_SCAN_DUPLICATE_ENABLE;
   if (esp_ble_gap_set_scan_params(&p) != ESP_OK) {
     portENTER_CRITICAL(&mux);
     scanRequested = false;
@@ -605,6 +614,7 @@ void scan(bool manual = false) {
 }
 void connectDevice(FreslestBleDevice d, bool manual) {
   uint32_t gen;
+  const bool memory = internalMemory(24576u, 4096u, "before connect");
   portENTER_CRITICAL(&mux);
   gen = epoch;
   bool on = info.enabled;
@@ -617,7 +627,7 @@ void connectDevice(FreslestBleDevice d, bool manual) {
     info.pairMode = 0;
     ++info.revision;
   }
-  if (on && !already) {
+  if (on && !already && memory) {
     pending = true;
     pendingEpoch = epoch;
     pendingDevice = d;
@@ -627,6 +637,10 @@ void connectDevice(FreslestBleDevice d, bool manual) {
     handshakeDeadline = 0;
     ++info.attempts;
     ++info.revision;
+  } else if (!already) {
+    info.busy = false;
+    if (on) retryFailed(s, millis());
+    ++info.revision;
   }
   portEXIT_CRITICAL(&mux);
   if (!on)
@@ -634,6 +648,10 @@ void connectDevice(FreslestBleDevice d, bool manual) {
   if (already) {
     esp_ble_gap_disconnect(d.address);
     status("Disconnected by user. Select again to reconnect.");
+    return;
+  }
+  if (!memory) {
+    status("Low internal RAM. Close apps and retry the connection.");
     return;
   }
   esp_ble_gap_stop_scanning();
@@ -774,8 +792,8 @@ void process(Command c) {
     if (c.op == FORGET && initialized) {
       int count = esp_ble_get_bond_device_num();
       if (count > 0 && count <= 32) {
-        auto *bonds = (esp_ble_bond_dev_t *)calloc((size_t)count,
-                                                   sizeof(esp_ble_bond_dev_t));
+        auto *bonds = static_cast<esp_ble_bond_dev_t *>(heap_caps_calloc(
+            count, sizeof(esp_ble_bond_dev_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
         if (bonds) {
           if (esp_ble_get_bond_device_list(&count, bonds) == ESP_OK)
             for (int j = 0; j < count; j++)
@@ -919,6 +937,7 @@ void freslestBlePairReply(bool accept) {
     esp_ble_gap_disconnect(b);
 }
 void freslestBleDiagnostics() {
+  internalMemory(0, 0, "diagnostics");
   auto s = freslestBleInfo();
   Serial.printf("BLE enabled=%u ready=%u connected=%u scan=%u busy=%u "
                 "attempts=%lu closes=%lu last-reason=0x%x; %s\n",

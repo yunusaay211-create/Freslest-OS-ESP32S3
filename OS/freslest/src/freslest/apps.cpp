@@ -437,6 +437,7 @@ void enterApp(AppId next) {
   if((app==APP_USB_TRANSFER||app==APP_NES_LIBRARY)&&next!=APP_USB_TRANSFER&&next!=APP_NES_LIBRARY)nesUsbExit();
   if(app==APP_NOTE && next!=APP_NOTE)noteExit();
   if(app==APP_BROWSER && next!=APP_BROWSER)browserExit();
+  if(app==APP_CAMERA && next!=APP_CAMERA)cameraExit();
   if(app==APP_SET_WIFI && next!=APP_SET_WIFI)setWifiExit();
   if(app==APP_SET_BT && next!=APP_SET_BT)setBtExit();
   if(app==APP_TERMINAL && next!=APP_TERMINAL)usbInputTextMode(false);
@@ -496,6 +497,7 @@ void enterApp(AppId next) {
 
 void backToMenu() {
   if(app==APP_BROWSER)browserExit();
+  if(app==APP_CAMERA)cameraExit();
   if(app==APP_USB_TRANSFER||app==APP_NES_LIBRARY)nesUsbExit();
   // cleanup for pages that keep services running
   if (app == APP_SET_WIFI) setWifiExit();
@@ -564,15 +566,10 @@ void appLoop(uint32_t now) {
       return;
     }
 
-  if (app == APP_CAMERA) {
-    Serial.println("EXIT CAMERA");
-
-    // kamera bağlantısını kapat
-    cameraExit();  // 👈 bunu ekle (aşağıda veriyorum)
-
-    enterApp(APP_MENU);
-    return;
-  }
+    if (app == APP_CAMERA) {
+      enterApp(APP_MENU);
+      return;
+    }
 
     // Parent pages -> main menu
     backToMenu();

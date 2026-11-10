@@ -21,7 +21,10 @@ const char *usbInputSpecialKey();
 bool usbInputHit(int x, int y, int w, int h);
 bool usbInputDeviceMode();
 bool usbInputResumeNes();
+bool usbInputDoomExportMode();
+bool usbInputResumeDoom();
 bool usbInputSwitchMode(bool pc);
+bool usbInputSwitchDoomExport();
 
 bool usbInputViewerMode();
 bool usbInputHostMode();

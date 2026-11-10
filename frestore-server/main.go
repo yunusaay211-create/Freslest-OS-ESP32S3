@@ -29,6 +29,7 @@ const (
 	maxApps     = 16
 	maxCatalog  = 12288
 	maxPackage  = 4096
+	maxAsset    = 1<<32 - 1 - maxPackage
 	catalogFile = "catalog.fsc"
 	publicFile  = "publisher.pub"
 	target      = "esp32s3"
@@ -45,6 +46,7 @@ type source struct {
 	Version     int      `json:"version"`
 	Category    int      `json:"category"`
 	Lines       []string `json:"lines"`
+	Asset       string   `json:"asset,omitempty"`
 }
 type offer struct {
 	ID           string   `json:"id"`
@@ -56,6 +58,7 @@ type offer struct {
 	Category     int      `json:"category"`
 	SHA256       string   `json:"sha256"`
 	Dependencies []string `json:"dependencies"`
+	AssetSize    int64    `json:"asset_size,omitempty"`
 }
 type catalog struct {
 	Format string  `json:"format"`
@@ -64,13 +67,15 @@ type catalog struct {
 	Apps   []offer `json:"apps"`
 }
 type card struct {
-	Format  string   `json:"format"`
-	Target  string   `json:"target"`
-	ABI     int      `json:"abi"`
-	ID      string   `json:"id"`
-	Name    string   `json:"name"`
-	Version int      `json:"version"`
-	Lines   []string `json:"lines"`
+	Format    string   `json:"format"`
+	Target    string   `json:"target"`
+	ABI       int      `json:"abi"`
+	ID        string   `json:"id"`
+	Name      string   `json:"name"`
+	Version   int      `json:"version"`
+	Lines     []string `json:"lines"`
+	AssetSize int64    `json:"asset_size,omitempty"`
+	AssetSHA  string   `json:"asset_sha256,omitempty"`
 }
 
 func printable(s string, limit int) bool {
@@ -173,12 +178,18 @@ func readBounded(path string, limit int) ([]byte, error) {
 	return data, err
 }
 func writeAtomic(path string, data []byte, exclusive bool) error {
+	return writeAtomicContent(path, exclusive, func(file *os.File) error {
+		_, err := file.Write(data)
+		return err
+	})
+}
+func writeAtomicContent(path string, exclusive bool, write func(*os.File) error) error {
 	f, err := os.CreateTemp(filepath.Dir(path), ".publish-*")
 	if err != nil {
 		return err
 	}
 	defer os.Remove(f.Name())
-	if _, err = f.Write(data); err == nil {
+	if err = write(f); err == nil {
 		err = f.Chmod(0644)
 	}
 	if err == nil {
@@ -193,6 +204,57 @@ func writeAtomic(path string, data []byte, exclusive bool) error {
 	return os.Rename(f.Name(), path)
 }
 func packageName(id string, version int) string { return fmt.Sprintf("%s.%d.fsp", id, version) }
+
+func validAssetName(name string) bool {
+	return name != "" && name != "." && name != ".." && filepath.Base(name) == name &&
+		!bytes.ContainsAny([]byte(name), "\\:") && printable(name, 120)
+}
+
+func verifyAsset(path string, size int64, digest string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil || !info.Mode().IsRegular() || info.Size() != size {
+		return fmt.Errorf("asset has an unexpected size: %s", filepath.Base(path))
+	}
+	hash := sha256.New()
+	if _, err := io.CopyN(hash, file, size); err != nil {
+		return err
+	}
+	if fmt.Sprintf("%x", hash.Sum(nil)) != digest {
+		return fmt.Errorf("asset checksum mismatch: %s", filepath.Base(path))
+	}
+	return nil
+}
+
+func publishAsset(source, destination string) (int64, string, error) {
+	file, err := os.Open(source)
+	if err != nil {
+		return 0, "", err
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil || !info.Mode().IsRegular() || info.Size() <= 0 || info.Size() > maxAsset {
+		return 0, "", errors.New("asset must be a nonempty file that fits on FAT")
+	}
+	size := info.Size()
+	hash := sha256.New()
+	err = writeAtomicContent(destination, true, func(out *os.File) error {
+		n, err := io.Copy(io.MultiWriter(out, hash), io.LimitReader(file, size+1))
+		if err == nil && n != size {
+			return errors.New("asset changed during publication")
+		}
+		return err
+	})
+	digest := fmt.Sprintf("%x", hash.Sum(nil))
+	if errors.Is(err, os.ErrExist) {
+		err = verifyAsset(destination, size, digest)
+	}
+	return size, digest, err
+}
 
 func publish(input, out string, key *ecdsa.PrivateKey) error {
 	entries, err := os.ReadDir(input)
@@ -217,7 +279,19 @@ func publish(input, out string, key *ecdsa.PrivateKey) error {
 			return fmt.Errorf("invalid, duplicate or excess app %s", entry.Name())
 		}
 		seen[app.ID] = true
-		payload, err := json.Marshal(card{"frestore-card-1", target, abi, app.ID, app.Name, app.Version, app.Lines})
+		pack := card{Format: "frestore-card-1", Target: target, ABI: abi,
+			ID: app.ID, Name: app.Name, Version: app.Version, Lines: app.Lines}
+		path := filepath.Join(out, packageName(app.ID, app.Version))
+		if app.Asset != "" {
+			if !validAssetName(app.Asset) {
+				return fmt.Errorf("invalid asset filename for %s", app.ID)
+			}
+			pack.AssetSize, pack.AssetSHA, err = publishAsset(filepath.Join(input, app.Asset), path+".dat")
+			if err != nil {
+				return err
+			}
+		}
+		payload, err := json.Marshal(pack)
 		if err != nil {
 			return err
 		}
@@ -228,7 +302,6 @@ func publish(input, out string, key *ecdsa.PrivateKey) error {
 		if len(envelope) > maxPackage {
 			return fmt.Errorf("%s exceeds package size limit", app.ID)
 		}
-		path := filepath.Join(out, packageName(app.ID, app.Version))
 		if err := writeAtomic(path, envelope, true); err != nil {
 			if !errors.Is(err, os.ErrExist) {
 				return err
@@ -244,7 +317,7 @@ func publish(input, out string, key *ecdsa.PrivateKey) error {
 		}
 		hash := sha256.Sum256(envelope)
 		list.Apps = append(list.Apps, offer{app.ID, app.Name, app.Developer, app.Description,
-			app.Version, len(envelope), app.Category, fmt.Sprintf("%x", hash), []string{}})
+			app.Version, len(envelope), app.Category, fmt.Sprintf("%x", hash), []string{}, pack.AssetSize})
 	}
 	data, err := json.Marshal(list)
 	if err != nil {
@@ -290,7 +363,17 @@ func readPublisher(dir string) (*ecdsa.PublicKey, error) {
 	return pub, nil
 }
 
-func loadStore(dir string) (map[string][]byte, error) {
+type assetRoute struct {
+	path string
+	size int64
+}
+
+type storeRoutes struct {
+	documents map[string][]byte
+	assets    map[string]assetRoute
+}
+
+func loadStore(dir string) (*storeRoutes, error) {
 	pub, err := readPublisher(dir)
 	if err != nil {
 		return nil, err
@@ -309,13 +392,17 @@ func loadStore(dir string) (map[string][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	routes := map[string][]byte{"/v1/catalog": envelope, "/v1/publisher.pub": []byte(publisher)}
+	routes := &storeRoutes{
+		documents: map[string][]byte{"/v1/catalog": envelope, "/v1/publisher.pub": []byte(publisher)},
+		assets:    make(map[string]assetRoute),
+	}
 	for _, item := range list.Apps {
 		if !appID.MatchString(item.ID) || item.Version < 1 || item.Version > 999999 {
 			return nil, errors.New("invalid package identity")
 		}
 		file := packageName(item.ID, item.Version)
-		data, err := readBounded(filepath.Join(dir, file), maxPackage)
+		packagePath := filepath.Join(dir, file)
+		data, err := readBounded(packagePath, maxPackage)
 		if err != nil {
 			return nil, err
 		}
@@ -324,12 +411,21 @@ func loadStore(dir string) (map[string][]byte, error) {
 		if err != nil || len(data) != item.Size || fmt.Sprintf("%x", sha256.Sum256(data)) != item.SHA256 ||
 			json.Unmarshal(contents, &app) != nil || app.Format != "frestore-card-1" ||
 			app.Target != target || app.ABI != abi || app.ID != item.ID ||
-			app.Name != item.Name || app.Version != item.Version {
+			app.Name != item.Name || app.Version != item.Version || app.AssetSize != item.AssetSize ||
+			app.AssetSize < 0 || app.AssetSize > maxAsset {
 			return nil, fmt.Errorf("invalid package %s", file)
 		}
-		routes["/v1/packages/"+item.ID+"/"+strconv.Itoa(item.Version)] = data
+		route := "/v1/packages/" + item.ID + "/" + strconv.Itoa(item.Version)
+		routes.documents[route] = data
+		if app.AssetSize > 0 {
+			path := packagePath + ".dat"
+			if err := verifyAsset(path, app.AssetSize, app.AssetSHA); err != nil {
+				return nil, err
+			}
+			routes.assets[route+"/asset"] = assetRoute{path, app.AssetSize}
+		}
 	}
-	loadOSRoutes(dir, pub, routes)
+	loadOSRoutes(dir, pub, routes.documents)
 	return routes, nil
 }
 
@@ -350,7 +446,21 @@ func (l *limit) allow(now time.Time) bool {
 	l.tokens--
 	return true
 }
-func storeHandler(routes map[string][]byte) http.Handler {
+
+type assetWriter struct {
+	http.ResponseWriter
+	controller *http.ResponseController
+}
+
+func (writer assetWriter) Write(data []byte) (int, error) {
+	err := writer.controller.SetWriteDeadline(time.Now().Add(20 * time.Second))
+	if err != nil && !errors.Is(err, http.ErrNotSupported) {
+		return 0, err
+	}
+	return writer.ResponseWriter.Write(data)
+}
+
+func storeHandler(routes *storeRoutes) http.Handler {
 	budget := &limit{last: time.Now(), tokens: 30}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !budget.allow(time.Now()) {
@@ -363,15 +473,34 @@ func storeHandler(routes map[string][]byte) http.Handler {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		body, found := routes[r.URL.EscapedPath()]
-		if !found {
+		path := r.URL.EscapedPath()
+		body, found := routes.documents[path]
+		asset, hasAsset := routes.assets[path]
+		if !found && !hasAsset {
 			http.NotFound(w, r)
 			return
 		}
 		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Cache-Control", "no-cache")
+		if hasAsset {
+			file, err := os.Open(asset.path)
+			if err != nil {
+				http.NotFound(w, r)
+				return
+			}
+			defer file.Close()
+			info, err := file.Stat()
+			if err != nil || !info.Mode().IsRegular() || info.Size() != asset.size {
+				http.Error(w, "asset unavailable", http.StatusServiceUnavailable)
+				return
+			}
+			w.Header().Set("Content-Length", strconv.FormatInt(asset.size, 10))
+			n, err := io.CopyN(assetWriter{w, http.NewResponseController(w)}, file, asset.size)
+			log.Printf("%s %d bytes=%d err=%v", path, http.StatusOK, n, err)
+			return
+		}
+		w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 		n, err := w.Write(body)
 		log.Printf("%s %d bytes=%d err=%v", r.URL.EscapedPath(), http.StatusOK, n, err)
 	})

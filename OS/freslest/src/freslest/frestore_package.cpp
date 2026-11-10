@@ -17,9 +17,10 @@ bool is(const cJSON *obj, const char *name, const char *expected) {
 }
 bool number(const cJSON *obj, const char *name, uint32_t max, uint32_t &out) {
     const auto *value = field(obj, name);
-    if (!cJSON_IsNumber(value) || !(value->valuedouble >= 1 && value->valuedouble <= max) ||
-        value->valuedouble != value->valueint) return false;
-    out = value->valueint;
+    if (!cJSON_IsNumber(value) || !(value->valuedouble >= 1 && value->valuedouble <= max)) return false;
+    const uint32_t integer = static_cast<uint32_t>(value->valuedouble);
+    if (value->valuedouble != integer) return false;
+    out = integer;
     return true;
 }
 bool printable(const char *s, char *out, size_t capacity, bool empty = false) {
@@ -38,8 +39,8 @@ int hexDigit(char c) {
     if (c >= '0' && c <= '9') return c - '0';
     return c >= 'a' && c <= 'f' ? c - 'a' + 10 : -1;
 }
-bool hashField(const cJSON *obj, uint8_t (&out)[32]) {
-    const char *s = cJSON_GetStringValue(field(obj, "sha256"));
+bool hashField(const cJSON *obj, uint8_t (&out)[32], const char *name = "sha256") {
+    const char *s = cJSON_GetStringValue(field(obj, name));
     if (!s || strlen(s) != 64) return false;
     for (unsigned i = 0; i < 32; ++i) {
         int a = hexDigit(s[i * 2]), b = hexDigit(s[i * 2 + 1]);
@@ -47,6 +48,10 @@ bool hashField(const cJSON *obj, uint8_t (&out)[32]) {
         out[i] = (a << 4) | b;
     }
     return true;
+}
+bool assetSize(const cJSON *obj, uint32_t &size) {
+    size = 0;
+    return !field(obj, "asset_size") || number(obj, "asset_size", MaxAssetBytes, size);
 }
 bool publicKey(mbedtls_pk_context &pk, const char *key, uint8_t (&der)[128], size_t &length) {
     return !mbedtls_base64_decode(der, sizeof(der), &length,
@@ -95,7 +100,8 @@ bool parseApp(const cJSON *item, App &app) {
         !text(item, "description", app.description, sizeof(app.description)) ||
         !number(item, "version", 999999, app.version) ||
         !number(item, "size", PackageBytes, app.size) ||
-        !number(item, "category", CategoryCount, category) || !hashField(item, app.digest)) return false;
+        !number(item, "category", CategoryCount, category) || !hashField(item, app.digest) ||
+        !assetSize(item, app.assetSize)) return false;
     app.category = category - 1;
     return true;
 }
@@ -193,7 +199,8 @@ bool parseCard(const char *data, size_t size, const char *key, Card &card) {
     bool valid = cJSON_IsArray(lines) && n > 0 && n <= (int)MaxLines &&
         text(doc, "id", card.id, sizeof(card.id)) && validId(card.id) &&
         text(doc, "name", card.name, sizeof(card.name)) &&
-        number(doc, "version", 999999, card.version);
+        number(doc, "version", 999999, card.version) && assetSize(doc, card.assetSize) &&
+        (!card.assetSize || hashField(doc, card.assetDigest, "asset_sha256"));
     const cJSON *line = lines ? lines->child : nullptr;
     for (int i = 0; valid && i < n; ++i, line = line->next)
         valid = printable(cJSON_GetStringValue(line), card.lines[i], sizeof(card.lines[i]), true);

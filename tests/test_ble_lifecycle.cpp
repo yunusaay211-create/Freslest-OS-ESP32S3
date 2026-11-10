@@ -26,8 +26,11 @@ int main(){
  internalFree=131072;internalLargest=8192;freslestBleStart();pump();assert(!info.enabled&&!info.ready&&!sdkStarts);
  internalLargest=65536;bluedroidState=ESP_BLUEDROID_STATUS_UNINITIALIZED;freeAfterInit=16000;
  freslestBleStart();pump();assert(!info.enabled&&!info.ready&&!sdkStarts&&!bluedroidEnables);
+ assert(controllerState==ESP_BT_CONTROLLER_STATUS_IDLE&&bluedroidState==ESP_BLUEDROID_STATUS_UNINITIALIZED);
  internalFree=freeAfterInit=131072;freslestBleStart();pump();assert(info.enabled&&info.ready&&scans==1&&sdkStarts==1&&bluedroidEnables==1);
  advertise(k);advertise(m);openHook=[&](uint8_t*b,int){auto*d=same(b,k.address)?&k:&m;d->freed=false;openEvent(*d);return d;};
+ internalFree=23000;freslestBleConnect(0);pump();assert(!opens&&!info.busy&&info.ready&&strstr(info.status,"Low internal RAM"));
+ internalFree=131072;
  freslestBleConnect(0);pump();freslestBleConnect(1);pump();assert(info.connected==2&&saved.count==2&&!info.busy);
  assert(!nvsBytes.empty()); // The open event queued its NVS save.
  uint8_t keys[]={0,0,0x1a,0,0,0,0,0},mouse[]={1,5,0xfb};inputEvent(k,1,keys,8);inputEvent(m,2,mouse,3);

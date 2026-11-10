@@ -64,6 +64,7 @@ void setup() {
   desktopBegin();
   randomSeed(esp_random());fpsInit();drawMenuFull();
   if(usbInputDeviceMode())enterApp(APP_USB_TRANSFER);
+  else if(usbInputResumeDoom())enterApp(APP_DOOM);
   else if(usbInputResumeNes())enterApp(APP_NES_LIBRARY);
   gfxPresent();
   freslestSafetyStage(FreslestBootStage::Menu);menuReadyAt=millis();

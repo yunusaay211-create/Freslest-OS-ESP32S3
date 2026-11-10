@@ -25,6 +25,14 @@ with tempfile.TemporaryDirectory() as tmp:
     subprocess.run([server, "keygen", "-private", private], check=True, stdout=subprocess.DEVNULL)
     subprocess.run([server, "publish", "-private", private,
                     "-input", root / "frestore-server/examples", "-out", published], check=True)
+    source, assets = work / "source", work / "assets"
+    source.mkdir()
+    (source / "large.json").write_text(json.dumps({
+        "id": "large", "name": "Large card", "developer": "Freslest", "description": "App data",
+        "version": 1, "category": 1, "lines": ["Attached data"], "asset": "large.bin",
+    }))
+    (source / "large.bin").write_bytes(bytes(range(256)) * 2400)
+    subprocess.run([server, "publish", "-private", private, "-input", source, "-out", assets], check=True)
     image = work / "os.bin"
     image.write_bytes(esp_image(OS_PROJECT, version="1.5.1", markers=[b"FRESLEST_LCD:ILI9488"]))
     subprocess.run([server, "publish-os", "-private", private, "-image", image,
@@ -62,6 +70,7 @@ with tempfile.TemporaryDirectory() as tmp:
                     root / "tests/test_frestore_package.cpp",
                     app / "frestore_package.cpp", obj, build / "library/libmbedcrypto.a", "-o", exe], check=True)
     subprocess.run([exe, published / "publisher.pub", catalogue, package, *negative, os_manifest, image,
-                    root / "frestore-server/starter/v1"],
+                    root / "frestore-server/starter/v1", assets / "catalog.fsc",
+                    assets / "large.1.fsp", assets / "large.1.fsp.dat"],
                    check=True, env={**os.environ, "ASAN_OPTIONS": "detect_leaks=0"})
 print("PASS: Go/C++ signed starter cards, personal store and OS manifests, SHA-256, tamper and compatibility rejection")
