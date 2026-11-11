@@ -13,9 +13,9 @@
 
 ## İndir ve kur
 
-- [Freslest 1.5 test paketi](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42507549212/artifacts/13628262463)
-- [Windows x64 Installer ve USB Viewer](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42507549212/artifacts/13628815714)
-- [Derleme ve test sonuçları](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42507549212)
+- [Freslest 1.5 test paketi](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42897905512/artifacts/13802621454)
+- [Windows x64 Installer ve USB Viewer](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42897905512/artifacts/13802406945)
+- [Derleme ve test sonuçları](https://github.com/yunusaay211-create/Freslest-OS-ESP32S3/actions/runs/42897905512)
 
 Dış arşivi aç. Kurulu firmware profiline uygun iç ZIP’i **açmadan** FAT16/FAT32 USB belleğin köküne kopyala.
 
